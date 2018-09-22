@@ -36,10 +36,12 @@
 			<artifactId>avro-ipc</artifactId>
 			<version>${avro.version}</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.msgpack/msgpack -->
 		<dependency>
 			<groupId>org.msgpack</groupId>
-			<artifactId>msgpack-core</artifactId>
-			<version>0.8.16</version>
+			<artifactId>msgpack</artifactId>
+			<!-- Due to the latest version 0.6.12 doesn't support @Message annotation so use 0.6.11 instead of it -->
+			<version>0.6.11</version>
 		</dependency>
 		<dependency>
 			<groupId>com.h2database</groupId>
@@ -86,6 +88,9 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
 				<version>3.1.1</version>
+				<configuration>
+					<createDependencyReducedPom>false</createDependencyReducedPom>
+				</configuration>
 				<executions>
 					<execution>
 						<phase>package</phase>

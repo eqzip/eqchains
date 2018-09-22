@@ -47,8 +47,11 @@ public final class Util {
 	public final static String MAC_PATH = "C:\\Program Files\\EQCOIN";
 
 	public final static String LINUX_PATH = "C:\\Program Files\\EQCOIN";
-
-	public static String PATH = null;
+	
+	/*
+	 * Set the default PATH value WINDOWS_PATH 
+	 */
+	public static String PATH = WINDOWS_PATH;
 
 	public enum Os {
 		WINDOWS, MAC, LINUX
@@ -139,13 +142,24 @@ public final class Util {
 		return sb.toString();
 	}
 
-	public static int bytesToInt(final byte[] foo) {
-		return foo[3] & 0xFF | (foo[2] & 0xFF) << 8 | (foo[1] & 0xFF) << 16 | (foo[0] & 0xFF) << 24;
+	public static byte[] shortToBytes(final short foo) {
+//		return ByteBuffer.allocate(2).putLong(foo).array();
+		return new byte[] { (byte) ((foo >> 8) & 0xFF), (byte) (foo & 0xFF) };
 	}
 
+	public static short bytesToShort(final byte[] bytes) {
+//		return ByteBuffer.allocate(2).put(bytes, 0, bytes.length).flip().getShort();
+		return (short) (bytes[1] & 0xFF | (bytes[0] & 0xFF) << 8);
+	}
+	
 	public static byte[] intToBytes(final int foo) {
-		return new byte[] { (byte) ((foo >> 24) & 0xFF), (byte) ((foo >> 16) & 0xFF), (byte) ((foo >> 8) & 0xFF),
-				(byte) (foo & 0xFF) };
+		return new byte[] { (byte) ((foo >> 24) & 0xFF), (byte) ((foo >> 16) & 0xFF), (byte) ((foo >> 8) & 0xFF), (byte) (foo & 0xFF) };
+//		return ByteBuffer.allocate(4).putInt(foo).array();
+	}
+	
+	public static int bytesToInt(final byte[] bytes) {
+		return bytes[3] & 0xFF | (bytes[2] & 0xFF) << 8 | (bytes[1] & 0xFF) << 16 | (bytes[0] & 0xFF) << 24;
+//		return ByteBuffer.allocate(4).put(bytes, 0, bytes.length).flip().getInt();
 	}
 
 	public static byte[] longToBytes(final long foo) {
@@ -277,44 +291,57 @@ public final class Util {
 		return out;
 	}
 
-//	uint8_t crc8_itu(uint8_t *data, uint_len length)
-//	{
-//	    uint8_t i;
-//	    uint8_t crc = 0;        // Initial value
-//	    while(length--)
-//	    {
-//	        crc ^= *data++;        // crc ^= *data; data++;
-//	        for ( i = 0; i < 8; i++ )
-//	        {
-//	            if ( crc & 0x80 )
-//	                crc = (crc << 1) ^ 0x07;
-//	            else
-//	                crc <<= 1;
-//	        }
-//	    }
-//	    return crc ^ 0x55;
-//	}
-//	
-	
-//	public static byte crc8(byte[] bytes) {
-//		
-//	}
-	
-	public static byte CRC8ITU(byte[] bytes) {
-		byte crci = 0x00;
-		for (int j = 0; j < bytes.length; j++) {
-			crci ^= bytes[j] & 0xff;
-			for (int i = 0; i < 8; i++) {
-				if ((crci & 0x80) != 0) {
-//					crci <<= 1;
-//					crci ^= 0x07;
-					crci = (byte) ((crci << 1) ^ 0x07);
-				} else {
-					crci <<= 1;
-				}
-			}
+	public static String dumpBytesBigEndianHex(byte[] bytes) {
+		StringBuilder sb = new StringBuilder();
+		for(int i=bytes.length-1; i>=0; --i) {
+			sb.append(Integer.toHexString(bytes[i]));
 		}
-		return (byte) (crci^0x55);
+		return sb.toString();
+	}
+	
+	public static String dumpBytesBigEndianBinary(byte[] bytes) {
+		StringBuilder sb = new StringBuilder();
+		for(int i=bytes.length-1; i>=0; --i) {
+			sb.append(binaryString(Integer.toBinaryString(bytes[i])));
+		}
+		return sb.toString();
 	}
 
+	public static String dumpBytesLittleEndianHex(byte[] bytes) {
+		StringBuilder sb = new StringBuilder();
+		for(int i=0; i<bytes.length; ++i) {
+			sb.append(Integer.toHexString(bytes[i]));
+		}
+		return sb.toString();
+	}
+	
+	public static String dumpBytesLittleEndianBinary(byte[] bytes) {
+		StringBuilder sb = new StringBuilder();
+		for(int i=0; i<bytes.length; ++i) {
+			sb.append(Integer.toBinaryString(bytes[i]));
+		}
+		return sb.toString();
+	}
+	
+	/**
+	 * Add leading zero when the original binary string's length is less than 8.
+	 * <p>
+	 * For example when foo is 101111 the output is 00101111.
+	 * @param foo This value is a string of ASCII digitsin binary (base 2) with no extra leading 0s. 	
+	 * @return 	  Fixed 8-bit long binary number with leading 0s.
+	 */
+	public static String binaryString(String foo) {
+		if(foo.length() == 8) {
+			return foo;
+		}
+		else {
+			StringBuilder sb = new StringBuilder();
+			for(int i=0; i<8-foo.length(); ++i) {
+				sb.append(0);
+			}
+			sb.append(foo);
+			return sb.toString();
+		}
+	}
+	
 }

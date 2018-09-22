@@ -17,14 +17,22 @@
  */
 package com.eqzip.eqcoin;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Vector;
 import com.eqzip.eqcoin.blockchain.EQCHeader;
+import com.eqzip.eqcoin.keystore.Account;
+import com.eqzip.eqcoin.keystore.Keystore;
 import com.eqzip.eqcoin.util.Util;
 import com.eqzip.eqcoin.util.Util.Os;
 import com.eqzip.eqcoin.util.Base58;
-import com.eqzip.eqcoin.util.CRC8;
+import com.eqzip.eqcoin.util.CRC8ITU;
 import com.eqzip.eqcoin.util.Log;
 import com.eqzip.eqcoin.util.SerialNumber;
 
@@ -39,7 +47,16 @@ public class App
     {
     	Thread.currentThread().setPriority(10);
     	Util.init(Os.WINDOWS);
-    	testCRC8ITU();
+    	Log.info("abc");
+    	byte[] bytes = BigInteger.valueOf(Long.MAX_VALUE+1).toByteArray();
+    	byte[] bytes1 = new BigInteger(1, bytes).toByteArray();
+    	byte[] bytes2 = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE).toByteArray();
+    	byte[] bytes3 = BigInteger.valueOf(Long.MAX_VALUE).toByteArray();
+    	byte[] bytes4 = BigInteger.valueOf(128).toByteArray();
+    	Log.info(Util.dumpBytesBigEndianHex(bytes4));
+    	Log.info(Util.dumpBytesBigEndianBinary(bytes4));
+    	testCreateAccount();
+//    	testCRC8ITU();
 //    	testRIPEMD();
 //    	Util.longToBits(256);
 //    	byte[] bytes = Util.longToBits(123456789);
@@ -74,6 +91,7 @@ public class App
 //    	for(int i=0; i<1; ++i)
 //    	Log.info("abcde");
     	testBase58();
+//    	testKeystore();
 //    	testBlockchain();
 //    	testLongToBytes();
 //    	testTargetToBytes();
@@ -81,28 +99,98 @@ public class App
 //    	caluateTarget();
     }
     
+    static void testCreateAccount() {
+		Account acc = new Account();
+    	acc.setAddress("abc");
+    	acc.setBalance(1000000000);
+    	acc.setPrivateKey(new byte[64]);
+    	acc.setPwdHash(Util.getSecureRandomBytes());
+    	acc.setUserName("abcd");
+    	Keystore.getInstance().createAccount(acc);
+    	Account acc1 = new Account();
+    	acc1.setAddress("abc");
+    	acc1.setBalance(1000000000);
+    	acc1.setPrivateKey(new byte[64]);
+    	acc1.setPwdHash(Util.getSecureRandomBytes());
+    	acc1.setUserName("abcd");
+    	if(acc.equals(acc1)) {
+    		Log.info("equal");
+    	}
+    	Keystore.getInstance().createAccount(acc1);
+//    	assertTrue(Keystore.getInstance().isAccountExist(acc));
+//    	acc = new Account();
+//    	acc.setAddress("a");
+//    	acc.setBalance(1000000000);
+//    	acc.setPrivateKey(Util.getSecureRandomBytes());
+//    	acc.setPwdHash(Util.getSecureRandomBytes());
+//    	acc.setUserName("a");
+//    	Keystore.getInstance().createAccount(acc);
+//    	assertTrue(Keystore.getInstance().isAccountExist(acc));
+//    	acc = new Account();
+//    	acc.setAddress("b");
+//    	acc.setBalance(1000000000);
+//    	acc.setPrivateKey(Util.getSecureRandomBytes());
+//    	acc.setPwdHash(Util.getSecureRandomBytes());
+//    	acc.setUserName("b");
+//    	Keystore.getInstance().createAccount(acc);
+//    	assertTrue(Keystore.getInstance().isAccountExist(acc));
+	}
+    
+    private static void testKeystore() {
+    	Account acc = new Account();
+    	acc.setAddress("abc");
+    	acc.setBalance(1000000000);
+    	acc.setPrivateKey(new byte[64]);
+    	acc.setPwdHash(new byte[64]);
+    	acc.setUserName("abcd");
+//    	Keystore.getInstance().updateAccount();
+    	Keystore.getInstance().createAccount(acc);
+    }
+    
     private static void testBase58() {
+    	byte[] address = new byte[18];
+    	for(int i=0; i<1; ++i) {
+    		ByteArrayOutputStream os = new ByteArrayOutputStream();
+    		os.write(0);ByteArrayInputStream is = new ByteArrayInputStream(address);
+    		Log.info("os0:\n" + Util.dumpBytesBigEndianHex(os.toByteArray()));
     	StringBuilder sb = new StringBuilder();
-    	sb.append("00");
-//    	for(int i=0; i<17; ++i) {
-//    		sb.append("f2");
-//    	}
-    	sb.append(new BigInteger(1, Util.RIPEMD160(Util.intToBytes(1))).toString(16));
-    	sb.append("ffffffff");
-    	String str = sb.toString();
-    	Log.info(str);
-    	byte[] bytes = new BigInteger(str, 16).toByteArray();
-    	Log.info(Base58.encode(new BigInteger(str, 16).toByteArray()) + " len: " + Base58.encode(new BigInteger(str, 16).toByteArray()).length());
+//    	sb.append("00");
+    	BigInteger pubKeyHash = new BigInteger(1, Util.EQCCHA(Util.getSecureRandomBytes(), true));
+    	
+    	Log.info("pubKeyHash:\n" + Util.dumpBytesBigEndianHex(pubKeyHash.toByteArray()));
+    	try {
+			os.write(pubKeyHash.toByteArray());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	sb.append(pubKeyHash.toString(16));
+    	sb.append(CRC8ITU.update(os.toByteArray()));
+    	Log.info("os1:\n" + Util.dumpBytesBigEndianHex(os.toByteArray()));
+    	BigInteger mod = new BigInteger(1, os.toByteArray());
+    	if(mod.mod(BigInteger.valueOf(0x7)).compareTo(BigInteger.ZERO) == 0) {
+    		Log.info("crc check passed.");
+    	}
+    	else {
+    		Log.info("crc check failed.");
+    	}
+    	byte[] version = new byte[1];
+    	version[0] = 1;
+    	Log.info(Base58.encode(new byte[] {0}));
+    	String add = Base58.encode(version) + Base58.encode(ByteBuffer.wrap(os.toByteArray(), 1, os.toByteArray().length-1).array());
+    	Log.info(add);
+//    	String str = sb.toString();
+//    	Log.info(str);
+//    	byte[] bytes = new BigInteger(str, 16).toByteArray();
+//    	Log.info(Base58.encode(new BigInteger(str, 16).toByteArray()) + " len: " + Base58.encode(new BigInteger(str, 16).toByteArray()).length());
 //    	Log.info(Base58.encode1(new BigInteger(str, 16).toByteArray()));
+    	}
     }
     
     private static void testCRC8ITU() {
-    	Log.info(Integer.toHexString(Util.CRC8ITU(Util.intToBytes(123))));
-    	CRC8    crc8 = new CRC8();
-    	byte[] bytes = BigInteger.valueOf(123l).toByteArray();
-//        crc8.update(bytes,0,bytes.length);
-    	
-        Log.info(Long.toHexString(crc8.Calculate(bytes, (byte)0x107, (byte)0, (byte)0x55, true, false)));
+    	  byte[] bytes = "123456789".getBytes();
+    	  short b = CRC8ITU.update(bytes);
+          Log.info(Integer.toHexString(CRC8ITU.update(bytes) & 0xff));
     }
     
     private static void testRIPEMD() {

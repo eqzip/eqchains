@@ -27,57 +27,64 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
+import com.eqzip.eqcoin.util.Util.Os;
+
 /**
  * @author Xun Wang
  * @date 9-11-2018
  * @email 10509759@qq.com
  */
 public final class Log {
-	
-	private final static Logger log;
+
+	private static Logger log;
 	private static FileHandler fileHandler;
 	private static ConsoleHandler consoleHandler;
-	
-	static {
-		log = Logger.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
-		log.setLevel(Level.ALL);
-		log.setUseParentHandlers(false);
-		try {
-			fileHandler = new FileHandler(Util.PATH + "/log.txt", true);
-			fileHandler.setFormatter(new EQCFormatter());
-			log.addHandler(fileHandler);
-			consoleHandler = new ConsoleHandler();
-			consoleHandler.setFormatter(new EQCFormatter());
-			log.addHandler(consoleHandler);
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		finally {
-			fileHandler.close();
-			consoleHandler.close();
+	private static boolean DEBUG = true;
+
+	private Log() {}
+
+	private static void instance() {
+		if (log == null) {
+			synchronized (Log.class) {
+				if (log == null) {
+					log = Logger.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
+					log.setLevel(Level.ALL);
+					log.setUseParentHandlers(false);
+					try {
+						fileHandler = new FileHandler(Util.PATH + "/log.txt", true);
+						fileHandler.setFormatter(new EQCFormatter());
+						log.addHandler(fileHandler);
+						consoleHandler = new ConsoleHandler();
+						consoleHandler.setFormatter(new EQCFormatter());
+						log.addHandler(consoleHandler);
+					} catch (SecurityException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
 		}
 	}
-	
-	private	Log() {}
-	
+
 	public static void info(String info) {
-		log.info(info);
-		// flush buffer immediately otherwise the log data in the buffer maybe missing
-		fileHandler.flush();
+		if (DEBUG) {
+			instance();
+			log.info(info);
+			// flush buffer immediately otherwise the log data in the buffer maybe missing
+			fileHandler.flush();
+		}
 	}
-	
+
 	public static class EQCFormatter extends Formatter {
-	    @Override
-	    public String format(LogRecord record) {
-	    	return new Date(record.getMillis()) + " " + Thread.currentThread().getStackTrace()[9].getClassName() + "." +
-	    			Thread.currentThread().getStackTrace()[9].getMethodName() + " line:" + Thread.currentThread().getStackTrace()[9].getLineNumber() + "\r\n" +
-	    			record.getMessage()+"\r\n";
-	    }
+		@Override
+		public String format(LogRecord record) {
+			return new Date(record.getMillis()) + " " + Thread.currentThread().getStackTrace()[9].getClassName() + "."
+					+ Thread.currentThread().getStackTrace()[9].getMethodName() + " line:"
+					+ Thread.currentThread().getStackTrace()[9].getLineNumber() + "\r\n" + record.getMessage() + "\r\n\r\n";
+		}
 	}
-	
-	
+
 }

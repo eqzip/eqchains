@@ -20,8 +20,10 @@ package com.eqzip.eqcoin.util;
 import java.math.BigInteger;
 
 /**
- * A part of the source code come from https://github.com/bitcoin-labs/bitcoinj-minimal/blob/master/core/Base58.java
+ * A part of the source code come from
+ * https://github.com/bitcoin-labs/bitcoinj-minimal/blob/master/core/Base58.java
  * Thanks a billion for the contribution.
+ * 
  * @author Xun Wang
  * @date 9-19-2018
  * @email 10509759@qq.com
@@ -40,46 +42,52 @@ public class Base58 {
 			foo = foo.subtract(remainder).divide(BASE58);
 		}
 		sb.insert(0, ALPHABET.charAt(foo.intValue()));
-		// Convert leading zeros too.
-		for (byte b : bytes) {
-			if (b == 0) {
-				sb.insert(0, ALPHABET.charAt(0));
-			} else {
-				break;
+		// Due to BigInteger ignore the leading zeroes Convert leading zeroes too.
+		if (bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0) {
+			for (byte b : bytes) {
+				if (b == 0) {
+					sb.insert(0, ALPHABET.charAt(0));
+				} else {
+					break;
+				}
 			}
 		}
 		return sb.toString();
 	}
 
 	public static byte[] decode(String input) throws Exception {
-        byte[] bytes = decodeToBigInteger(input).toByteArray();
-        // We may have got one more byte than we wanted, if the high bit of the next-to-last byte was not zero. This
-        // is because BigIntegers are represented with twos-compliment notation, thus if the high bit of the last
-        // byte happens to be 1 another 8 zero bits will be added to ensure the number parses as positive. Detect
-        // that case here and chop it off.
-        boolean stripSignByte = bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0;
-        // Count the leading zeros, if any.
-        int leadingZeros = 0;
-        for (int i = 0; input.charAt(i) == ALPHABET.charAt(0); i++) {
-            leadingZeros++;
-        }
-        // Now cut/pad correctly. Java 6 has a convenience for this, but Android can't use it.
-        byte[] tmp = new byte[bytes.length - (stripSignByte ? 1 : 0) + leadingZeros];
-        System.arraycopy(bytes, stripSignByte ? 1 : 0, tmp, leadingZeros, tmp.length - leadingZeros);
-        return tmp;
-    }
-	
+		byte[] bytes = decodeToBigInteger(input).toByteArray();
+		// We may have got one more byte than we wanted, if the high bit of the
+		// next-to-last byte was not zero. This
+		// is because BigIntegers are represented with twos-compliment notation, thus if
+		// the high bit of the last
+		// byte happens to be 1 another 8 zero bits will be added to ensure the number
+		// parses as positive. Detect
+		// that case here and chop it off.
+		boolean stripSignByte = bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0;
+		// Count the leading zeros, if any.
+		int leadingZeros = 0;
+		for (int i = 0; input.charAt(i) == ALPHABET.charAt(0); ++i) {
+			leadingZeros++;
+		}
+		// Now cut/pad correctly. Java 6 has a convenience for this, but Android can't
+		// use it.
+		byte[] tmp = new byte[bytes.length - (stripSignByte ? 1 : 0) + leadingZeros];
+		System.arraycopy(bytes, stripSignByte ? 1 : 0, tmp, leadingZeros, tmp.length - leadingZeros);
+		return tmp;
+	}
+
 	public static BigInteger decodeToBigInteger(String input) throws Exception {
-        BigInteger bi = BigInteger.valueOf(0);
-        // Work backwards through the string.
-        for (int i = input.length() - 1; i >= 0; i--) {
-            int alphaIndex = ALPHABET.indexOf(input.charAt(i));
-            if (alphaIndex == -1) {
-                throw new Exception("Illegal character " + input.charAt(i) + " at " + i);
-            }
-            bi = bi.add(BigInteger.valueOf(alphaIndex).multiply(BASE58.pow(input.length() - 1 - i)));
-        }
-        return bi;
-    }
-	
+		BigInteger bi = BigInteger.ZERO;
+		// Work backwards through the string.
+		for (int i = input.length() - 1; i >= 0; --i) {
+			int alphaIndex = ALPHABET.indexOf(input.charAt(i));
+			if (alphaIndex == -1) {
+				throw new Exception("Illegal character " + input.charAt(i) + " at " + i);
+			}
+			bi = bi.add(BigInteger.valueOf(alphaIndex).multiply(BASE58.pow(input.length() - 1 - i)));
+		}
+		return bi;
+	}
+
 }
