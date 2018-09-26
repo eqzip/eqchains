@@ -26,6 +26,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
 import java.util.Vector;
 import com.eqzip.eqcoin.util.EQCType;
 import com.eqzip.eqcoin.util.Log;
@@ -37,6 +46,8 @@ import com.eqzip.eqcoin.util.Util;
  * @email 10509759@qq.com
  */
 public class Keystore {
+	public static final int P256 = 1;
+	public static final int P521 = 2;
 	private Vector<Account> accounts;
 	private final String KEYSTORE_PATH = Util.PATH + "/EQCoin.keystore";
 	private final String KEYSTORE_PATH_BAK = Util.PATH + "/EQCoin.keystore.bak";
@@ -57,11 +68,42 @@ public class Keystore {
 		return instance;
 	}
 
-	public synchronized void createAccount(Account account) {
-		if (!isAccountExist(account)) {
+	public synchronized Account createAccount(String userName, String password, int type) {
+		Account account = new Account();
+		KeyPairGenerator kpg;
+		byte addressType = Address.V1;
+		try {
+			kpg = KeyPairGenerator.getInstance("EC", "SunEC");
+			ECGenParameterSpec ecsp = null;
+			if(type == P256) {
+				ecsp = new ECGenParameterSpec("secp256r1");
+				addressType = Address.V1;
+			}
+			else if(type == P521) {
+				ecsp = new ECGenParameterSpec("secp521r1");
+				addressType = Address.V2;
+			}
+			kpg.initialize(ecsp);
+			KeyPair kp = kpg.genKeyPair();
+			PrivateKey privKey = kp.getPrivate();
+			PublicKey pubKey = kp.getPublic();
+			ECPublicKey aEcPublicKey;
+			account.setUserName(userName);
+			account.setPwdHash(Util.EQCCHA_MULTIPLE(password.getBytes(), Util.HUNDRED, true));
+			account.setPrivateKey(Util.AESEncrypt(privKey.getEncoded(), password));
+			account.setAddress(Address.generateAddress(pubKey.getEncoded(), addressType));
+			account.setBalance(0);
+		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+
+		if (account != null && !isAccountExist(account)) {
 			accounts.add(account);
 			saveAccounts(accounts);
 		}
+		return account;
 	}
 
 	public Vector<Account> loadAccounts(String path) {
@@ -82,14 +124,13 @@ public class Keystore {
 					if (EQCType.isBin(value)) {
 						byte[] len = new byte[EQCType.getBinLen(value)];
 						is.read(len);
-						int il =  EQCType.getBinDataLen(value, len);
+						int il = EQCType.getBinDataLen(value, len);
 						Log.info("data len：" + il);
-						byte[] acc = new byte[(int)il];
+						byte[] acc = new byte[(int) il];
 						is.read(acc);
 						if (!Account.isValid(acc)) {
 							Log.info("Error not valid account.");
-						}
-						else {
+						} else {
 							accounts.add(new Account(acc));
 						}
 					}
@@ -152,18 +193,18 @@ public class Keystore {
 			File fileBak = new File(KEYSTORE_PATH_BAK);
 			// Backup old key store file to EQCoin.keystore.bak
 			if (file.exists() && file.length() > 0) {
-				if(fileBak.exists()) {
+				if (fileBak.exists()) {
 					fileBak.delete();
 				}
 				Files.copy(file.toPath(), fileBak.toPath());
 			}
-			
+
 			// Get all accounts
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			for (Account acc : accounts) {
 				bos.write(EQCType.bytesToBin(acc.getBytes()));
 			}
-			
+
 			// Save all accounts to EQCoin.keystore
 			OutputStream os = new FileOutputStream(file);
 			os.write(bos.toByteArray());
@@ -172,7 +213,7 @@ public class Keystore {
 
 			// Backup new key store file to EQCoin.keystore.bak
 			if (file.exists() && file.length() > 0) {
-				if(fileBak.exists()) {
+				if (fileBak.exists()) {
 					fileBak.delete();
 				}
 				Files.copy(file.toPath(), fileBak.toPath());
@@ -190,7 +231,8 @@ public class Keystore {
 		for (Account acc : accounts) {
 			if (acc.equals(account)) {
 				bool = true;
-				Log.info(account.toString() + " doesn't exist.");
+				Log.info(account.toString() + " exist.");
+				break;
 			}
 		}
 		return bool;

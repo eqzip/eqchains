@@ -67,13 +67,19 @@ public class Base58 {
 		boolean stripSignByte = bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0;
 		// Count the leading zeros, if any.
 		int leadingZeros = 0;
-		for (int i = 0; input.charAt(i) == ALPHABET.charAt(0); ++i) {
+		for (int i = 0; (i < input.length() && input.charAt(i) == ALPHABET.charAt(0)); ++i) {
 			leadingZeros++;
 		}
 		// Now cut/pad correctly. Java 6 has a convenience for this, but Android can't
 		// use it.
-		byte[] tmp = new byte[bytes.length - (stripSignByte ? 1 : 0) + leadingZeros];
-		System.arraycopy(bytes, stripSignByte ? 1 : 0, tmp, leadingZeros, tmp.length - leadingZeros);
+		byte[] tmp = null;
+		if (decodeToBigInteger(input).compareTo(BigInteger.ZERO) != 0) {
+			tmp = new byte[bytes.length - (stripSignByte ? 1 : 0) + leadingZeros];
+			System.arraycopy(bytes, stripSignByte ? 1 : 0, tmp, leadingZeros, tmp.length - leadingZeros);
+		}
+		else {
+			tmp = new byte[] {0};
+		}
 		return tmp;
 	}
 

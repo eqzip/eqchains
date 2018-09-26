@@ -20,11 +20,20 @@ package com.eqzip.eqcoin.util;
 import java.io.File;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.crypto.digests.RIPEMD128Digest;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
@@ -36,11 +45,17 @@ import org.bouncycastle.crypto.digests.RIPEMD160Digest;
  */
 public final class Util {
 
+	public final static int ZERO = 0;
+	
+	public final static int ONE = 1;
+	
 	public final static int TWO = 2;
 
 	public final static int SIXTEEN = 16;
 
 	public final static int HUNDRED = 100;
+	
+	public final static int MILLIAN = 1000000;
 
 	public final static String WINDOWS_PATH = "C:\\EQCOIN";
 
@@ -244,29 +259,30 @@ public final class Util {
 	/**
 	 * EQCCHA - EQCOIN complex hash algorithm used for calculate the hash of EQC
 	 * block chain's header and address. Each input data will be expanded by a
-	 * factor of 100.
+	 * factor of multiple.
 	 * 
 	 * @param bytes     The raw data for example EQC block chain's header or address
+	 * @param multiple	The input data will be expanded by a factor of multiple
 	 * @param isAddress If this is an address. If it is an address at the end use
 	 *                  RIPEMD160 and RIPEMD128 to reduce the size of address
 	 * @return Hash value processed by EQCCHA
 	 */
-	public static byte[] EQCCHA(final byte[] bytes, final boolean isAddress) {
+	public static byte[] EQCCHA_MULTIPLE(final byte[] bytes, int multiple, boolean isAddress) {
 		byte[] hash = null;
 		try {
-			hash = MessageDigest.getInstance("SHA-256").digest(multipleExtend(bytes, HUNDRED));
-			hash = MessageDigest.getInstance("SHA-384").digest(multipleExtend(hash, HUNDRED));
-			hash = MessageDigest.getInstance("SHA-512").digest(multipleExtend(hash, HUNDRED));
-			hash = RIPEMD160(multipleExtend(hash, HUNDRED));
-			hash = RIPEMD128(multipleExtend(hash, HUNDRED));
-			hash = MessageDigest.getInstance("SHA3-256").digest(multipleExtend(hash, HUNDRED));
-			hash = MessageDigest.getInstance("SHA3-384").digest(multipleExtend(hash, HUNDRED));
-			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, HUNDRED));
+			hash = MessageDigest.getInstance("SHA-256").digest(multipleExtend(bytes, multiple));
+			hash = MessageDigest.getInstance("SHA-384").digest(multipleExtend(hash, multiple));
+			hash = MessageDigest.getInstance("SHA-512").digest(multipleExtend(hash, multiple));
+			hash = RIPEMD160(multipleExtend(hash, multiple));
+			hash = RIPEMD128(multipleExtend(hash, multiple));
+			hash = MessageDigest.getInstance("SHA3-256").digest(multipleExtend(hash, multiple));
+			hash = MessageDigest.getInstance("SHA3-384").digest(multipleExtend(hash, multiple));
+			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
 			// Due to this is a address so here use RIPEMD160 and RIPEMD128 reduce the size
 			// of address
 			if (isAddress) {
-				hash = RIPEMD160(multipleExtend(hash, HUNDRED));
-				hash = RIPEMD128(multipleExtend(hash, HUNDRED));
+				hash = RIPEMD160(multipleExtend(hash, multiple));
+				hash = RIPEMD128(multipleExtend(hash, multiple));
 			}
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
@@ -342,6 +358,46 @@ public final class Util {
 			sb.append(foo);
 			return sb.toString();
 		}
+	}
+	
+	public static byte[] AESEncrypt(byte[] bytes, String password) {
+		byte[] result = null;
+		try {
+			KeyGenerator kgen;
+			kgen = KeyGenerator.getInstance("AES");
+			kgen.init(256, new SecureRandom(password.getBytes()));                  
+			SecretKey secretKey = kgen.generateKey();                  
+			byte[] enCodeFormat = secretKey.getEncoded();                  
+			SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");                  
+			Cipher cipher = Cipher.getInstance("AES");              
+			cipher.init(Cipher.ENCRYPT_MODE, key);              
+			result = cipher.doFinal(bytes);                  
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}                  
+		return result;
+	}
+	
+	public static byte[] AESDecrypt(byte[] bytes, String password) {
+		byte[] result = null;
+		try {
+			KeyGenerator kgen;
+			kgen = KeyGenerator.getInstance("AES");
+			kgen.init(256, new SecureRandom(password.getBytes()));                  
+			SecretKey secretKey = kgen.generateKey();                  
+			byte[] enCodeFormat = secretKey.getEncoded();                  
+			SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");                  
+			Cipher cipher = Cipher.getInstance("AES");              
+			cipher.init(Cipher.DECRYPT_MODE, key);              
+			result = cipher.doFinal(bytes);                  
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}                  
+		return result;
 	}
 	
 }

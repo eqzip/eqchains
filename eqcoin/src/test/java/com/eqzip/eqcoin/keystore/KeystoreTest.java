@@ -83,30 +83,30 @@ class KeystoreTest {
 		byte c = 127;
 		int d = b&0xff;
 		
-		Account acc = new Account();
-    	acc.setAddress("abc");
-    	acc.setBalance(1000000000);
-    	acc.setPrivateKey(Util.getSecureRandomBytes());
-    	acc.setPwdHash(Util.getSecureRandomBytes());
-    	acc.setUserName("abcd");
-    	Keystore.getInstance().createAccount(acc);
-    	assertTrue(Keystore.getInstance().isAccountExist(acc));
-    	acc = new Account();
-    	acc.setAddress("a");
-    	acc.setBalance(1000000000);
-    	acc.setPrivateKey(Util.getSecureRandomBytes());
-    	acc.setPwdHash(Util.getSecureRandomBytes());
-    	acc.setUserName("a");
-    	Keystore.getInstance().createAccount(acc);
-    	assertTrue(Keystore.getInstance().isAccountExist(acc));
-    	acc = new Account();
-    	acc.setAddress("b");
-    	acc.setBalance(1000000000);
-    	acc.setPrivateKey(Util.getSecureRandomBytes());
-    	acc.setPwdHash(Util.getSecureRandomBytes());
-    	acc.setUserName("b");
-    	Keystore.getInstance().createAccount(acc);
-    	assertTrue(Keystore.getInstance().isAccountExist(acc));
+//		Account acc = new Account();
+//    	acc.setAddress("abc");
+//    	acc.setBalance(1000000000);
+//    	acc.setPrivateKey(Util.getSecureRandomBytes());
+//    	acc.setPwdHash(Util.getSecureRandomBytes());
+//    	acc.setUserName("abcd");
+//    	Keystore.getInstance().createAccount(acc);
+//    	assertTrue(Keystore.getInstance().isAccountExist(acc));
+//    	acc = new Account();
+//    	acc.setAddress("a");
+//    	acc.setBalance(1000000000);
+//    	acc.setPrivateKey(Util.getSecureRandomBytes());
+//    	acc.setPwdHash(Util.getSecureRandomBytes());
+//    	acc.setUserName("a");
+//    	Keystore.getInstance().createAccount(acc);
+//    	assertTrue(Keystore.getInstance().isAccountExist(acc));
+//    	acc = new Account();
+//    	acc.setAddress("b");
+//    	acc.setBalance(1000000000);
+//    	acc.setPrivateKey(Util.getSecureRandomBytes());
+//    	acc.setPwdHash(Util.getSecureRandomBytes());
+//    	acc.setUserName("b");
+//    	Keystore.getInstance().createAccount(acc);
+//    	assertTrue(Keystore.getInstance().isAccountExist(acc));
 	}
 
 	/**

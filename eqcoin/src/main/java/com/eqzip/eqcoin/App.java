@@ -17,17 +17,27 @@
  */
 package com.eqzip.eqcoin;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Vector;
 import com.eqzip.eqcoin.blockchain.EQCHeader;
 import com.eqzip.eqcoin.keystore.Account;
+import com.eqzip.eqcoin.keystore.Address;
 import com.eqzip.eqcoin.keystore.Keystore;
 import com.eqzip.eqcoin.util.Util;
 import com.eqzip.eqcoin.util.Util.Os;
@@ -47,15 +57,46 @@ public class App
     {
     	Thread.currentThread().setPriority(10);
     	Util.init(Os.WINDOWS);
-    	Log.info("abc");
-    	byte[] bytes = BigInteger.valueOf(Long.MAX_VALUE+1).toByteArray();
-    	byte[] bytes1 = new BigInteger(1, bytes).toByteArray();
-    	byte[] bytes2 = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE).toByteArray();
-    	byte[] bytes3 = BigInteger.valueOf(Long.MAX_VALUE).toByteArray();
-    	byte[] bytes4 = BigInteger.valueOf(128).toByteArray();
-    	Log.info(Util.dumpBytesBigEndianHex(bytes4));
-    	Log.info(Util.dumpBytesBigEndianBinary(bytes4));
-    	testCreateAccount();
+    	Log.info("r: " + new SecureRandom("abc".getBytes()).nextLong());
+    	testEC((byte)1);
+    	testEC((byte)2);
+//    	Log.info("abc");
+//    	byte[] random = Util.getSecureRandomBytes();
+//    	String s58 = Base58.encode(random);
+//    	byte[] r58 = null;
+//    	try {
+//			r58 = Base58.decode(s58);
+//		} catch (Exception e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
+//    	if(Arrays.equals(random, r58)) {
+//    		Log.info("array equal");
+//    	}
+//    	else {
+//    		Log.info("array not equal");
+//    	}
+//    	String s = Address.generateAddress(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.HUNDRED, true), Address.V1);
+//    	if (Address.verifyAddress(s)) {
+//			Log.info("address " + s + " verify passed");
+//		}
+//		else {
+//			Log.info("address " + s + " verify failed");
+//		}
+//    	try {
+//			byte[] by = Base58.decode(s.substring(0, 1));
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//    	byte[] bytes = BigInteger.valueOf(Long.MAX_VALUE+1).toByteArray();
+//    	byte[] bytes1 = new BigInteger(1, bytes).toByteArray();
+//    	byte[] bytes2 = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE).toByteArray();
+//    	byte[] bytes3 = BigInteger.valueOf(Long.MAX_VALUE).toByteArray();
+//    	byte[] bytes4 = BigInteger.valueOf(128).toByteArray();
+//    	Log.info(Util.dumpBytesBigEndianHex(bytes4));
+//    	Log.info(Util.dumpBytesBigEndianBinary(bytes4));
+//    	testCreateAccount();
 //    	testCRC8ITU();
 //    	testRIPEMD();
 //    	Util.longToBits(256);
@@ -92,31 +133,60 @@ public class App
 //    	Log.info("abcde");
     	testBase58();
 //    	testKeystore();
-//    	testBlockchain();
+    	testBlockchain();
 //    	testLongToBytes();
 //    	testTargetToBytes();
 //    	testSignBigIntegerPadingZero();
 //    	caluateTarget();
     }
     
-    static void testCreateAccount() {
-		Account acc = new Account();
-    	acc.setAddress("abc");
-    	acc.setBalance(1000000000);
-    	acc.setPrivateKey(new byte[64]);
-    	acc.setPwdHash(Util.getSecureRandomBytes());
-    	acc.setUserName("abcd");
-    	Keystore.getInstance().createAccount(acc);
-    	Account acc1 = new Account();
-    	acc1.setAddress("abc");
-    	acc1.setBalance(1000000000);
-    	acc1.setPrivateKey(new byte[64]);
-    	acc1.setPwdHash(Util.getSecureRandomBytes());
-    	acc1.setUserName("abcd");
-    	if(acc.equals(acc1)) {
-    		Log.info("equal");
-    	}
-    	Keystore.getInstance().createAccount(acc1);
+    private static void testEC(byte type) {
+    	KeyPairGenerator kpg;
+		try {
+			kpg = KeyPairGenerator.getInstance("EC");
+			ECGenParameterSpec ecsp = null;
+			if(type == 1) {
+				ecsp = new ECGenParameterSpec("secp256r1");
+			}
+			else if(type == 2) {
+				ecsp = new ECGenParameterSpec("secp521r1");
+			}
+			kpg.initialize(ecsp);
+			KeyPair kp = kpg.genKeyPair();
+			PrivateKey privKey = kp.getPrivate();
+			PublicKey pubKey = kp.getPublic();
+			if(pubKey instanceof ECPublicKey) {
+				Log.info("ECPublicKey");
+			}
+			else {
+				Log.info("Not ECPublicKey");
+			}
+			Log.info("getAlgorithm: " + pubKey.getAlgorithm() + " getFormat: " + pubKey.getFormat());
+		} catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+    }
+    
+    private static void testCreateAccount() {
+//		Account acc = new Account();
+//    	acc.setAddress("abc");
+//    	acc.setBalance(1000000000);
+//    	acc.setPrivateKey(new byte[64]);
+//    	acc.setPwdHash(Util.getSecureRandomBytes());
+//    	acc.setUserName("abcd");
+//    	Keystore.getInstance().createAccount(acc);
+//    	Account acc1 = new Account();
+//    	acc1.setAddress("abc");
+//    	acc1.setBalance(1000000000);
+//    	acc1.setPrivateKey(new byte[64]);
+//    	acc1.setPwdHash(Util.getSecureRandomBytes());
+//    	acc1.setUserName("abcd");
+//    	if(acc.equals(acc1)) {
+//    		Log.info("equal");
+//    	}
+//    	Keystore.getInstance().createAccount(acc1);
 //    	assertTrue(Keystore.getInstance().isAccountExist(acc));
 //    	acc = new Account();
 //    	acc.setAddress("a");
@@ -144,7 +214,7 @@ public class App
     	acc.setPwdHash(new byte[64]);
     	acc.setUserName("abcd");
 //    	Keystore.getInstance().updateAccount();
-    	Keystore.getInstance().createAccount(acc);
+//    	Keystore.getInstance().createAccount(acc);
     }
     
     private static void testBase58() {
@@ -155,7 +225,7 @@ public class App
     		Log.info("os0:\n" + Util.dumpBytesBigEndianHex(os.toByteArray()));
     	StringBuilder sb = new StringBuilder();
 //    	sb.append("00");
-    	BigInteger pubKeyHash = new BigInteger(1, Util.EQCCHA(Util.getSecureRandomBytes(), true));
+    	BigInteger pubKeyHash = new BigInteger(1, Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.HUNDRED, true));
     	
     	Log.info("pubKeyHash:\n" + Util.dumpBytesBigEndianHex(pubKeyHash.toByteArray()));
     	try {
@@ -249,7 +319,7 @@ public class App
     	long i = 0;
     	byte[] bytes;
         while(true) {
-        	BigInteger hash = new BigInteger(1, Util.EQCCHA((bytes=Util.updateNonce(vec.get(lCount).getBytes(), ++i)), false));//Util.dualSHA3_512(Util.multipleExtend((bytes=Util.updateNonce(vec.get(lCount).getBytes(), ++i)), 100)));
+        	BigInteger hash = new BigInteger(1, Util.EQCCHA_MULTIPLE((bytes=Util.updateNonce(vec.get(lCount).getBytes(), ++i)), Util.MILLIAN, false));//Util.dualSHA3_512(Util.multipleExtend((bytes=Util.updateNonce(vec.get(lCount).getBytes(), ++i)), 100)));
 //        	System.out.println("hash: " + Util.bigIntegerTo512String(hash));
         	if(hash.compareTo(target) == -1) {
 //        		time1 = System.currentTimeMillis();

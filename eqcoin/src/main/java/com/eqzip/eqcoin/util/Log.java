@@ -77,7 +77,11 @@ public final class Log {
 			fileHandler.flush();
 		}
 	}
-
+	
+	public static void Error(String info) {
+		info("Error: " + info);
+	}
+	
 	public static class EQCFormatter extends Formatter {
 		@Override
 		public String format(LogRecord record) {

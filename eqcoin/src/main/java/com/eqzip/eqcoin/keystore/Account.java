@@ -17,14 +17,10 @@
  */
 package com.eqzip.eqcoin.keystore;
 
-import static org.junit.jupiter.api.Assumptions.assumingThat;
 
-import java.awt.Window.Type;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Serializable;
 import java.util.Arrays;
 
 import org.msgpack.annotation.Message;

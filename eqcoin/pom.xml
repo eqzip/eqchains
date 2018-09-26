@@ -20,10 +20,11 @@
 	</properties>
 
 	<dependencies>
+		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>3.8.1</version>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.3.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -40,7 +41,8 @@
 		<dependency>
 			<groupId>org.msgpack</groupId>
 			<artifactId>msgpack</artifactId>
-			<!-- Due to the latest version 0.6.12 doesn't support @Message annotation so use 0.6.11 instead of it -->
+			<!-- Due to the latest version 0.6.12 doesn't support @Message annotation 
+				so use 0.6.11 instead of it -->
 			<version>0.6.11</version>
 		</dependency>
 		<dependency>
@@ -70,7 +72,6 @@
 				<executions>
 					<execution>
 						<id>schemas</id>
-
 						<phase>generate-sources</phase>
 						<goals>
 							<goal>schema</goal>
@@ -106,6 +107,16 @@
 									</manifestEntries>
 								</transformer>
 							</transformers>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
 						</configuration>
 					</execution>
 				</executions>
@@ -149,5 +160,4 @@
 			</plugins>
 		</pluginManagement>
 	</build>
-
 </project>
