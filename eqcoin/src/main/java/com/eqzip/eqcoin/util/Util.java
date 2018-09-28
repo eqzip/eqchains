@@ -25,6 +25,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.TimeZone;
 
 import javax.crypto.BadPaddingException;
@@ -38,6 +39,8 @@ import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.crypto.digests.RIPEMD128Digest;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 
+import com.eqzip.eqcoin.keystore.AddressTool;
+
 /**
  * @author Xun Wang
  * @date 9-11-2018
@@ -45,16 +48,23 @@ import org.bouncycastle.crypto.digests.RIPEMD160Digest;
  */
 public final class Util {
 
+	/*
+	 * Singularity - EQC's basic unit of measure. 1 EQC = 10000 singularity
+	 */
+	public final static long ABC = 10000;
+
+	public final static long MAX_EQC = 21000000 * ABC;
+
 	public final static int ZERO = 0;
-	
+
 	public final static int ONE = 1;
-	
+
 	public final static int TWO = 2;
 
 	public final static int SIXTEEN = 16;
 
 	public final static int HUNDRED = 100;
-	
+
 	public final static int MILLIAN = 1000000;
 
 	public final static String WINDOWS_PATH = "C:\\EQCOIN";
@@ -62,9 +72,9 @@ public final class Util {
 	public final static String MAC_PATH = "C:\\Program Files\\EQCOIN";
 
 	public final static String LINUX_PATH = "C:\\Program Files\\EQCOIN";
-	
+
 	/*
-	 * Set the default PATH value WINDOWS_PATH 
+	 * Set the default PATH value WINDOWS_PATH
 	 */
 	public static String PATH = WINDOWS_PATH;
 
@@ -112,7 +122,7 @@ public final class Util {
 	}
 
 	public static byte[] updateNonce(final byte[] bytes, final long nonce) {
-		System.arraycopy(Util.longToBytes(nonce), 0, bytes, 200, 8);
+		System.arraycopy(Util.longToBytes(nonce), 0, bytes, 44, 8);
 		return bytes;
 	}
 
@@ -123,19 +133,77 @@ public final class Util {
 	}
 
 	public static String getHexString(final byte[] bytes) {
-		return bigIntegerTo512String(new BigInteger(1, bytes));
+		return bigIntegerTo128String(new BigInteger(1, bytes));
 	}
 
-	public static BigInteger getDefaultTarget() {
-		return BigInteger.valueOf(Long.parseLong("dafedcba9876543", 16)).shiftLeft(8)
-				.add(BigInteger.valueOf(Long.parseLong("21", 16))).shiftLeft(424 + 4);
+//	public static BigInteger getDefaultTarget() {
+//		return BigInteger.valueOf(Long.parseLong("dafedcba9876543", 16)).shiftLeft(8)
+//				.add(BigInteger.valueOf(Long.parseLong("21", 16))).shiftLeft(60);
+//	}
+
+	public static byte[] getDefaultTargetBytes() {
+		return new byte[] { 0x68, (byte) 0xda, (byte) 0xab, (byte) 0xcd };
+	}
+
+	public static BigInteger targetBytesToBigInteger(byte[] foo) {
+		int target = bytesToInt(foo);
+		return BigInteger.valueOf(Long.valueOf(target & 0x00ffffff)).shiftLeft((target & 0xff000000) >>> 24);
+	}
+
+	public static byte[] bigIntegerToTargetBytes(BigInteger foo) {
+		byte[] bytes = foo.toByteArray();
+		if (bytes.length <= 3) {
+			return intToBytes(foo.intValue() & 0x00FFFFFF);
+		} else {
+			byte[] target;
+			int offset;
+			if ((bytes[0] == 0) && (bytes[1] < 0)) {
+				target = new byte[] { 0, bytes[1], bytes[2], bytes[3] };
+				offset = bytes.length - 4;
+			}
+			else {
+				target = new byte[] { 0, bytes[0], bytes[1], bytes[2] };
+				offset = bytes.length - 3;
+			}
+			return intToBytes((bytesToInt(target) & 0x00FFFFFF) | (((offset * 8) & 0xFF) << 24));
+		}
+//		String target = foo.toString(2);
+//		if(target.length() <= 24) {
+//			int value = new BigInteger(target, 2).intValue();
+//			return intToBytes(value & 0x00FFFFFF);
+//		}
+//		else {
+//			int value = new BigInteger(target.substring(0, 24), 2).intValue();
+//			int a = (value & 0x00FFFFFF);
+//			int d = (target.length() - 24) & 0xFF;
+//			int e = d << 24;
+//			int b = (((target.length() - 24) & 0xFF) << 24);
+//			int c = a | b;
+//			return intToBytes((value & 0x00FFFFFF) | (((target.length() - 24) & 0xFF) << 24));
+//		}
 	}
 
 	public static byte[] bigIntegerTo64Bytes(final BigInteger foo) {
 		byte[] tmp = new byte[64];
 		byte[] fooBytes = foo.toByteArray();
-		// Because big-endian byte-order so fill 0 in the high position to fill the gap
-		System.arraycopy(fooBytes, 0, tmp, tmp.length - fooBytes.length, fooBytes.length);
+		if (fooBytes.length == 65) {
+			System.arraycopy(fooBytes, 1, tmp, 0, tmp.length);
+		} else {
+			// Because big-endian byte-order so fill 0 in the high position to fill the gap
+			System.arraycopy(fooBytes, 0, tmp, tmp.length - fooBytes.length, fooBytes.length);
+		}
+		return tmp;
+	}
+
+	public static byte[] bigIntegerTo16Bytes(final BigInteger foo) {
+		byte[] tmp = new byte[16];
+		byte[] fooBytes = foo.toByteArray();
+		if (fooBytes.length == 17) {
+			System.arraycopy(fooBytes, 1, tmp, 0, tmp.length);
+		} else {
+			// Because big-endian byte-order so fill 0 in the high position to fill the gap
+			System.arraycopy(fooBytes, 0, tmp, tmp.length - fooBytes.length, fooBytes.length);
+		}
 		return tmp;
 	}
 
@@ -145,6 +213,10 @@ public final class Util {
 
 	public static String bigIntegerTo512String(final BigInteger foo) {
 		return bigIntegerToFixedLengthString(foo, 512);
+	}
+
+	public static String bigIntegerTo128String(final BigInteger foo) {
+		return bigIntegerToFixedLengthString(foo, 128);
 	}
 
 	public static String bigIntegerToFixedLengthString(final BigInteger foo, final int len) {
@@ -166,12 +238,13 @@ public final class Util {
 //		return ByteBuffer.allocate(2).put(bytes, 0, bytes.length).flip().getShort();
 		return (short) (bytes[1] & 0xFF | (bytes[0] & 0xFF) << 8);
 	}
-	
+
 	public static byte[] intToBytes(final int foo) {
-		return new byte[] { (byte) ((foo >> 24) & 0xFF), (byte) ((foo >> 16) & 0xFF), (byte) ((foo >> 8) & 0xFF), (byte) (foo & 0xFF) };
+		return new byte[] { (byte) ((foo >> 24) & 0xFF), (byte) ((foo >> 16) & 0xFF), (byte) ((foo >> 8) & 0xFF),
+				(byte) (foo & 0xFF) };
 //		return ByteBuffer.allocate(4).putInt(foo).array();
 	}
-	
+
 	public static int bytesToInt(final byte[] bytes) {
 		return bytes[3] & 0xFF | (bytes[2] & 0xFF) << 8 | (bytes[1] & 0xFF) << 16 | (bytes[0] & 0xFF) << 24;
 //		return ByteBuffer.allocate(4).put(bytes, 0, bytes.length).flip().getInt();
@@ -218,7 +291,8 @@ public final class Util {
 	 * Varbit is a series of consecutive bytes. Each byte has 7 significant digits,
 	 * the highest digit of which is a continuous label. If it is 1, it means that
 	 * the subsequent byte is still part of bytes. If it is 0, it means the current
-	 * byte is the last byte of bytes.
+	 * byte is the last byte of bytes. Due to ByteArrayOutputStream write byte array
+	 * in little endian so here reverse the byte array
 	 * <p>
 	 * 
 	 * @param value the original value of relevant number
@@ -236,11 +310,11 @@ public final class Util {
 				sb.insert(len - i, '1');
 			}
 		}
-		return new BigInteger(sb.toString(), 2).toByteArray();
+		return reverseBytes(new BigInteger(sb.toString(), 2).toByteArray());
 	}
 
 	public static BigInteger bitsToBigInteger(final byte[] bits) {
-		BigInteger foo = new BigInteger(1, bits);
+		BigInteger foo = new BigInteger(1, reverseBytes(bits));
 		String strFoo = foo.toString(2);
 		StringBuilder sb = new StringBuilder().append(strFoo);
 		int len = strFoo.length();
@@ -261,13 +335,14 @@ public final class Util {
 	 * block chain's header and address. Each input data will be expanded by a
 	 * factor of multiple.
 	 * 
-	 * @param bytes     The raw data for example EQC block chain's header or address
-	 * @param multiple	The input data will be expanded by a factor of multiple
-	 * @param isAddress If this is an address. If it is an address at the end use
-	 *                  RIPEMD160 and RIPEMD128 to reduce the size of address
+	 * @param bytes      The raw data for example EQC block chain's header or
+	 *                   address
+	 * @param multiple   The input data will be expanded by a factor of multiple
+	 * @param isCompress If this is an address or signatures. Then at the end use
+	 *                   RIPEMD160 and RIPEMD128 to reduce the size of it
 	 * @return Hash value processed by EQCCHA
 	 */
-	public static byte[] EQCCHA_MULTIPLE(final byte[] bytes, int multiple, boolean isAddress) {
+	public static byte[] EQCCHA_MULTIPLE(final byte[] bytes, int multiple, boolean isCompress) {
 		byte[] hash = null;
 		try {
 			hash = MessageDigest.getInstance("SHA-256").digest(multipleExtend(bytes, multiple));
@@ -278,15 +353,16 @@ public final class Util {
 			hash = MessageDigest.getInstance("SHA3-256").digest(multipleExtend(hash, multiple));
 			hash = MessageDigest.getInstance("SHA3-384").digest(multipleExtend(hash, multiple));
 			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
-			// Due to this is a address so here use RIPEMD160 and RIPEMD128 reduce the size
-			// of address
-			if (isAddress) {
+			// Due to this is an address or signatures so here use RIPEMD160 and RIPEMD128
+			// reduce the size of it
+			if (isCompress) {
 				hash = RIPEMD160(multipleExtend(hash, multiple));
 				hash = RIPEMD128(multipleExtend(hash, multiple));
 			}
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			Log.Error(e.getMessage());
 		}
 		return hash;
 	}
@@ -309,15 +385,15 @@ public final class Util {
 
 	public static String dumpBytesBigEndianHex(byte[] bytes) {
 		StringBuilder sb = new StringBuilder();
-		for(int i=bytes.length-1; i>=0; --i) {
+		for (int i = bytes.length - 1; i >= 0; --i) {
 			sb.append(Integer.toHexString(bytes[i]));
 		}
 		return sb.toString();
 	}
-	
+
 	public static String dumpBytesBigEndianBinary(byte[] bytes) {
 		StringBuilder sb = new StringBuilder();
-		for(int i=bytes.length-1; i>=0; --i) {
+		for (int i = bytes.length - 1; i >= 0; --i) {
 			sb.append(binaryString(Integer.toBinaryString(bytes[i])));
 		}
 		return sb.toString();
@@ -325,79 +401,94 @@ public final class Util {
 
 	public static String dumpBytesLittleEndianHex(byte[] bytes) {
 		StringBuilder sb = new StringBuilder();
-		for(int i=0; i<bytes.length; ++i) {
+		for (int i = 0; i < bytes.length; ++i) {
 			sb.append(Integer.toHexString(bytes[i]));
 		}
 		return sb.toString();
 	}
-	
+
 	public static String dumpBytesLittleEndianBinary(byte[] bytes) {
 		StringBuilder sb = new StringBuilder();
-		for(int i=0; i<bytes.length; ++i) {
+		for (int i = 0; i < bytes.length; ++i) {
 			sb.append(Integer.toBinaryString(bytes[i]));
 		}
 		return sb.toString();
 	}
-	
+
 	/**
 	 * Add leading zero when the original binary string's length is less than 8.
 	 * <p>
 	 * For example when foo is 101111 the output is 00101111.
-	 * @param foo This value is a string of ASCII digitsin binary (base 2) with no extra leading 0s. 	
-	 * @return 	  Fixed 8-bit long binary number with leading 0s.
+	 * 
+	 * @param foo This value is a string of ASCII digitsin binary (base 2) with no
+	 *            extra leading 0s.
+	 * @return Fixed 8-bit long binary number with leading 0s.
 	 */
 	public static String binaryString(String foo) {
-		if(foo.length() == 8) {
+		if (foo.length() == 8) {
 			return foo;
-		}
-		else {
+		} else {
 			StringBuilder sb = new StringBuilder();
-			for(int i=0; i<8-foo.length(); ++i) {
+			for (int i = 0; i < 8 - foo.length(); ++i) {
 				sb.append(0);
 			}
 			sb.append(foo);
 			return sb.toString();
 		}
 	}
-	
+
 	public static byte[] AESEncrypt(byte[] bytes, String password) {
 		byte[] result = null;
 		try {
 			KeyGenerator kgen;
 			kgen = KeyGenerator.getInstance("AES");
-			kgen.init(256, new SecureRandom(password.getBytes()));                  
-			SecretKey secretKey = kgen.generateKey();                  
-			byte[] enCodeFormat = secretKey.getEncoded();                  
-			SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");                  
-			Cipher cipher = Cipher.getInstance("AES");              
-			cipher.init(Cipher.ENCRYPT_MODE, key);              
-			result = cipher.doFinal(bytes);                  
-		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+			kgen.init(256, new SecureRandom(password.getBytes()));
+			SecretKey secretKey = kgen.generateKey();
+			byte[] enCodeFormat = secretKey.getEncoded();
+			SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");
+			Cipher cipher = Cipher.getInstance("AES");
+			cipher.init(Cipher.ENCRYPT_MODE, key);
+			result = cipher.doFinal(bytes);
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException
+				| BadPaddingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
-		}                  
+		}
 		return result;
 	}
-	
+
 	public static byte[] AESDecrypt(byte[] bytes, String password) {
 		byte[] result = null;
 		try {
 			KeyGenerator kgen;
 			kgen = KeyGenerator.getInstance("AES");
-			kgen.init(256, new SecureRandom(password.getBytes()));                  
-			SecretKey secretKey = kgen.generateKey();                  
-			byte[] enCodeFormat = secretKey.getEncoded();                  
-			SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");                  
-			Cipher cipher = Cipher.getInstance("AES");              
-			cipher.init(Cipher.DECRYPT_MODE, key);              
-			result = cipher.doFinal(bytes);                  
-		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+			kgen.init(256, new SecureRandom(password.getBytes()));
+			SecretKey secretKey = kgen.generateKey();
+			byte[] enCodeFormat = secretKey.getEncoded();
+			SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");
+			Cipher cipher = Cipher.getInstance("AES");
+			cipher.init(Cipher.DECRYPT_MODE, key);
+			result = cipher.doFinal(bytes);
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException
+				| BadPaddingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
-		}                  
+		}
 		return result;
 	}
-	
+
+	public static byte[] reverseBytes(final byte[] bytes) {
+		byte[] foo = new byte[bytes.length];
+		for (int i = 0; i <= foo.length - 1; ++i) {
+			foo[i] = bytes[bytes.length - 1 - i];
+		}
+		return foo;
+	}
+
+	public static byte getAddressVersion(SerialNumber addressSN) {
+		return AddressTool.V1;
+	}
+
 }

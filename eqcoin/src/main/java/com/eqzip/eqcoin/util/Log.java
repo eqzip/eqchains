@@ -19,6 +19,7 @@ package com.eqzip.eqcoin.util;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -78,16 +79,27 @@ public final class Log {
 		}
 	}
 	
-	public static void Error(String info) {
-		info("Error: " + info);
+	public static void Error(String error) {
+		info("[ERROR] " + error);
 	}
+	
+	public static void Warn(String warn) {
+		info("[WARN] " + warn);
+	}
+	
+	public static String getStringDate(long timestamp) {
+		   Date currentTime = new Date(timestamp);
+		   SimpleDateFormat formatter = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss:sss]");
+		   String dateString = formatter.format(currentTime);
+		   return dateString;
+		}
 	
 	public static class EQCFormatter extends Formatter {
 		@Override
 		public String format(LogRecord record) {
-			return new Date(record.getMillis()) + " " + Thread.currentThread().getStackTrace()[9].getClassName() + "."
-					+ Thread.currentThread().getStackTrace()[9].getMethodName() + " line:"
-					+ Thread.currentThread().getStackTrace()[9].getLineNumber() + "\r\n" + record.getMessage() + "\r\n\r\n";
+			return getStringDate(record.getMillis()) + "[" + Thread.currentThread().getStackTrace()[9].getClassName() + "."
+					+ Thread.currentThread().getStackTrace()[9].getMethodName() + " "
+					+ Thread.currentThread().getStackTrace()[9].getLineNumber() + "] " + record.getMessage() + "\r\n";
 		}
 	}
 

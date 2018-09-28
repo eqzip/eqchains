@@ -21,6 +21,7 @@ package com.eqzip.eqcoin.keystore;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import org.msgpack.annotation.Message;
@@ -65,13 +66,13 @@ public class Account {
 		super();
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		int type;
-		type = is.read();
 		byte[] data;
 		int iLen = 0;
-
+		
+		type = is.read();
 		// Parse userName
-		if (EQCType.parseEQCType(type) == EQCType.STRING) {
-			data = new byte[EQCType.parseStringLen(type)];
+		if (EQCType.parseEQCType(type) == EQCType.FIXEDDATA) {
+			data = new byte[EQCType.parseFixedDataLen(type)];
 			try {
 				iLen = is.read(data);
 				if (iLen == data.length) {
@@ -117,12 +118,12 @@ public class Account {
 		
 		// Parse address
 		type = is.read();
-		if (EQCType.parseEQCType(type) == EQCType.STRING) {
-			data = new byte[EQCType.parseStringLen(type)];
+		if (EQCType.parseEQCType(type) == EQCType.FIXEDDATA) {
+			data = new byte[EQCType.parseFixedDataLen(type)];
 			try {
 				iLen = is.read(data);
 				if (iLen == data.length) {
-					address = new String(data);
+					address = new String(data, StandardCharsets.US_ASCII);
 				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -146,14 +147,14 @@ public class Account {
 	public static boolean isValid(byte[] bytes) {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		int type;
-		type = is.read();
 		byte[] data;
 		byte validCount = 0;
 		int iLen = 0;
 
+		type = is.read();
 		// Parse userName
-		if (EQCType.parseEQCType(type) == EQCType.STRING) {
-			data = new byte[EQCType.parseStringLen(type)];
+		if (EQCType.parseEQCType(type) == EQCType.FIXEDDATA) {
+			data = new byte[EQCType.parseFixedDataLen(type)];
 			try {
 				iLen = is.read(data);
 				if (iLen == data.length) {
@@ -201,8 +202,8 @@ public class Account {
 		
 		// Parse address
 		type = is.read();
-		if (EQCType.parseEQCType(type) == EQCType.STRING) {
-			data = new byte[EQCType.parseStringLen(type)];
+		if (EQCType.parseEQCType(type) == EQCType.FIXEDDATA) {
+			data = new byte[EQCType.parseFixedDataLen(type)];
 			try {
 				iLen = is.read(data);
 				if (iLen == data.length) {
@@ -232,13 +233,13 @@ public class Account {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// userName
-			os.write(EQCType.stringToBits(userName));
+			os.write(EQCType.stringToFixedData(userName));
 			// pwdHash
 			os.write(EQCType.bytesToBin(pwdHash));
 			// privateKey
 			os.write(EQCType.bytesToBin(privateKey));
 			// address
-			os.write(EQCType.stringToBits(address));
+			os.write(EQCType.stringToFixedData(address));
 			// balance
 			os.write(Util.longToBytes(balance));
 		} catch (IOException e) {

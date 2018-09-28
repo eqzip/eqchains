@@ -48,6 +48,8 @@ import com.eqzip.eqcoin.util.Util;
 public class Keystore {
 	public static final int P256 = 1;
 	public static final int P521 = 2;
+	public final static String SECP256R1 = "secp256r1";
+	public final static String SECP521R1 = "secp521r1";
 	private Vector<Account> accounts;
 	private final String KEYSTORE_PATH = Util.PATH + "/EQCoin.keystore";
 	private final String KEYSTORE_PATH_BAK = Util.PATH + "/EQCoin.keystore.bak";
@@ -71,27 +73,30 @@ public class Keystore {
 	public synchronized Account createAccount(String userName, String password, int type) {
 		Account account = new Account();
 		KeyPairGenerator kpg;
-		byte addressType = Address.V1;
+		byte addressType = AddressTool.V1;
+		
 		try {
 			kpg = KeyPairGenerator.getInstance("EC", "SunEC");
 			ECGenParameterSpec ecsp = null;
 			if(type == P256) {
 				ecsp = new ECGenParameterSpec("secp256r1");
-				addressType = Address.V1;
+				addressType = AddressTool.V1;
 			}
 			else if(type == P521) {
 				ecsp = new ECGenParameterSpec("secp521r1");
-				addressType = Address.V2;
+				addressType = AddressTool.V2;
 			}
 			kpg.initialize(ecsp);
 			KeyPair kp = kpg.genKeyPair();
 			PrivateKey privKey = kp.getPrivate();
 			PublicKey pubKey = kp.getPublic();
-			ECPublicKey aEcPublicKey;
+			EQCPublicKey eqcPublicKey = new EQCPublicKey(type);
+			eqcPublicKey.setECPoint((ECPublicKey) pubKey);
+			
 			account.setUserName(userName);
 			account.setPwdHash(Util.EQCCHA_MULTIPLE(password.getBytes(), Util.HUNDRED, true));
 			account.setPrivateKey(Util.AESEncrypt(privKey.getEncoded(), password));
-			account.setAddress(Address.generateAddress(pubKey.getEncoded(), addressType));
+			account.setAddress(AddressTool.generateAddress(Util.EQCCHA_MULTIPLE(eqcPublicKey.getCompressedPublicKeyEncoded(), Util.HUNDRED, true), addressType));
 			account.setBalance(0);
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
 			// TODO Auto-generated catch block

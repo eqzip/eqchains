@@ -15,58 +15,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqzip.eqcoin.util;
+package com.eqzip.eqcoin.blockchain;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Vector;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.eqzip.eqcoin.util.EQCType;
+import com.eqzip.eqcoin.util.Log;
+import com.eqzip.eqcoin.util.Util;
 
 /**
  * @author Xun Wang
- * @date 9- -2018
+ * @date Sep 28, 2018
  * @email 10509759@qq.com
  */
-class TypeTest {
+public class Signatures {
+	private Vector<byte[]> signatures;
 
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
+	public Signatures() {
+		super();
 	}
-
+	
 	/**
-	 * @throws java.lang.Exception
+	 * If the signature is V1 or V2 just directly add the raw data if it is V3 then add bin.
+	 * The sequence of signatures is the same with transactions.
+	 * @param bytes	The signature's bytes
 	 */
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
+	public void addSignature(byte[] bytes) {
+		signatures.add(bytes);
 	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeEach
-	void setUp() throws Exception {
+	
+	public byte[] getBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			for(byte[] signature : signatures) {
+				os.write(EQCType.bytesToBin(signature));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
 	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterEach
-	void tearDown() throws Exception {
-	}
-
-	/**
-	 * Test method for {@link com.eqzip.eqcoin.util.Type#stringToBytes(java.lang.String)}.
-	 */
-	@Test
-	void testStringToBytes() {
-		byte[] bytes = EQCType.stringToFixedData("abc");
-		Log.info(Util.dumpBytesBigEndianBinary(bytes));
-	}
-
+	
 }

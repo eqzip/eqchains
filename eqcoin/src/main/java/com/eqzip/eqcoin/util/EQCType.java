@@ -29,13 +29,13 @@ import java.nio.charset.StandardCharsets;
 public class EQCType {
 	
 	/**
-	 * Fixstr stores a byte array whose length is up to 31 bytes.
+	 * Fixeddata stores a byte array whose length is up to 31 bytes.
 	 * 001xxxxx | data	  
 	 */
-	public final static byte MAX_STRING_LEN = 31;
-	public final static byte STRING = 0x20;
-	public final static byte STRING_MASK = (byte) 0xE0;
-	public final static byte STRING_VALUE_MASK = (byte) 0x1F;
+	public final static byte MAX_DATA_LEN = 31;
+	public final static byte FIXEDDATA = 0x20;
+	public final static byte FIXEDDATA_MASK = (byte) 0xE0;
+	public final static byte FIXEDDATA_VALUE_MASK = (byte) 0x1F;
 	
 	/**
 	 * Bin 8 stores a byte array whose length is up to (2^8)-1 bytes.
@@ -69,19 +69,45 @@ public class EQCType {
 	public final static byte BIN32 = 0x4;
 	public final static long MAX_BIN32_VALUE = 4294967295l;
 	
-	public static byte[] stringToBits(final String foo) {
-		if(foo.length() > MAX_STRING_LEN) {
-			throw new IllegalArgumentException("String length should exceed 31.");
+	public final static byte BITS = (byte) 0x80;
+	
+	/**
+	 * Convert String to fixeddata using StandardCharsets.US_ASCII charset
+	 * @param foo The String which will be convert to fixeddata
+	 * @return
+	 */
+	public static byte[] stringToFixedData(final String foo) {
+		return bytesToFixedData(foo.getBytes(StandardCharsets.US_ASCII));
+//		if(foo.length() > MAX_DATA_LEN) {
+//			throw new IllegalArgumentException("String's length shouldn't exceed 31.");
+//		}
+//		ByteArrayOutputStream os = new ByteArrayOutputStream();
+//		try {
+//			os.write((byte) (FIXEDDATA | (foo.length()&0xFF)));
+//			Log.info(Util.dumpBytesBigEndianBinary(new byte[] {(byte) (FIXEDDATA | (foo.length()&0xFF))}));
+//			os.write(foo.getBytes(StandardCharsets.US_ASCII));
+//			Log.info(Util.dumpBytesBigEndianBinary(foo.getBytes(StandardCharsets.US_ASCII)));
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		return os.toByteArray();
+	}
+	
+	public static byte[] bytesToFixedData(final byte[] foo) {
+		if(foo.length > MAX_DATA_LEN) {
+			throw new IllegalArgumentException("Byte array's length shouldn't exceed 31.");
 		}
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write((byte) (STRING | foo.length()));
-			Log.info(Util.dumpBytesBigEndianBinary(new byte[] {(byte) (STRING | foo.length())}));
-			os.write(foo.getBytes(StandardCharsets.US_ASCII));
-			Log.info(Util.dumpBytesBigEndianBinary(foo.getBytes(StandardCharsets.US_ASCII)));
+			os.write((byte) (FIXEDDATA | (foo.length&0xFF)));
+			Log.info(Util.dumpBytesBigEndianBinary(new byte[] {(byte) (FIXEDDATA | (foo.length&0xFF))}));
+			os.write(foo);
+			Log.info(Util.dumpBytesBigEndianBinary(foo));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			Log.Error(e.getMessage());
 		}
 		return os.toByteArray();
 	}
@@ -89,14 +115,17 @@ public class EQCType {
 	public static byte parseEQCType(final int type) {
 		byte foo = (byte)type;
 		byte result = 0;
-		if((foo&STRING_MASK) == STRING) {
-			result = STRING;
+		if((foo&FIXEDDATA_MASK) == FIXEDDATA) {
+			result = FIXEDDATA;
+		}
+		else if((foo&BITS) == BITS) {
+			result = BITS;
 		}
 		return result;
 	}
 	
-	public static boolean isString(final int type) {
-		return (parseEQCType(type) == STRING);
+	public static boolean isFixedData(final int type) {
+		return (parseEQCType(type) == FIXEDDATA);
 	}
 	
 	public static boolean isBin(final int type) {
@@ -140,8 +169,8 @@ public class EQCType {
 		return len;
 	}
 	
-	public static int parseStringLen(final int type) {
-		return type & STRING_VALUE_MASK;
+	public static int parseFixedDataLen(final int type) {
+		return type & FIXEDDATA_VALUE_MASK;
 	}
 	
 	public static byte[] bytesToBin(byte[] bytes) {

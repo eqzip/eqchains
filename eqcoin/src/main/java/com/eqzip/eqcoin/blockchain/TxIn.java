@@ -15,58 +15,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqzip.eqcoin.util;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+package com.eqzip.eqcoin.blockchain;
 
 /**
  * @author Xun Wang
- * @date 9- -2018
+ * @date Sep 28, 2018
  * @email 10509759@qq.com
  */
-class TypeTest {
-
-	/**
-	 * @throws java.lang.Exception
+public class TxIn {
+	public Address address;
+	public long value;
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
 	 */
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((address == null) ? 0 : address.hashCode());
+		result = prime * result + (int) (value ^ (value >>> 32));
+		return result;
 	}
-
-	/**
-	 * @throws java.lang.Exception
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		TxIn other = (TxIn) obj;
+		if (address == null) {
+			if (other.address != null)
+				return false;
+		} else if (!address.equals(other.address))
+			return false;
+		if (value != other.value)
+			return false;
+		return true;
 	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeEach
-	void setUp() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterEach
-	void tearDown() throws Exception {
-	}
-
-	/**
-	 * Test method for {@link com.eqzip.eqcoin.util.Type#stringToBytes(java.lang.String)}.
-	 */
-	@Test
-	void testStringToBytes() {
-		byte[] bytes = EQCType.stringToFixedData("abc");
-		Log.info(Util.dumpBytesBigEndianBinary(bytes));
-	}
-
+	
 }

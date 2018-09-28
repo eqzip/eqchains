@@ -15,9 +15,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqzip.eqcoin.util;
+package com.eqzip.eqcoin.keystore;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Arrays;
+import java.util.Vector;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -25,12 +28,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.eqzip.eqcoin.util.Log;
+import com.eqzip.eqcoin.util.Util;
+
 /**
  * @author Xun Wang
- * @date 9- -2018
+ * @date Sep 24, 2018
  * @email 10509759@qq.com
  */
-class TypeTest {
+class AddressTest {
+	private static Vector<String> vec = new Vector<String>();
 
 	/**
 	 * @throws java.lang.Exception
@@ -61,12 +68,50 @@ class TypeTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqzip.eqcoin.util.Type#stringToBytes(java.lang.String)}.
+	 * Test method for
+	 * {@link com.eqzip.eqcoin.keystore.Address#generateAddress(byte[], byte)}.
 	 */
 	@Test
-	void testStringToBytes() {
-		byte[] bytes = EQCType.stringToFixedData("abc");
-		Log.info(Util.dumpBytesBigEndianBinary(bytes));
+	void testGenerateAddress() {
+		for (int i = 0; i < 100; ++i) {
+			vec.add(AddressTool.generateAddress(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.HUNDRED, true), AddressTool.V3));
+			Log.info(vec.get(i));
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.eqzip.eqcoin.keystore.Address#verifyAddress(java.lang.String)}.
+	 */
+	@Test
+	void testVerifyAddress() {
+		for (int i = 0; i < 100; ++i) {
+//			vec.add(AddressTool.generateAddress(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.HUNDRED, true), AddressTool.V2));
+			Log.info(vec.get(i));
+			if (AddressTool.verifyAddress(vec.get(i))) {
+				Log.info("address " + i + " verify passed");
+			}
+			else {
+				Log.info("address " + i + " verify failed");
+			}
+			assertTrue(AddressTool.verifyAddress(vec.get(i)));
+		}
+	}
+
+	/**
+	 * Test method for {@link com.eqzip.eqcoin.keystore.Address#trim(byte[])}.
+	 */
+	@Test
+	void testTrim() {
+		byte[] bytes = new byte[28];
+		for(int i=10; i<20; ++i) {
+			bytes[i] = 1;
+		}
+		byte[] bytes10 = new byte[10];
+		for(int i=0; i<10; ++i) {
+			bytes10[i] = 1;
+		}
+		assertTrue(Arrays.equals(AddressTool.trim(bytes), bytes10));
 	}
 
 }

@@ -17,6 +17,11 @@
  */
 package com.eqzip.eqcoin.blockchain;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+import com.eqzip.eqcoin.util.Log;
 import com.eqzip.eqcoin.util.Util;
 
 /**
@@ -27,7 +32,7 @@ import com.eqzip.eqcoin.util.Util;
 public class EQCHeader {
 	/*
 	 * previous block hash |  target  | transactions hash | timestamp |  nonce  
-   			64 bytes	      64bytes        64 bytes	      8 bytes	 8 bytes   
+   			16 bytes	      4bytes        16 bytes	      8 bytes	 8 bytes   
 	 */
 	private byte[]	preHash;
 	private byte[]	target;
@@ -42,19 +47,24 @@ public class EQCHeader {
 	 */
 	public EQCHeader(byte[] header) {
 		super();
-		preHash = new byte[64];
-		target = new byte[64];
-		txHash = new byte[64];
-		System.arraycopy(header, 0, preHash, 0, 64);
-		System.arraycopy(header, 64, target, 0, 64);
-		System.arraycopy(header, 128, txHash, 0, 64);
-		
-		byte[] bytes = new byte[8];
-		System.arraycopy(header, 192, bytes, 0, 8);
-		timestamp = Util.bytesToLong(bytes);
-		
-		System.arraycopy(header, 200, bytes, 0, 8);
-		nonce = Util.bytesToLong(bytes);
+		preHash = new byte[16];
+		target = new byte[4];
+		txHash = new byte[16];
+		ByteArrayInputStream is = new ByteArrayInputStream(header);
+		try {
+			is.read(preHash);
+			is.read(target);
+			is.read(txHash);
+			byte[] bytes = new byte[8];
+			is.read(bytes);
+			timestamp = Util.bytesToLong(bytes);
+			is.read(bytes);
+			nonce = Util.bytesToLong(bytes);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
 	}
 
 	/**
@@ -65,15 +75,19 @@ public class EQCHeader {
 	}
 
 	public byte[] getBytes() {
-		byte[] bytes = new byte[208];
-		
-		System.arraycopy(preHash, 0, bytes, 0, 64);
-		System.arraycopy(target, 0, bytes, 64, 64);
-		System.arraycopy(txHash, 0, bytes, 128, 64);
-		System.arraycopy(Util.longToBytes(timestamp), 0, bytes, 192, 8);
-		System.arraycopy(Util.longToBytes(nonce), 0, bytes, 200, 8);
-		
-		return bytes;
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(preHash);
+			os.write(target);
+			os.write(txHash);
+			os.write(Util.longToBytes(timestamp));
+			os.write(Util.longToBytes(nonce));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
 	}
 	
 	/**
@@ -138,7 +152,7 @@ public class EQCHeader {
 	}
 	
 	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
+	 * @see java.lang.Object#toString() 
 	 */
 	@Override
 	public String toString() {
@@ -147,7 +161,8 @@ public class EQCHeader {
 					"\"EQCHeader\":" + 
 					"{\n" +
 						"\"preHash\":" + "\"" + Util.getHexString(preHash) + "\"" + ",\n" +
-						"\"target\":" + "\"" + Util.getHexString(target) + "\"" + ",\n" +
+						"\"target\":" + "\"" + Util.getHexString(Util.targetBytesToBigInteger(target).toByteArray()) + "\"" + ",\n" +
+						"\"targetBytes\":" + "\"" + Integer.toHexString(Util.bytesToInt(target)) + "\"" + ",\n" +
 						"\"txHash\":" + "\"" + Util.getHexString(txHash) + "\"" + ",\n" +
 						"\"timestamp\":" + "\"" + Util.getGMTTime(timestamp) + "\"" + ",\n" +
 						"\"nonce\":" + "\"" + Long.toHexString(nonce) + "\"" + "\n" +

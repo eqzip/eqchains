@@ -15,58 +15,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqzip.eqcoin.util;
+package com.eqzip.eqcoin.blockchain;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import java.util.Vector;
 
 /**
  * @author Xun Wang
- * @date 9- -2018
+ * @date Oct 1, 2018
  * @email 10509759@qq.com
  */
-class TypeTest {
+public class Transactions {
+	private TransactionsHeader transactionsHeader;
+	private Vector<Address> addressList;
+	private Vector<PublicKey> publicKeyList;
+	private Vector<Transaction> transactionList;
+	
+	public Transactions() {
+		super();
+	}
 
+	public void addTransaction(Transaction transaction) {
+		
+	}
+	
 	/**
-	 * @throws java.lang.Exception
+	 * @return the transactionsHeader
 	 */
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
+	public TransactionsHeader getTransactionsHeader() {
+		return transactionsHeader;
 	}
 
 	/**
-	 * @throws java.lang.Exception
+	 * @param transactionsHeader the transactionsHeader to set
 	 */
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
+	public void setTransactionsHeader(TransactionsHeader transactionsHeader) {
+		this.transactionsHeader = transactionsHeader;
 	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeEach
-	void setUp() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterEach
-	void tearDown() throws Exception {
-	}
-
-	/**
-	 * Test method for {@link com.eqzip.eqcoin.util.Type#stringToBytes(java.lang.String)}.
-	 */
-	@Test
-	void testStringToBytes() {
-		byte[] bytes = EQCType.stringToFixedData("abc");
-		Log.info(Util.dumpBytesBigEndianBinary(bytes));
-	}
-
+	
 }
