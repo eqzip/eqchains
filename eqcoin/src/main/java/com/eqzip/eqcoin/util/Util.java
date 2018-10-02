@@ -136,7 +136,6 @@ public final class Util {
 		return bigIntegerTo128String(new BigInteger(1, bytes));
 	}
 
-<<<<<<< HEAD
 //	public static BigInteger getDefaultTarget() {
 //		return BigInteger.valueOf(Long.parseLong("dafedcba9876543", 16)).shiftLeft(8)
 //				.add(BigInteger.valueOf(Long.parseLong("21", 16))).shiftLeft(60);
@@ -182,11 +181,6 @@ public final class Util {
 //			int c = a | b;
 //			return intToBytes((value & 0x00FFFFFF) | (((target.length() - 24) & 0xFF) << 24));
 //		}
-=======
-	public static BigInteger getDefaultTarget() {
-		return BigInteger.valueOf(Long.parseLong("dafedcba9876543", 16)).shiftLeft(8)
-				.add(BigInteger.valueOf(Long.parseLong("21", 16))).shiftLeft(424 + 16);
->>>>>>> branch 'master' of https://github.com/eqzip/eqcoin.git
 	}
 
 	public static byte[] bigIntegerTo64Bytes(final BigInteger foo) {
@@ -297,13 +291,8 @@ public final class Util {
 	 * Varbit is a series of consecutive bytes. Each byte has 7 significant digits,
 	 * the highest digit of which is a continuous label. If it is 1, it means that
 	 * the subsequent byte is still part of bytes. If it is 0, it means the current
-<<<<<<< HEAD
 	 * byte is the last byte of bytes. Due to ByteArrayOutputStream write byte array
 	 * in little endian so here reverse the byte array
-=======
-	 * byte is the last byte of bytes.
-	 * Due to ByteArrayOutputStream write byte array in little endian so here reverse the byte array
->>>>>>> branch 'master' of https://github.com/eqzip/eqcoin.git
 	 * <p>
 	 * 
 	 * @param value the original value of relevant number
@@ -346,17 +335,11 @@ public final class Util {
 	 * block chain's header and address. Each input data will be expanded by a
 	 * factor of multiple.
 	 * 
-<<<<<<< HEAD
 	 * @param bytes      The raw data for example EQC block chain's header or
 	 *                   address
 	 * @param multiple   The input data will be expanded by a factor of multiple
 	 * @param isCompress If this is an address or signatures. Then at the end use
 	 *                   RIPEMD160 and RIPEMD128 to reduce the size of it
-=======
-	 * @param bytes     The raw data for example EQC block chain's header or address
-	 * @param multiple	The input data will be expanded by a factor of multiple
-	 * @param isCompress If this is an address or signatures. Then at the end use RIPEMD160 and RIPEMD128 to reduce the size of it
->>>>>>> branch 'master' of https://github.com/eqzip/eqcoin.git
 	 * @return Hash value processed by EQCCHA
 	 */
 	public static byte[] EQCCHA_MULTIPLE(final byte[] bytes, int multiple, boolean isCompress) {
@@ -370,12 +353,8 @@ public final class Util {
 			hash = MessageDigest.getInstance("SHA3-256").digest(multipleExtend(hash, multiple));
 			hash = MessageDigest.getInstance("SHA3-384").digest(multipleExtend(hash, multiple));
 			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
-<<<<<<< HEAD
 			// Due to this is an address or signatures so here use RIPEMD160 and RIPEMD128
 			// reduce the size of it
-=======
-			// Due to this is an address or signatures so here use RIPEMD160 and RIPEMD128 reduce the size of it
->>>>>>> branch 'master' of https://github.com/eqzip/eqcoin.git
 			if (isCompress) {
 				hash = RIPEMD160(multipleExtend(hash, multiple));
 				hash = RIPEMD128(multipleExtend(hash, multiple));
@@ -499,7 +478,6 @@ public final class Util {
 		}
 		return result;
 	}
-<<<<<<< HEAD
 
 	public static byte[] reverseBytes(final byte[] bytes) {
 		byte[] foo = new byte[bytes.length];
@@ -513,19 +491,4 @@ public final class Util {
 		return AddressTool.V1;
 	}
 
-=======
-	
-	public static byte[] reverseBytes(final byte[] bytes) {
-		byte[] foo = new byte[bytes.length];
-		for(int i=0; i<=foo.length-1; ++i) {
-			foo[i] = bytes[bytes.length-1-i];
-		}
-		return foo;
-	}
-	
-	public static byte getAddressVersion(SerialNumber addressSN) {
-		return AddressTool.V1;
-	}
-	
->>>>>>> branch 'master' of https://github.com/eqzip/eqcoin.git
 }

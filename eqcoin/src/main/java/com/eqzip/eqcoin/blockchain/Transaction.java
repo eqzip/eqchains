@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Vector;
 
-<<<<<<< HEAD
 import com.eqzip.eqcoin.util.EQCType;
 import com.eqzip.eqcoin.util.Log;
 import com.eqzip.eqcoin.util.Util;
@@ -128,70 +127,5 @@ public class Transaction {
 	public void setSignature(byte[] signature) {
 		this.signature = signature;
 	}
-=======
-import com.eqzip.eqcoin.util.Log;
-import com.eqzip.eqcoin.util.Util;
-
-/**
- * @author Xun Wang
- * @date Sep 28, 2018
- * @email 10509759@qq.com
- */
-public class Transaction {
-	private TxIn txIn;
-	private Vector<TxOut> vecTxOut;
-	
-	public Transaction() {
-		super();
-	}
-	
-	public byte[] getBytes() {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			os.write(Util.longToBits(txIn.value));
-			for(TxOut txOut : vecTxOut) {
-				os.write(Util.longToBits(txOut.value));
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		return os.toByteArray();
-	}
-	
-	public void addTxOut(TxOut txOut) {
-		if(!isTxOutExists(txOut)) {
-			vecTxOut.add(txOut);
-		}
-	}
-	
-	public long getTxFee() {
-		long totalTxOut = 0;
-		for(TxOut txOut : vecTxOut) {
-			totalTxOut += txOut.value;
-		}
-		return txIn.value - totalTxOut;
-	}
-	
-	public boolean isTxOutExists(TxOut txOut) {
-		return vecTxOut.contains(txOut);
-	}
-
-	/**
-	 * @return the txIn
-	 */
-	public TxIn getTxIn() {
-		return txIn;
-	}
-
-	/**
-	 * @param txIn the txIn to set
-	 */
-	public void setTxIn(TxIn txIn) {
-		this.txIn = txIn;
-	}
-
->>>>>>> branch 'master' of https://github.com/eqzip/eqcoin.git
 	
 }
