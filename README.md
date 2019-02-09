@@ -5,6 +5,7 @@ EQCOIN is hosted by the EQCOIN Foundation. 10% of the equity belongs to EQZIP In
  *
  * EQCoin core - EQZIP's EQCoin core library
  * @copyright 2018-2019 EQZIP Inc.  All rights reserved...
+ * CC BY-NC-ND(https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en)
  * https://www.eqzip.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
