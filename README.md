@@ -1,5 +1,5 @@
 EQCOIN is next generation decentralized, peer-to-peer cryptocurrency which enables you easily send money online. EQCOIN is completely anonymous, decentralized, and extremely secure.
-EQCOIN is hosted by the EQCOIN Foundation. 10% of the equity belongs to EQZIP Inc. 20% of the equity belong to miners. 70% of the equity belongs to Xun Wang Trust Foundation(The beneficiary is Xun Wang and his family. Xun Wang has 100% decision-making power. Family members receive a corresponding return based on their contribution.). 
+EQCOIN is hosted by the EQCOIN Foundation. 20% of the EQCOIN belong to miners. 80% of the EQCOIN belongs to Xun Wang Trust Foundation(The beneficiary is Xun Wang and his family. Xun Wang has 100% decision-making power. Family members receive a corresponding return based on their contribution.). 
 
 /**
  *
