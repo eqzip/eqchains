@@ -1,6 +1,18 @@
 /**
- * EQCoin core - EQZIP's EQCoin core library
- * @copyright 2018 EQZIP Inc.  All rights reserved...
+ * EQCoin core - EQCOIN Foundation's EQCoin core library
+ * @copyright 2018-present EQCOIN Foundation All rights reserved...
+ * Copyright of all works released by EQCOIN Foundation or jointly released by
+ * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQCOIN Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
  * https://www.eqzip.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -20,168 +32,242 @@ package com.eqzip.eqcoin.blockchain;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import com.eqzip.eqcoin.util.EQCType;
+import javax.print.attribute.standard.RequestingUserName;
+
+import com.eqzip.eqcoin.blockchain.Address.AddressShape;
+import com.eqzip.eqcoin.persistence.h2.EQCBlockChainH2;
+import com.eqzip.eqcoin.serialization.EQCTypable;
+import com.eqzip.eqcoin.serialization.EQCType;
 import com.eqzip.eqcoin.util.Log;
-import com.eqzip.eqcoin.util.SerialNumber;
+import com.eqzip.eqcoin.util.ID;
 import com.eqzip.eqcoin.util.Util;
+import com.eqzip.eqcoin.util.Util.AddressTool;
+import com.eqzip.eqcoin.util.Util.AddressTool.AddressType;
 
 /**
  * @author Xun Wang
  * @date Sep 27, 2018
  * @email 10509759@qq.com
  */
-public class Address {
-	private SerialNumber sn = null;
+public class Address implements EQCTypable {
+	/*
+	 * AddressShape enum which expressed two types of addresses String and Serial
+	 * Number. <p> ADDRESS String used for RPC for example send the Transaction's
+	 * bytes to EQC Transaction network or used for signature the Transaction. <p>
+	 * SERIALNUMBER Serial Number used for EQC block chain for example save the
+	 * Transaction's bytes into AVRO file.
+	 */
+	public enum AddressShape {
+		READABLE, ID, AI
+	}
+	private ID serialNumber = null;
 	private String address = null;
 //	private final String email = null; // not support in mvp status
 	private byte[] code = null;
+	
+	/**
+	 * If code isn't null the use this field to save the codeHash.
+	 * Also use codeHash to get the getBytesWithCodeHash.
+	 */
+	private byte[] codeHash = null;
+	
+	/*
+	 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
+	 */
+	private final static byte VERIFICATION_COUNT = 3;
 
 	/**
-	 * @param sn
+	 * @param serialNumber
 	 * @param address
-	 * @param data
+	 * @param code
 	 */
-	public Address(SerialNumber sn, String address, byte[] data) {
+	public Address(ID serialNumber, String address, byte[] code) {
 		super();
-		this.sn = sn;
+		this.serialNumber = serialNumber;
 		this.address = address;
-		this.code = data;
+		setCode(code);
 	}
-	
+
 	public Address() {
-		
+
 	}
 	
-	public Address(byte[] bytes) {
+	public Address(String address) {
+		this.address = address;
+//		this.serialNumber = EQCBlockChainH2.getInstance().getAddressSerialNumber(this);
+	}
+
+	/**
+	 * Create Address according to the bytes from EQC block chain's avro storage.
+	 * @param bytes
+	 * @throws IOException 
+	 * @throws NoSuchFieldException 
+	 */
+	public Address(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		int type;
-		byte[] data;
-		int iLen = 0;
+		byte[] data = null;
 
-		// Parse SN
-		ByteBuffer buff = ByteBuffer.allocate(10);
-		while ((((type = is.read()) != -1) && ((byte) type & EQCType.BITS) != 0)) {
-			buff.put((byte) type);
-		}
-		buff.put((byte) type);
-		buff.flip();
-		sn = new SerialNumber(buff.array());
-
-		// Parse address
-		type = is.read();
-		if (EQCType.parseEQCType(type) == EQCType.FIXEDDATA) {
-			data = new byte[EQCType.parseFixedDataLen(type)];
-			try {
-				iLen = is.read(data);
-				if (iLen == data.length) {
-					address = new String(data, StandardCharsets.US_ASCII);
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+		// Parse SerialNumber
+		if ((data = EQCType.parseEQCBits(is)) != null) {
+			serialNumber = new ID(data);
 		}
 
-		// Parse code
-		type = is.read();
-		if (type == -1) {
-			code = null;
-		} else if (EQCType.isBin(type)) {
-			try {
-				// Get xxx raw data
-				iLen = EQCType.getBinLen(type);
-				data = new byte[iLen];
-				is.read(data);
-				// Get xxx raw data's value
-				iLen = EQCType.getBinDataLen(type, data);
-				// Read the content
-				data = new byte[iLen];
-				iLen = is.read(data);
-				if (iLen == data.length) {
-					code = data;
-				}
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+		// Parse Address
+		data = null;
+		if ((data = EQCType.parseBIN(is)) != null) {
+			address = Util.AddressTool.AIToAddress(data);
+		}
 
+		// Parse Code
+		data = null;
+		if ((data = EQCType.parseBIN(is)) != null) {
+			setCode(data);
 		}
 	}
 
-	public static boolean isValid(byte[] bytes) {
+	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		int type;
-		byte[] data;
+		byte[] data = null;
 		byte validCount = 0;
-		int iLen = 0;
 
-		// Parse SN
-		ByteBuffer buff = ByteBuffer.allocate(10);
-		while ((((type = is.read()) != -1) && (type & EQCType.BITS) != 0)) {
-			buff.put((byte) type);
-		}
-		if (type != -1) {
-			buff.put((byte) type);
+		// Parse SerialNumber
+		if ((data = EQCType.parseEQCBits(is)) != null) {
 			++validCount;
 		}
 
-		// Parse address
-		type = is.read();
-		if (EQCType.parseEQCType(type) == EQCType.FIXEDDATA) {
-			data = new byte[EQCType.parseFixedDataLen(type)];
-			try {
-				iLen = is.read(data);
-				if (iLen == data.length) {
-					++validCount;
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
-		// Parse data
-		type = is.read();
-		if (type == -1) {
+		// Parse Address
+		data = null;
+		if ((data = EQCType.parseBIN(is)) != null) {
 			++validCount;
-		} else if (EQCType.isBin(type)) {
-			try {
-				// Get xxx raw data
-				iLen = EQCType.getBinLen(type);
-				data = new byte[iLen];
-				is.read(data);
-				// Get xxx raw data's value
-				iLen = EQCType.getBinDataLen(type, data);
-				// Read the content
-				data = new byte[iLen];
-				iLen = is.read(data);
-				if (iLen == data.length) {
-					++validCount;
-				}
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-
 		}
-
-		return validCount == 3;
-
+		
+		// Check if include the code in the address
+		if (!EQCType.isInputStreamEnd(is)) {
+			// Parse Code
+			data = null;
+			if ((data = EQCType.parseBIN(is)) != null) {
+				++validCount;
+			}
+		}
+		else {
+			// Without code just update the validCount for verify the result
+			++validCount;
+		}
+		
+		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
 	}
 
+	/**
+	 * Get the Address' whole bytes include Address' Serial Number, Address' string value and relevant code(Optional). 
+	 * For storage Address in EQC block chain.
+	 * @return byte[] 
+	 */
 	public byte[] getBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(sn.getBits());
-			os.write(EQCType.stringToFixedData(address));
+			os.write(serialNumber.getEQCBits());
+			os.write(EQCType.bytesToBIN(Util.AddressTool.addressToAI(address)));
 			if (code != null) {
-				os.write(EQCType.bytesToBin(code));
+				os.write(EQCType.bytesToBIN(code));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+	
+	/**
+	 * Get the Address' whole bytes include Address' Serial Number, Address' string value and relevant code Hash(Optional). 
+	 * For storage Address in EQC block chain.
+	 * @return byte[] 
+	 */
+	public byte[] getBytesWithCodeHash() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(serialNumber.getEQCBits());
+			os.write(EQCType.bytesToBIN(Util.stringToASCIIBytes(address)));
+			if (codeHash != null) {
+				os.write(EQCType.bytesToBIN(codeHash));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+	
+	/**
+	 * Get the address' whole Bin include Address' Serial Number, Address' string value and relevant code(Optional). 
+	 * For storage Address in EQC block chain.
+	 * @return byte[] 
+	 */
+	public byte[] getBin() {
+		return EQCType.bytesToBIN(getBytes());
+	}
+	
+	/**
+	 * Get the Address' whole AIBytes include Address' Serial Number, Address' AI(1 byte version + 16 bytes EQCCHA's hash) value and relevant code(Optional). 
+	 * For storage Address in EQC block chain.
+	 * @return byte[] 
+	 */
+	public byte[] getAIBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(serialNumber.getEQCBits());
+			os.write(EQCType.bytesToBIN(getAddressAI()));
+			if (code != null) {
+				os.write(EQCType.bytesToBIN(code));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+	
+	public int getBillingSize() {
+		int size = 0;
+		size += Util.BASIC_SERIAL_NUMBER_LEN;
+		size += EQCType.bytesToBIN(Util.AddressTool.addressToAI(address)).length;
+		if (code != null) {
+			size += EQCType.bytesToBIN(code).length;
+		}
+	    return EQCType.getEQCTypeOverhead(size);
+	}
+	
+	/**
+	 * Get the address' whole AIBin include Address' Serial Number, Address' AI(1 byte version + 16 bytes EQCCHA's hash) value and relevant code(Optional). 
+	 * For storage Address in EQC block chain.
+	 * @return byte[] 
+	 */
+	public byte[] getAIBin() {
+		return EQCType.bytesToBIN(getAIBytes());
+	}
+	
+	/**
+	 * Get the address' bytes which is Address' Serial Number or Address' string value. 
+	 * For create the Transaction for storage it in the EQC block chain when addressShape is SERIALNUMBER or
+	 * for create the Transaction for send it to the EQC miner network when addressShape is ADDRESS.
+	 * @param addressShape
+	 * @return byte[]
+	 */
+	public byte[] getBytes(Address.AddressShape addressShape) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			if(addressShape == Address.AddressShape.ID) {
+				os.write(serialNumber.getEQCBits());
+			}
+			else if(addressShape == Address.AddressShape.READABLE) {
+				os.write(EQCType.stringToBIN(address));
+			}
+			else if(addressShape == Address.AddressShape.AI) {
+				os.write(EQCType.bytesToBIN(Util.AddressTool.addressToAI(address)));
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -191,18 +277,22 @@ public class Address {
 		return os.toByteArray();
 	}
 
-	/**
-	 * @return the sn
-	 */
-	public SerialNumber getSn() {
-		return sn;
+	public AddressType getType() {
+		return Util.AddressTool.getAddressType(address);
 	}
 
 	/**
-	 * @param sn the sn to set
+	 * @return the SerialNumber
 	 */
-	public void setSn(SerialNumber sn) {
-		this.sn = sn;
+	public ID getSerialNumber() {
+		return serialNumber;
+	}
+
+	/**
+	 * @param ID the SerialNumber to set
+	 */
+	public void setSerialNumber(ID serialNumber) {
+		this.serialNumber = serialNumber;
 	}
 
 	/**
@@ -220,17 +310,18 @@ public class Address {
 	}
 
 	/**
-	 * @return the data
+	 * @return the code
 	 */
-	public byte[] getData() {
+	public byte[] getCode() {
 		return code;
 	}
 
 	/**
-	 * @param data the data to set
+	 * @param code the code to set
 	 */
-	public void setData(byte[] data) {
-		this.code = data;
+	public void setCode(byte[] code) {
+		this.code = code;
+		calculateCodeHash(code);
 	}
 
 	/*
@@ -244,7 +335,7 @@ public class Address {
 		int result = 1;
 		result = prime * result + ((address == null) ? 0 : address.hashCode());
 		result = prime * result + Arrays.hashCode(code);
-		result = prime * result + ((sn == null) ? 0 : sn.hashCode());
+		result = prime * result + ((serialNumber == null) ? 0 : serialNumber.hashCode());
 		return result;
 	}
 
@@ -269,11 +360,11 @@ public class Address {
 			return false;
 		if (!Arrays.equals(code, other.code))
 			return false;
-		if (sn == null) {
-			if (other.sn != null)
-				return false;
-		} else if (!sn.equals(other.sn))
-			return false;
+//		if (serialNumber == null) {
+//			if (other.serialNumber != null)
+//				return false;
+//		} else if (!serialNumber.equals(other.serialNumber))
+//			return false;
 		return true;
 	}
 
@@ -284,15 +375,124 @@ public class Address {
 	 */
 	@Override
 	public String toString() {
-		return 
-			"{\n" +
-				"\"Address\":" + 
-				"{\n" +
-					"\"sn\":" + "\"" + sn.toString() + "\"" + ",\n" +
-					"\"address\":" + "\"" + address + "\"" + ",\n" +
-					"\"code\":" + "\"" + Util.getHexString(code) + "\"" + "\n" +
-				"}\n" +
-			"}";
+		return "{\n" +
+				toInnerJson() +
+				"\n}";
+	}
+
+	public String toInnerJson() {
+		return "\"Address\":" + "{\n" + "\"sn\":" + "\"" + ((serialNumber == null)?null:serialNumber.longValue()) + "\"" + ",\n"
+				+ "\"address\":" + "\"" + address + "\"" + ",\n" + "\"code\":" + "\"" + Util.getHexString(code) + "\""
+				+ "\n" + "}";
+	}
+	
+	public boolean isGood() {
+		return isGood(null);
+	}
+	
+	public boolean isGood(PublicKey publickey) {
+		AddressTool.AddressType addressType = Util.AddressTool.getAddressType(address);
+		
+		if((address == null) || (serialNumber == null)) {
+			return false;
+		}
+		
+		// Check Address length is valid
+		if(address.length() > Util.MAX_ADDRESS_LEN || address.length() < Util.MIN_ADDRESS_LEN) {
+			return false;
+		}
+		
+		// Check Address type, CRC32 checksum and generated from Publickey is valid
+		if(addressType == AddressType.T1 || addressType == AddressType.T2) {
+			if(!AddressTool.verifyAddress(address)) {
+				return false;
+			}
+			if(publickey != null) {
+				if(!AddressTool.verifyAddress(address, publickey.getPublicKey())) {
+					return false;
+				}
+			}
+		}
+		// The others Address Type is invalid
+		else {
+			return false;
+		}
+		
+		// Check if Address' Serial Number is valid which should >= 1
+		if(serialNumber.compareTo(ID.ONE) < 0) {
+			return false;
+		}
+		
+//		else if(addressType == AddressType.T3) {
+//			if(code == null) {
+//				isValid = false;
+//			}
+//			else {
+//				if(code.length > Util.MAX_T3_ADDRESS_CODE_LEN) {
+//					isValid = false;
+//				}
+//			}
+//			if(!AddressTool.verifyAddress(address) || !AddressTool.verifyAddress(address, code)) {
+//				isValid = false;
+//			}
+//		}
+		return true;
+	}
+
+	/**
+	 * @return the codeHash
+	 */
+	public byte[] getCodeHash() {
+		return codeHash;
+	}
+
+	/**
+	 * @param codeHash the codeHash to set
+	 */
+	public void setCodeHash(byte[] codeHash) {
+		this.codeHash = codeHash;
+	}
+	
+	public byte[] calculateCodeHash(byte[] bytes) {
+		if(bytes != null) {
+			codeHash = Util.EQCCHA_MULTIPLE(bytes, Util.ONE, true);
+		}
+		return codeHash;
+	}
+	
+	public byte[] getAddressAI() {
+		return Util.AddressTool.addressToAI(address);
+	}
+
+	@Override
+	public boolean isSanity(AddressShape... addressShape) {
+		if(addressShape.length == 0) {
+			if(address == null) {
+				return false;
+			}
+			if(getType() != AddressType.T1 || getType() != AddressType.T2) {
+				return false;
+			}
+			if(serialNumber == null) {
+				return false;
+			}
+		}
+		else if(addressShape.length == 1) {
+			if(addressShape[0] == AddressShape.AI || addressShape[0] == AddressShape.READABLE) {
+				if(address == null) {
+					return false;
+				}
+			}
+			else {
+				if(serialNumber == null) {
+					return false;
+				}
+			}
+		}
+		else {
+			return false;
+		}
+		return true;
 	}
 
 }
