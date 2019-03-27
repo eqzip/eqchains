@@ -56,13 +56,13 @@ public class Address implements EQCTypable {
 	 * AddressShape enum which expressed two types of addresses String and Serial
 	 * Number. <p> ADDRESS String used for RPC for example send the Transaction's
 	 * bytes to EQC Transaction network or used for signature the Transaction. <p>
-	 * SERIALNUMBER Serial Number used for EQC block chain for example save the
+	 * id Serial Number used for EQC block chain for example save the
 	 * Transaction's bytes into AVRO file.
 	 */
 	public enum AddressShape {
 		READABLE, ID, AI
 	}
-	private ID serialNumber = null;
+	private ID id = null;
 	private String address = null;
 //	private final String email = null; // not support in mvp status
 	private byte[] code = null;
@@ -79,13 +79,13 @@ public class Address implements EQCTypable {
 	private final static byte VERIFICATION_COUNT = 3;
 
 	/**
-	 * @param serialNumber
+	 * @param id
 	 * @param address
 	 * @param code
 	 */
-	public Address(ID serialNumber, String address, byte[] code) {
+	public Address(ID id, String address, byte[] code) {
 		super();
-		this.serialNumber = serialNumber;
+		this.id = id;
 		this.address = address;
 		setCode(code);
 	}
@@ -96,7 +96,7 @@ public class Address implements EQCTypable {
 	
 	public Address(String address) {
 		this.address = address;
-//		this.serialNumber = EQCBlockChainH2.getInstance().getAddressSerialNumber(this);
+//		this.id = EQCBlockChainH2.getInstance().getAddressID(this);
 	}
 
 	/**
@@ -109,9 +109,9 @@ public class Address implements EQCTypable {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		byte[] data = null;
 
-		// Parse SerialNumber
+		// Parse ID
 		if ((data = EQCType.parseEQCBits(is)) != null) {
-			serialNumber = new ID(data);
+			id = new ID(data);
 		}
 
 		// Parse Address
@@ -132,7 +132,7 @@ public class Address implements EQCTypable {
 		byte[] data = null;
 		byte validCount = 0;
 
-		// Parse SerialNumber
+		// Parse ID
 		if ((data = EQCType.parseEQCBits(is)) != null) {
 			++validCount;
 		}
@@ -167,7 +167,7 @@ public class Address implements EQCTypable {
 	public byte[] getBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(serialNumber.getEQCBits());
+			os.write(id.getEQCBits());
 			os.write(EQCType.bytesToBIN(Util.AddressTool.addressToAI(address)));
 			if (code != null) {
 				os.write(EQCType.bytesToBIN(code));
@@ -188,7 +188,7 @@ public class Address implements EQCTypable {
 	public byte[] getBytesWithCodeHash() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(serialNumber.getEQCBits());
+			os.write(id.getEQCBits());
 			os.write(EQCType.bytesToBIN(Util.stringToASCIIBytes(address)));
 			if (codeHash != null) {
 				os.write(EQCType.bytesToBIN(codeHash));
@@ -218,7 +218,7 @@ public class Address implements EQCTypable {
 	public byte[] getAIBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(serialNumber.getEQCBits());
+			os.write(id.getEQCBits());
 			os.write(EQCType.bytesToBIN(getAddressAI()));
 			if (code != null) {
 				os.write(EQCType.bytesToBIN(code));
@@ -252,7 +252,7 @@ public class Address implements EQCTypable {
 	
 	/**
 	 * Get the address' bytes which is Address' Serial Number or Address' string value. 
-	 * For create the Transaction for storage it in the EQC block chain when addressShape is SERIALNUMBER or
+	 * For create the Transaction for storage it in the EQC block chain when addressShape is id or
 	 * for create the Transaction for send it to the EQC miner network when addressShape is ADDRESS.
 	 * @param addressShape
 	 * @return byte[]
@@ -261,7 +261,7 @@ public class Address implements EQCTypable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			if(addressShape == Address.AddressShape.ID) {
-				os.write(serialNumber.getEQCBits());
+				os.write(id.getEQCBits());
 			}
 			else if(addressShape == Address.AddressShape.READABLE) {
 				os.write(EQCType.stringToBIN(address));
@@ -282,17 +282,17 @@ public class Address implements EQCTypable {
 	}
 
 	/**
-	 * @return the SerialNumber
+	 * @return the ID
 	 */
-	public ID getSerialNumber() {
-		return serialNumber;
+	public ID getID() {
+		return id;
 	}
 
 	/**
-	 * @param ID the SerialNumber to set
+	 * @param ID the ID to set
 	 */
-	public void setSerialNumber(ID serialNumber) {
-		this.serialNumber = serialNumber;
+	public void setID(ID id) {
+		this.id = id;
 	}
 
 	/**
@@ -335,7 +335,7 @@ public class Address implements EQCTypable {
 		int result = 1;
 		result = prime * result + ((address == null) ? 0 : address.hashCode());
 		result = prime * result + Arrays.hashCode(code);
-		result = prime * result + ((serialNumber == null) ? 0 : serialNumber.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		return result;
 	}
 
@@ -360,10 +360,10 @@ public class Address implements EQCTypable {
 			return false;
 		if (!Arrays.equals(code, other.code))
 			return false;
-//		if (serialNumber == null) {
-//			if (other.serialNumber != null)
+//		if (id == null) {
+//			if (other.id != null)
 //				return false;
-//		} else if (!serialNumber.equals(other.serialNumber))
+//		} else if (!id.equals(other.id))
 //			return false;
 		return true;
 	}
@@ -381,7 +381,7 @@ public class Address implements EQCTypable {
 	}
 
 	public String toInnerJson() {
-		return "\"Address\":" + "{\n" + "\"sn\":" + "\"" + ((serialNumber == null)?null:serialNumber.longValue()) + "\"" + ",\n"
+		return "\"Address\":" + "{\n" + "\"sn\":" + "\"" + ((id == null)?null:id.longValue()) + "\"" + ",\n"
 				+ "\"address\":" + "\"" + address + "\"" + ",\n" + "\"code\":" + "\"" + Util.getHexString(code) + "\""
 				+ "\n" + "}";
 	}
@@ -393,7 +393,7 @@ public class Address implements EQCTypable {
 	public boolean isGood(PublicKey publickey) {
 		AddressTool.AddressType addressType = Util.AddressTool.getAddressType(address);
 		
-		if((address == null) || (serialNumber == null)) {
+		if((address == null) || (id == null)) {
 			return false;
 		}
 		
@@ -419,7 +419,7 @@ public class Address implements EQCTypable {
 		}
 		
 		// Check if Address' Serial Number is valid which should >= 1
-		if(serialNumber.compareTo(ID.ONE) < 0) {
+		if(id.compareTo(ID.ONE) < 0) {
 			return false;
 		}
 		
@@ -473,7 +473,7 @@ public class Address implements EQCTypable {
 			if(getType() != AddressType.T1 || getType() != AddressType.T2) {
 				return false;
 			}
-			if(serialNumber == null) {
+			if(id == null) {
 				return false;
 			}
 		}
@@ -484,7 +484,7 @@ public class Address implements EQCTypable {
 				}
 			}
 			else {
-				if(serialNumber == null) {
+				if(id == null) {
 					return false;
 				}
 			}
