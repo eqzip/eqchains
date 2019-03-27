@@ -91,15 +91,14 @@ import com.eqzip.eqcoin.blockchain.AccountsMerkleTree;
 import com.eqzip.eqcoin.blockchain.AccountsMerkleTree.Filter;
 import com.eqzip.eqcoin.blockchain.Address;
 import com.eqzip.eqcoin.blockchain.Address.AddressShape;
-import com.eqzip.eqcoin.blockchain.CoinbaseTransaction;
+import com.eqzip.eqcoin.blockchain.transaction.CoinbaseTransaction;
+import com.eqzip.eqcoin.blockchain.transaction.Transaction;
 import com.eqzip.eqcoin.blockchain.EQCBlock;
 import com.eqzip.eqcoin.blockchain.EQCBlockChain;
 import com.eqzip.eqcoin.blockchain.EQCHeader;
 import com.eqzip.eqcoin.blockchain.Index;
 import com.eqzip.eqcoin.blockchain.PublicKey;
 import com.eqzip.eqcoin.blockchain.Root;
-import com.eqzip.eqcoin.blockchain.Transaction;
-import com.eqzip.eqcoin.blockchain.Transaction;
 import com.eqzip.eqcoin.blockchain.TransactionsHeader;
 import com.eqzip.eqcoin.blockchain.TxIn;
 import com.eqzip.eqcoin.blockchain.TxOut;
@@ -177,6 +176,8 @@ public final class Util {
 	public final static int ONE_MB = 1048576;
 	
 	public final static int MAX_NONCE = 268435455;
+	
+	public final static int HASH_LEN = 64;
 
 //	public final static String WINDOWS_PATH = "C:/EQCOIN";
 //
@@ -1507,6 +1508,18 @@ public final class Util {
 					// TODO Auto-generated method stub
 					return false;
 				}
+
+				@Override
+				public byte[] getBytes(AddressShape addressShape) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public byte[] getBin(AddressShape addressShape) {
+					// TODO Auto-generated method stub
+					return null;
+				}
 				
 			}
 			
@@ -1625,6 +1638,18 @@ public final class Util {
 				public boolean isSanity(AddressShape... addressShape) {
 					// TODO Auto-generated method stub
 					return false;
+				}
+
+				@Override
+				public byte[] getBytes(AddressShape addressShape) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public byte[] getBin(AddressShape addressShape) {
+					// TODO Auto-generated method stub
+					return null;
 				}
 				
 			}
@@ -1745,6 +1770,18 @@ public final class Util {
 					// TODO Auto-generated method stub
 					return false;
 				}
+
+				@Override
+				public byte[] getBytes(AddressShape addressShape) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public byte[] getBin(AddressShape addressShape) {
+					// TODO Auto-generated method stub
+					return null;
+				}
 				
 			}
 
@@ -1784,6 +1821,18 @@ public final class Util {
 				// TODO Auto-generated method stub
 				return false;
 			}
+
+			@Override
+			public byte[] getBytes(AddressShape addressShape) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public byte[] getBin(AddressShape addressShape) {
+				// TODO Auto-generated method stub
+				return null;
+			}
 			
 		}
 		
@@ -1821,32 +1870,28 @@ public final class Util {
 
 		// Create Transaction
 		Transaction transaction = new CoinbaseTransaction();
-		Address address = new Address();
-		address.setAddress(Keystore.getInstance().getUserAccounts().get(0).getAddress());
-		address.setID(new ID(BigInteger.valueOf(2)));
 		TxOut txOut = new TxOut();
-		txOut.setAddress(address);
+		txOut.getAddress().setAddress(Keystore.getInstance().getUserAccounts().get(0).getAddress());
+		txOut.getAddress().setID(ID.TWO);
 		txOut.setValue(EQC_FOUNDATION_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
 		Account account = new Account();
-		account.setAddress(address);
+		account.setAddress(txOut.getAddress());
 		account.setAddressCreateHeight(ID.ZERO);
 		account.setBalance(EQC_FOUNDATION_COINBASE_REWARD);
 		account.setBalanceUpdateHeight(ID.ZERO);
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumber();
 		
-		address = new Address();
-		address.setAddress(Keystore.getInstance().getUserAccounts().get(1).getAddress());
-		address.setID(new ID(BigInteger.valueOf(3)));
 		txOut = new TxOut();
-		txOut.setAddress(address);
+		txOut.getAddress().setAddress(Keystore.getInstance().getUserAccounts().get(1).getAddress());
+		txOut.getAddress().setID(ID.TWO.getNextID());
 		txOut.setValue(MINER_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
 		account = new Account();
-		account.setAddress(address);
+		account.setAddress(txOut.getAddress());
 		account.setAddressCreateHeight(ID.ZERO);
 		account.setBalance(MINER_COINBASE_REWARD);
 		account.setBalanceUpdateHeight(ID.ZERO);
@@ -1877,10 +1922,10 @@ public final class Util {
 		root.setHeight(ID.ZERO);
 //		root.setIndexHash(index.getHash());
 		root.setTotalSupply(cypherTotalSupply(ID.ZERO));
-		root.setTotalAccountNumbers(BigInteger.TWO);
-		root.setTotalTransactionNumbers(BigInteger.ONE);
+		root.setTotalAccountNumbers(ID.TWO);
+		root.setTotalTransactionNumbers(ID.ONE);
 		root.setAccountsMerkelTreeRoot(accountsMerkleTree.getRoot());
-		root.setTransactionsMerkelTreeRoot(eqcBlock.getTransactions().getTransactionsMerkelTreeRoot());
+		root.setTransactionsMerkelTreeRoot(eqcBlock.getTransactionsMerkelTreeRoot());
 
 		// Create EQC block header
 		EQCHeader header = new EQCHeader();
@@ -2032,14 +2077,6 @@ public final class Util {
 //		}
 //		return txfee_rate;
 //	}
-
-	public static byte[] getTransactionMerkelTreeRoot(Vector<Transaction> transactionList) {
-		Vector<byte[]> transactions = new Vector<byte[]>();
-		for (Transaction transaction : transactionList) {
-			transactions.add(transaction.getRPCBytes());
-		}
-		return getMerkleTreeRoot(transactions);
-	}
 
 	public static byte[] getMerkleTreeRoot(Vector<byte[]> bytes) {
 		MerkleTree merkleTree = new MerkleTree(bytes);
