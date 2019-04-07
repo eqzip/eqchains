@@ -371,4 +371,5 @@ public class EQCHeader implements EQCTypable {
 		return true;
 	}
 	
+	
 }
