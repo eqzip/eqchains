@@ -53,6 +53,7 @@ public class Root implements EQCTypable {
 	private ID totalAccountNumbers;
 	private ID totalTransactionNumbers;
 //	private byte[] indexHash;
+	
 	/**
 	 * Save the root of Accounts Merkel Tree.
 	 */
