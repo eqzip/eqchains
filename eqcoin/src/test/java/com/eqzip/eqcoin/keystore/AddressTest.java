@@ -40,6 +40,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.eqzip.eqcoin.keystore.AddressTool.AddressType;
 import com.eqzip.eqcoin.util.Log;
 import com.eqzip.eqcoin.util.Util;
 
