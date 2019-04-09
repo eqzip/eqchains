@@ -44,7 +44,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
@@ -89,10 +88,12 @@ import org.junit.jupiter.params.shadow.com.univocity.parsers.annotations.Trim;
 import com.eqzip.eqcoin.blockchain.Account;
 import com.eqzip.eqcoin.blockchain.AccountsMerkleTree;
 import com.eqzip.eqcoin.blockchain.AccountsMerkleTree.Filter;
-import com.eqzip.eqcoin.blockchain.Address;
-import com.eqzip.eqcoin.blockchain.Address.AddressShape;
+import com.eqzip.eqcoin.blockchain.transaction.Address;
 import com.eqzip.eqcoin.blockchain.transaction.CoinbaseTransaction;
 import com.eqzip.eqcoin.blockchain.transaction.Transaction;
+import com.eqzip.eqcoin.blockchain.transaction.TxIn;
+import com.eqzip.eqcoin.blockchain.transaction.TxOut;
+import com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape;
 import com.eqzip.eqcoin.blockchain.EQCBlock;
 import com.eqzip.eqcoin.blockchain.EQCBlockChain;
 import com.eqzip.eqcoin.blockchain.EQCHeader;
@@ -100,12 +101,9 @@ import com.eqzip.eqcoin.blockchain.Index;
 import com.eqzip.eqcoin.blockchain.PublicKey;
 import com.eqzip.eqcoin.blockchain.Root;
 import com.eqzip.eqcoin.blockchain.TransactionsHeader;
-import com.eqzip.eqcoin.blockchain.TxIn;
-import com.eqzip.eqcoin.blockchain.TxOut;
 import com.eqzip.eqcoin.configuration.Configuration;
 import com.eqzip.eqcoin.crypto.EQCPublicKey;
 import com.eqzip.eqcoin.crypto.MerkleTree;
-import com.eqzip.eqcoin.keystore.AddressTool;
 import com.eqzip.eqcoin.keystore.Keystore.ECCTYPE;
 import com.eqzip.eqcoin.keystore.Keystore;
 import com.eqzip.eqcoin.persistence.h2.EQCBlockChainH2;
@@ -143,17 +141,17 @@ public final class Util {
 	
 	public final static long EQCOIN_FOUNDATION_TOTAL_SUPPLY = 168000000000L * ABC;
 
-	public final static int BLOCK_INTERVAL = 10000;// 600000;
+	public final static int BLOCK_INTERVAL = 600000;
 
 	public final static int TARGET_INTERVAL = 10000;
 
-	public final static long MINER_COINBASE_REWARD = 250000 * (BLOCK_INTERVAL / TARGET_INTERVAL);
+	public final static long MINER_COINBASE_REWARD = 25 * ABC * (BLOCK_INTERVAL / TARGET_INTERVAL);
 	
-	public final static long EQC_FOUNDATION_COINBASE_REWARD = 1000000 * (BLOCK_INTERVAL / TARGET_INTERVAL);
+	public final static long EQC_FOUNDATION_COINBASE_REWARD = 100 * ABC * (BLOCK_INTERVAL / TARGET_INTERVAL);
 	
 	public final static long COINBASE_REWARD = MINER_COINBASE_REWARD + EQC_FOUNDATION_COINBASE_REWARD;
 
-	public final static BigInteger MAX_COINBASE_HEIGHT = BigInteger.valueOf(MINER_TOTAL_SUPPLY / MINER_COINBASE_REWARD);
+	public final static BigInteger MAX_COINBASE_HEIGHT = BigInteger.valueOf(MAX_EQC / COINBASE_REWARD);
 
 	public final static int TXFEE_UNIT = 10;
 
@@ -246,6 +244,8 @@ public final class Util {
 
 	public static final int MAX_DIFFICULTY_MULTIPLE = 4;
 	
+	public static final BigInteger EUROPA = UnsignedBiginteger(BigInteger.valueOf(1008));
+	
 	public enum STATUS {
 		OK, ERROR
 	}
@@ -277,7 +277,7 @@ public final class Util {
 		createDir(BLOCK_PATH);
 		if (!Configuration.getInstance().isInitSingularityBlock()
 				&& Keystore.getInstance().getUserAccounts().size() > 0/* Will Remove when Cold Wallet ready */) {
-			EQCBlock eqcBlock = getSingularityBlock();
+			EQCBlock eqcBlock = gestationSingularityBlock();
 			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
 			EQCBlockChainRocksDB.getInstance().saveEQCBlock(eqcBlock);
 //			Address address = eqcBlock.getTransactions().getAddressList().get(0);
@@ -375,7 +375,7 @@ public final class Util {
 //		return	bigIntegerTo128String(new BigInteger(1, bytes));
 		return	bigIntegerTo512String(new BigInteger(1, bytes));
 	}
-
+	
 //	public static BigInteger getDefaultTarget() {
 //		return BigInteger.valueOf(Long.parseLong("dafedcba9876543", 16)).shiftLeft(8)
 //				.add(BigInteger.valueOf(Long.parseLong("21", 16))).shiftLeft(60);
@@ -488,7 +488,7 @@ public final class Util {
 
 	public static String bigIntegerToFixedLengthString(final BigInteger foo, final int len) {
 		String tmp = foo.toString(16);
-//		Log.info(tmp.length() + "  " + tmp);
+		Log.info(tmp.length() + "  " + tmp);
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < len / 4 - tmp.length(); ++i) {
 			sb.append("0");
@@ -577,7 +577,7 @@ public final class Util {
 	}
 
 	public static String dumpBytes(final byte[] bytes, final int radix) {
-		return new BigInteger(1, bytes).toString(radix);
+		return new BigInteger(1, bytes).toString(radix).toUpperCase();
 	}
 
 	/**
@@ -657,10 +657,10 @@ public final class Util {
 	public static String dumpBytesBigEndianHex(byte[] bytes) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = bytes.length - 1; i >= 0; --i) {
-			if (i % 8 == 0) {
-				sb.append(" ");
-			}
-			sb.append(Integer.toHexString(bytes[i]));
+//			if (i % 8 == 0) {
+//				sb.append(" ");
+//			}
+			sb.append(Integer.toHexString(bytes[i]).toUpperCase());
 		}
 		return sb.toString();
 	}
@@ -793,17 +793,9 @@ public final class Util {
 		return EQCBlockChainH2.getInstance();
 	}
 
-	public static String bytesToASCIISting(byte[] bytes) {
-		return new String(bytes, StandardCharsets.US_ASCII);
-	}
-
-	public static byte[] stringToASCIIBytes(String foo) {
-		return foo.getBytes(StandardCharsets.US_ASCII);
-	}
-
 	public static AddressType getAddressType(ID addressSerialNumber) {
 		return AddressTool
-				.getAddressType(getEQCBlockChain(PERSISTENCE.H2).getAddress(addressSerialNumber).getAddress());
+				.getAddressType(getEQCBlockChain(PERSISTENCE.H2).getAddress(addressSerialNumber).getReadableAddress());
 	}
 
 	public static ECPrivateKey getPrivateKey(byte[] privateKeyBytes, AddressType addressType) {
@@ -924,14 +916,14 @@ public final class Util {
 		 * @return EQC address
 		 */
 		public static String generateAddress(byte[] publicKey, AddressType type) {
-			byte[] publickey_hash = EQCCHA_MULTIPLE(publicKey, Util.HUNDRED, true);
+			byte[] publickey_hash_trim = trim(EQCCHA_MULTIPLE(publicKey, Util.HUNDRED, true));
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			
 			// Calculate (type | trim(PublickeyHash))'s CRC32C
 			try {
 				os.write(type.ordinal());
 //				Log.info("AddressType: " + type.ordinal());
-				os.write(trim(publickey_hash));
+				os.write(publickey_hash_trim);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -942,7 +934,7 @@ public final class Util {
 			// CRC32C))
 			os = new ByteArrayOutputStream();
 			try {
-				os.write(trim(publickey_hash));
+				os.write(publickey_hash_trim);
 				os.write(crc32c);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -956,7 +948,7 @@ public final class Util {
 			byte[] bytes = null;
 			byte[] crc32c = new byte[CRC32C_LEN];
 			byte[] CRC32C = new byte[CRC32C_LEN];
-			byte[] publicKey_hash = trim(EQCCHA_MULTIPLE(publickey, HUNDRED, true));
+			byte[] publickey_hash_trim = trim(EQCCHA_MULTIPLE(publickey, HUNDRED, true));
 			try {
 				bytes = Base58.decode(address.substring(1));
 				System.arraycopy(bytes, bytes.length - CRC32C_LEN, crc32c, 0, crc32c.length);
@@ -969,7 +961,7 @@ public final class Util {
 				e.printStackTrace();
 				Log.Error(e.getMessage());
 			}
-			return Arrays.equals(crc32c, CRC32C) && Arrays.equals(publicKey_hash, Arrays.copyOf(bytes, bytes.length - CRC32C_LEN));
+			return Arrays.equals(crc32c, CRC32C) && Arrays.equals(publickey_hash_trim, Arrays.copyOf(bytes, bytes.length - CRC32C_LEN));
 		}
 		
 		public static byte[] addressToAI(String address) {
@@ -1028,7 +1020,7 @@ public final class Util {
 		
 		public static boolean verifyAddress(String address) {
 			byte[] bytes = null;
-			byte[] crc32c = null;
+			byte[] crc32c = new byte[CRC32C_LEN];
 			byte[] CRC32C = null;
 			try {
 				bytes = Base58.decode(address.substring(1));
@@ -1036,7 +1028,7 @@ public final class Util {
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
 				os.write(Base58.decode(address.substring(0, 1)));
 				os.write(bytes, 0, bytes.length - CRC32C_LEN);
-				CRC32C = CRC32C(os.toByteArray());
+				CRC32C = CRC32C(multipleExtend(os.toByteArray(), HUNDRED));
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -1843,7 +1835,7 @@ public final class Util {
 		TxOut eqcFoundationTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		minerTxOut.setAddress(address);
-		eqcFoundationTxOut.setAddress(Util.DB().getAddress(ID.TWO));
+		eqcFoundationTxOut.setAddress(Util.DB().getAddress(ID.ONE));
 		if (height.compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
 			eqcFoundationTxOut.setValue(Util.EQC_FOUNDATION_COINBASE_REWARD);
 			minerTxOut.setValue(Util.MINER_COINBASE_REWARD);
@@ -1856,7 +1848,7 @@ public final class Util {
 		return transaction;
 	}
 
-	public static EQCBlock getSingularityBlock() {
+	public static EQCBlock gestationSingularityBlock() {
 		// Create AccountsMerkleTree
 		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO, new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
 		
@@ -1871,8 +1863,8 @@ public final class Util {
 		// Create Transaction
 		Transaction transaction = new CoinbaseTransaction();
 		TxOut txOut = new TxOut();
-		txOut.getAddress().setAddress(Keystore.getInstance().getUserAccounts().get(0).getAddress());
-		txOut.getAddress().setID(ID.TWO);
+		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getAddress());
+		txOut.getAddress().setID(ID.ONE);
 		txOut.setValue(EQC_FOUNDATION_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
@@ -1882,11 +1874,11 @@ public final class Util {
 		account.setBalance(EQC_FOUNDATION_COINBASE_REWARD);
 		account.setBalanceUpdateHeight(ID.ZERO);
 		accountsMerkleTree.saveAccount(account);
-		accountsMerkleTree.increaseTotalAccountNumber();
+		accountsMerkleTree.increaseTotalAccountNumbers();
 		
 		txOut = new TxOut();
-		txOut.getAddress().setAddress(Keystore.getInstance().getUserAccounts().get(1).getAddress());
-		txOut.getAddress().setID(ID.TWO.getNextID());
+		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getAddress());
+		txOut.getAddress().setID(ID.TWO);
 		txOut.setValue(MINER_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
@@ -1896,7 +1888,7 @@ public final class Util {
 		account.setBalance(MINER_COINBASE_REWARD);
 		account.setBalanceUpdateHeight(ID.ZERO);
 		accountsMerkleTree.saveAccount(account);
-		accountsMerkleTree.increaseTotalAccountNumber();
+		accountsMerkleTree.increaseTotalAccountNumbers();
 
 		eqcBlock.getTransactions().addTransaction(transaction);
 		
@@ -1919,7 +1911,6 @@ public final class Util {
 
 		// Create Root
 		Root root = new Root();
-		root.setHeight(ID.ZERO);
 //		root.setIndexHash(index.getHash());
 		root.setTotalSupply(cypherTotalSupply(ID.ZERO));
 		root.setTotalAccountNumbers(ID.TWO);
@@ -1931,6 +1922,7 @@ public final class Util {
 		EQCHeader header = new EQCHeader();
 		header.setPreHash(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), HUNDRED_THOUSAND, false));
 		header.setTarget(Util.getDefaultTargetBytes());
+		header.setHeight(ID.ZERO);
 		header.setTimestamp(new ID(0));
 		header.setNonce(ID.ZERO);
 		header.setRootHash(root.getHash());
@@ -2025,7 +2017,7 @@ public final class Util {
 				}
 			}
 		}
-		return (address == null) ? null : address.getAddress();
+		return (address == null) ? null : address.getReadableAddress();
 	}
 
 //	public static long getBillingFee(Transaction transaction, TXFEE_RATE rate, SerialNumber height){
@@ -2110,7 +2102,7 @@ public final class Util {
 
 	public static long getBalance(String address) {
 		Address strAddress = new Address();
-		strAddress.setAddress(address);
+		strAddress.setReadableAddress(address);
 		strAddress.setID(EQCBlockChainH2.getInstance().getAddressSerialNumber(strAddress));
 		return EQCBlockChainH2.getInstance().getBalance(strAddress);
 	}
