@@ -117,23 +117,4 @@ public class ID extends BigInteger {
 		return new ID(super.add(val));
 	}
 
-//	/*
-//	 * (non-Javadoc)
-//	 * 
-//	 * @see java.lang.Object#toString()
-//	 */
-//	@Override
-//	public String toString() {
-//		return "{\n" + toInnerJson() + "\n}";
-//	}
-//
-//	public String toInnerJson() {
-//		return "\"ID\":\"" + toString(16) + "\"";
-//	}
-//	
-//	public static String NULL() {
-//		return 
-//		"\"ID\":\"null\""; 
-//	}
-	
 }
