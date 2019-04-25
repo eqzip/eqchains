@@ -64,7 +64,7 @@ public class Base58 {
 //		if (bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0) {
 		
 		// Due to BigInteger ignore the leading zero of Hash
-		// So here just insert the leading zero of Hash into the Number
+		// So here just insert the leading zero of Hash into the Number 
 		for (byte b : bytes) {
 			if (b == 0) {
 				sb.insert(0, ALPHABET.charAt(0));
