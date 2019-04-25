@@ -60,11 +60,8 @@ public class Base58 {
 			foo = foo.subtract(remainder).divide(BASE58);
 		}
 		sb.insert(0, ALPHABET.charAt(foo.intValue()));
-		// Due to BigInteger ignore the leading zeroes Convert leading zeroes too.
-//		if (bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0) {
-		
-		// Due to BigInteger ignore the leading zero of Hash
-		// So here just insert the leading zero of Hash into the Number 
+		// Due to BigInteger ignore the leading zeroes of Hash
+		// So here just insert the leading zeroes of Hash into the Number 
 		for (byte b : bytes) {
 			if (b == 0) {
 				sb.insert(0, ALPHABET.charAt(0));
@@ -73,12 +70,12 @@ public class Base58 {
 			}
 		}
 		
-//		}
 		return sb.toString();
 	}
 
 	public static byte[] decode(String input) throws Exception {
-		byte[] bytes = decodeToBigInteger(input).toByteArray();
+		byte[] decode = null, bytes = null;
+		decode = bytes = decodeToBigInteger(input).toByteArray();
 		// We may have got one more byte than we wanted, if the high bit of the
 		// next-to-last byte was not zero. This
 		// is because BigIntegers are represented with twos-compliment notation, thus if
@@ -88,25 +85,16 @@ public class Base58 {
 		// that case here and chop it off.
 		boolean stripSignByte = bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0;
 		Log.info("stripSignByte: " + stripSignByte);
-		// Count the leading zeros, if any.
+		// Count the leading zeroes, if any.
 		int leadingZeros = 0;
 		for (int i = 0; (i < input.length() && input.charAt(i) == ALPHABET.charAt(0)); ++i) {
 			leadingZeros++;
 		}
-		// Now cut/pad correctly. Java 6 has a convenience for this, but Android can't
-		// use it.
-		byte[] tmp = null;
-//		if (decodeToBigInteger(input).compareTo(BigInteger.ZERO) != 0) {
 		if(stripSignByte || leadingZeros > 0) {
-			tmp = new byte[bytes.length - (stripSignByte ? 1 : 0) + leadingZeros];
-			System.arraycopy(bytes, stripSignByte ? 1 : 0, tmp, leadingZeros, tmp.length - leadingZeros);
-			return tmp;
+			decode = new byte[bytes.length - (stripSignByte ? 1 : 0) + leadingZeros];
+			System.arraycopy(bytes, stripSignByte ? 1 : 0, decode, leadingZeros, decode.length - leadingZeros);
 		}
-//		}
-//		else {
-//			tmp = new byte[] {0};
-//		}
-		return bytes;
+		return decode;
 	}
 
 	public static BigInteger decodeToBigInteger(String input) throws Exception {
