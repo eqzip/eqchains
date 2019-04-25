@@ -33,6 +33,7 @@ import java.math.BigInteger;
 
 /**
  * A part of the source code come from
+ * https://github.com/bitcoin/bitcoin/blob/master/src/base58.cpp
  * https://github.com/bitcoin-labs/bitcoinj-minimal/blob/master/core/Base58.java
  * Thanks a billion for the contribution.
  * 
@@ -41,7 +42,7 @@ import java.math.BigInteger;
  * @email 10509759@qq.com
  */
 public class Base58 {
-
+	/** All alphanumeric characters except for "0", "I", "O", and "l" */
 	private static final String ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 	private static final BigInteger BASE58 = BigInteger.valueOf(58);
 	private static final int ONE_CODE = (int)'1';
