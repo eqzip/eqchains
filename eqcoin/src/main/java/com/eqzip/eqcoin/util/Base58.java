@@ -1,6 +1,18 @@
 /**
- * EQCoin core - EQZIP's EQCoin core library
- * @copyright 2018 EQZIP Inc.  All rights reserved...
+ * EQCoin core - EQCOIN Foundation's EQCoin core library
+ * @copyright 2018-present EQCOIN Foundation All rights reserved...
+ * Copyright of all works released by EQCOIN Foundation or jointly released by
+ * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQCOIN Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
  * https://www.eqzip.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -32,6 +44,12 @@ public class Base58 {
 
 	private static final String ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 	private static final BigInteger BASE58 = BigInteger.valueOf(58);
+	private static final int ONE_CODE = (int)'1';
+	private static final int NINE_CODE = (int)'9';
+	private static final int A_CODE =  (int)'A';
+	private static final int Z_CODE =  (int)'Z';
+	private static final int a_CODE =  (int)'a';
+	private static final int z_CODE =  (int)'z';
 
 	public static String encode(final byte[] bytes) {
 		BigInteger foo = new BigInteger(1, bytes);
@@ -43,15 +61,19 @@ public class Base58 {
 		}
 		sb.insert(0, ALPHABET.charAt(foo.intValue()));
 		// Due to BigInteger ignore the leading zeroes Convert leading zeroes too.
-		if (bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0) {
-			for (byte b : bytes) {
-				if (b == 0) {
-					sb.insert(0, ALPHABET.charAt(0));
-				} else {
-					break;
-				}
+//		if (bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0) {
+		
+		// Due to BigInteger ignore the leading zero of Hash
+		// So here just insert the leading zero of Hash into the Number
+		for (byte b : bytes) {
+			if (b == 0) {
+				sb.insert(0, ALPHABET.charAt(0));
+			} else {
+				break;
 			}
 		}
+		
+//		}
 		return sb.toString();
 	}
 
@@ -65,6 +87,7 @@ public class Base58 {
 		// parses as positive. Detect
 		// that case here and chop it off.
 		boolean stripSignByte = bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0;
+		Log.info("stripSignByte: " + stripSignByte);
 		// Count the leading zeros, if any.
 		int leadingZeros = 0;
 		for (int i = 0; (i < input.length() && input.charAt(i) == ALPHABET.charAt(0)); ++i) {
@@ -73,14 +96,17 @@ public class Base58 {
 		// Now cut/pad correctly. Java 6 has a convenience for this, but Android can't
 		// use it.
 		byte[] tmp = null;
-		if (decodeToBigInteger(input).compareTo(BigInteger.ZERO) != 0) {
+//		if (decodeToBigInteger(input).compareTo(BigInteger.ZERO) != 0) {
+		if(stripSignByte || leadingZeros > 0) {
 			tmp = new byte[bytes.length - (stripSignByte ? 1 : 0) + leadingZeros];
 			System.arraycopy(bytes, stripSignByte ? 1 : 0, tmp, leadingZeros, tmp.length - leadingZeros);
+			return tmp;
 		}
-		else {
-			tmp = new byte[] {0};
-		}
-		return tmp;
+//		}
+//		else {
+//			tmp = new byte[] {0};
+//		}
+		return bytes;
 	}
 
 	public static BigInteger decodeToBigInteger(String input) throws Exception {
@@ -96,4 +122,12 @@ public class Base58 {
 		return bi;
 	}
 
+	public static boolean isBase58Char(char candidate) {
+		int value = (int)(candidate&0xFFFF);
+		if((value >= ONE_CODE && value <= NINE_CODE) || (value >= A_CODE && value <= Z_CODE) || (value >= a_CODE && value <= z_CODE)) {
+			return true;
+		}
+		return false;
+	}
+	
 }
