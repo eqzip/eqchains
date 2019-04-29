@@ -1,11 +1,10 @@
-EQCOIN is next generation cryptocurrency and smart contract ecosystem which enables you easily and safely exchange money and assets. EQCOIN is decentralized, peer-to-peer, anonymous(inception), anti-quantum computing and anti-51% attack. 
-EQCOIN is hosted by the EQCOIN Foundation(Xun Wang is the founder). In the POW mining stage, 20% of the EQCOIN belong to miners, 80% of the EQCOIN belongs to EQCOIN Foundation. EQCOIN Foundation reserves the right to change the mining revenue based on actual conditions. You are not authorized to participate in mining unless you have read and accepted all the terms of this Agreement. If you participate in mining, you are deemed to have read and agreed to be bound by the above agreement. 100% of EQCOIN Foundation's equity belongs to Xun Wang Trust Foundation(The beneficiary is Xun Wang and his family. Xun Wang has 100% decision-making power. Family members receive corresponding returns based on their contributions.). 
+EQchains is next generation cryptocurrency and hyper blockchain ecosystem. EQchains enables you easily and safely deploy smart contracts, Dapps and new blockchains, exchange money and assets. EQchains is decentralized, peer-to-peer, anonymous(inception), anti-quantum computing and anti-51% attack. EQchains is hosted by the EQchains Foundation(Xun Wang is the founder). EQcoin is the original cryptocurrency of EQchains. In the POW mining stage, 20% of the EQcoin belong to the miners, 80% of the EQcoin belongs to the EQchains Foundation. EQchains Foundation reserves the right to change the mining revenue based on actual conditions. You are not authorized to participate in mining unless you have read and accepted all the terms of this Agreement. If you participate in mining, you are deemed to have read and agreed to be bound by the above agreement. 100% of EQchains Foundation's equity belongs to Xun Wang Trust Foundation(The beneficiary is Xun Wang and his family. Xun Wang has 100% decision-making power. Family members receive corresponding returns based on their contributions.). 
 
 /**
- * EQCoin core - EQCOIN Foundation's EQCoin core library
- * @copyright 2018-present EQCOIN Foundation All rights reserved...
- * Copyright of all works released by EQCOIN Foundation or jointly released by
- * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
+ * EQchains core - EQchains Foundation's EQchains core library
+ * @copyright 2018-present EQchains Foundation All rights reserved...
+ * Copyright of all works released by EQchains Foundation or jointly released by
+ * EQchains Foundation with cooperative partners are owned by EQchains Foundation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
