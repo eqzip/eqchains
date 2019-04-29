@@ -12,7 +12,7 @@ EQchains is next generation cryptocurrency and hyper blockchain ecosystem. EQcha
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQCOIN Foundation reserves all rights to
+ * or without prior written permission, EQchains Foundation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqzip.com
