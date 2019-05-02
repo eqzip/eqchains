@@ -1,0 +1,93 @@
+{"namespace": "com.eqzip.eqcoin.rpc.avro",
+ "protocol": "MinerNetwork",
+
+ "types": [
+     {"name": "Cookie", "type": "record",
+      "fields": [
+          {"name": "ip",   "type": "string"},
+          {"name": "version", "type": "string"}
+      ]
+     },
+     {"name": "Status", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "code", "type": "int"},
+          {"name": "message", "type": "string"}
+      ]
+     },
+     {"name": "MinerList", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "minerList", "type": "bytes"}
+      ]
+     },
+     {"name": "FullNodeList", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "fullNodeList", "type": "bytes"}
+      ]
+     },
+     {"name": "Block", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "block", "type": "bytes"}
+      ]
+     },
+     {"name": "MineringBase", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "baseIp",   "type": "string"},
+          {"name": "baseHeight", "type": "long"},
+          {"name": "baseHash", "type": {"type": "fixed", "name": "BaseHash", "size": 16}},
+          {"name": "currentTimestamp", "type": "long"}
+      ]
+     },
+     {"name": "TransactionHashList", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "transactionHashList", "type": "bytes"}
+      ]
+     },
+     {"name": "TransactionList", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "transactionList", "type": "bytes"}
+      ]
+     }
+ ],
+
+ "messages": {
+     "ping": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "Status"
+     },
+     "getMinerList": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "MinerList"
+     },
+     "getFullNodeList": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "FullNodeList"
+     },
+     "sendNewBlock": {
+         "request": [{"name": "newBlock", "type": "Block"}],
+         "response": "Status"
+     },
+     "sendMineringBase": {
+         "request": [{"name": "mineringBase", "type": "MineringBase"}],
+         "response": "Status"
+     },
+     "getMineringBase": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "MineringBase"
+     },
+     "getTransactionHashList": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "TransactionHashList"
+     },
+     "getTransactionList": {
+         "request": [{"name": "transactionHashList", "type": "TransactionHashList"}],
+         "response": "TransactionList"
+     }
+ }
+}

@@ -1,0 +1,66 @@
+{"namespace": "com.eqzip.eqcoin.rpc.avro",
+ "protocol": "SyncblockNetwork",
+
+ "types": [
+     {"name": "Cookie", "type": "record",
+      "fields": [
+          {"name": "ip",   "type": "string"},
+          {"name": "version", "type": "string"}
+      ]
+     },
+     {"name": "Status", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "code", "type": "int"},
+          {"name": "message", "type": "string"}
+      ]
+     },
+     {"name": "MinerList", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "minerList", "type": "bytes"}
+      ]
+     },
+     {"name": "FullNodeList", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "fullNodeList", "type": "bytes"}
+      ]
+     },
+     {"name": "Height", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "height", "type": "long"}
+      ]
+     },
+     {"name": "Block", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "block", "type": "bytes"}
+      ]
+     }
+ ],
+
+ "messages": {
+     "ping": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "Status"
+     },
+     "getMinerList": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "MinerList"
+   	  },
+     "getFullNodeList": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "FullNodeList"
+     },
+     "getBlockTail": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "Height"
+   	  },
+   	 "getBlock": {
+         "request": [{"name": "height", "type": "Height"}],
+         "response": "Block"
+   	}
+ }
+}

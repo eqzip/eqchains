@@ -1,0 +1,46 @@
+{"namespace": "com.eqzip.eqcoin.rpc.avro",
+ "protocol": "TransactionNetwork",
+
+ "types": [
+     {"name": "Cookie", "type": "record",
+      "fields": [
+          {"name": "ip",   "type": "string"},
+          {"name": "version", "type": "string"}
+      ]
+     },
+     {"name": "Status", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "code", "type": "int"},
+          {"name": "message", "type": "string"}
+      ]
+     },
+     {"name": "MinerList", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "minerList", "type": "bytes"}
+      ]
+     },
+     {"name": "TransactionRPC", "type": "record",
+      "fields": [
+          {"name": "cookie",   "type": "Cookie"},
+          {"name": "data", "type": "bytes"}
+      ]
+     }
+ ],
+
+ "messages": {
+     "ping": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "Status"
+     },
+     "getMinerList": {
+         "request": [{"name": "cookie", "type": "Cookie"}],
+         "response": "MinerList"
+   	  },
+     "sendTransaction": {
+         "request": [{"name": "transaction", "type": "TransactionRPC"}],
+         "response": "Status"
+     }
+ }
+}
