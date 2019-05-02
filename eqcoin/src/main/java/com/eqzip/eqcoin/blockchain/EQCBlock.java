@@ -7,7 +7,7 @@
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
  * Non Commercial — You may not use the material for commercial purposes.
- * No Derivatives — If you remix, transform, or build upon the material, you may
+ * No Derivatives — If you remix, transform, or  upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
  * or without prior written permission, EQCOIN Foundation reserves all rights to
@@ -34,12 +34,23 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Vector;
 
 import javax.naming.InitialContext;
 import javax.print.attribute.Size2DSyntax;
 
 import com.eqzip.eqcoin.blockchain.Account.Publickey;
+import com.eqzip.eqcoin.blockchain.AccountsMerkleTree.Statistics;
+import com.eqzip.eqcoin.blockchain.transaction.Address;
+import com.eqzip.eqcoin.blockchain.transaction.OperationTransaction;
+import com.eqzip.eqcoin.blockchain.transaction.Transaction;
+import com.eqzip.eqcoin.blockchain.transaction.TxIn;
+import com.eqzip.eqcoin.blockchain.transaction.TxOut;
+import com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape;
+import com.eqzip.eqcoin.blockchain.transaction.CoinbaseTransaction;
+import com.eqzip.eqcoin.blockchain.transaction.operation.UpdateAddressOperation;
 import com.eqzip.eqcoin.keystore.Keystore;
 import com.eqzip.eqcoin.persistence.avro.EQCBlockAvro;
 import com.eqzip.eqcoin.persistence.h2.EQCBlockChainH2;
@@ -48,9 +59,8 @@ import com.eqzip.eqcoin.serialization.EQCTypable;
 import com.eqzip.eqcoin.serialization.EQCType;
 import com.eqzip.eqcoin.service.MinerService;
 import com.eqzip.eqcoin.util.Log;
-import com.eqzip.eqcoin.util.SerialNumber;
+import com.eqzip.eqcoin.util.ID;
 import com.eqzip.eqcoin.util.Util;
-import com.eqzip.eqcoin.util.Util.AddressShape;
 
 /**
  * @author Xun Wang
@@ -60,20 +70,19 @@ import com.eqzip.eqcoin.util.Util.AddressShape;
 public class EQCBlock implements EQCTypable {
 	private EQCHeader eqcHeader;
 	private Root root;
-//	private Index index;
 	private Transactions transactions;
 	// The following is Transactions' Segregated Witness members it's hash will be
-	// recorded in the TransactionHeader
+	// recorded in the Root's accountsMerkelTreeRoot together with
+	// Transaction&Publickey.
 	private Signatures signatures;
 	// private txReceipt;
 	// The min size of the EQCHeader's is 142 bytes.
 	private int size = 142;
-//	private SerialNumber height;
 	/*
 	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
 	 * verified.
 	 */
-	private static byte VERIFICATION_COUNT = 5;
+	private static byte VERIFICATION_COUNT = 4;
 
 	public EQCBlock(EQCBlockAvro eqcBlockAvro) throws NoSuchFieldException, IOException {
 		if (EQCHeader.isValid(eqcBlockAvro.getEQCHeader())) {
@@ -132,14 +141,6 @@ public class EQCBlock implements EQCTypable {
 			root = new Root(data);
 		}
 
-//		// Parse Index
-//		if ((data = EQCType.parseBIN(is)) != null) {
-//			if (!Index.isValid(data)) {
-//				throw new ClassCastException("Index bytes are invalid.");
-//			}
-//			index = new Index(data);
-//		}
-
 		// Parse Transactions
 		data = null;
 		if ((data = EQCType.parseBIN(is)) != null) {
@@ -152,7 +153,7 @@ public class EQCBlock implements EQCTypable {
 		if (!isSegwit) {
 			// Parse Signatures
 			data = null;
-			if ((data = EQCType.parseBIN(is)) != null) {
+			if ((data = is.readAllBytes()) != null) {
 				if (!Signatures.isValid(data)) {
 					throw new ClassCastException("Signatures bytes are invalid.");
 				}
@@ -161,7 +162,7 @@ public class EQCBlock implements EQCTypable {
 		}
 	}
 
-	public static boolean isValid(byte[] bytes, boolean isSegwit) throws NoSuchFieldException, IOException {
+	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		byte[] data = null;
 		byte validCount = 0;
@@ -180,13 +181,6 @@ public class EQCBlock implements EQCTypable {
 			}
 		}
 
-		// Parse Index
-		if ((data = EQCType.parseBIN(is)) != null) {
-			if (Index.isValid(data)) {
-				++validCount;
-			}
-		}
-
 		// Parse Transactions
 		data = null;
 		if ((data = EQCType.parseBIN(is)) != null) {
@@ -195,13 +189,11 @@ public class EQCBlock implements EQCTypable {
 			}
 		}
 
-		if (!isSegwit) {
-			// Parse Signatures
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null) {
-				if (Signatures.isValid(data)) {
-					++validCount;
-				}
+		// Parse Signatures
+		data = null;
+		if ((data = is.readAllBytes()) != null) {
+			if (Signatures.isValid(data)) {
+				++validCount;
 			}
 		}
 
@@ -215,47 +207,20 @@ public class EQCBlock implements EQCTypable {
 	private void init() {
 		eqcHeader = new EQCHeader();
 		root = new Root();
-//		index = new Index();
 		transactions = new Transactions();
 		signatures = new Signatures();
 	}
 
-	public EQCBlock(SerialNumber currentBlockHeight, byte[] previousBlockHeaderHash) {
+	public EQCBlock(ID currentBlockHeight, byte[] previousBlockHeaderHash) {
 
 		init();
-
-//		height = currentBlockHeight;
 		// Create EQC block header
-		eqcHeader.setNonce(SerialNumber.ZERO);
 		eqcHeader.setPreHash(previousBlockHeaderHash);
+		eqcHeader.setHeight(currentBlockHeight);
 		eqcHeader.setTarget(Util.cypherTarget(currentBlockHeight));
-		eqcHeader.setTimestamp(new SerialNumber(System.currentTimeMillis()));
+		eqcHeader.setTimestamp(new ID(System.currentTimeMillis()));
+		eqcHeader.setNonce(ID.ZERO);
 
-		root.setHeight(currentBlockHeight);
-
-		// Create TransactionsHeader
-		TransactionsHeader transactionsHeader = new TransactionsHeader();
-		transactionsHeader.setSignaturesHash(null);
-		transactions.setTransactionsHeader(transactionsHeader);
-
-	}
-
-	// 這個主要用來構造SingularBlock但是依然有問題，因爲有很多個CoinBase交易。Need do more job
-	public void addTransaction(Transaction transaction) {
-		if (!isTransactionExists(transaction)) {
-			if (transaction.isCoinBase()) {
-				if (transactions.getTransactionNumbers() != 0) {
-					throw new IllegalArgumentException("CoinBase should be the first transaction.");
-				}
-				transactions.addTransaction(transaction);
-				// need do more job to fix this when h2 is ready this will be ok. 
-				// Already fixed due to have add Nonce and AccountsMerkleTree so we can make sure every Transaction is unique
-//				signatures.addSignature(transaction.getSignature());
-			} else {
-				transactions.addTransaction(transaction);
-				signatures.addSignature(transaction.getSignature());
-			}
-		}
 	}
 
 	public boolean isTransactionExists(Transaction transaction) {
@@ -304,8 +269,8 @@ public class EQCBlock implements EQCTypable {
 		return signatures;
 	}
 
-	public SerialNumber getHeight() {
-		return root.getHeight();
+	public ID getHeight() {
+		return eqcHeader.getHeight();
 	}
 
 	/*
@@ -324,283 +289,498 @@ public class EQCBlock implements EQCTypable {
 	public String toInnerJson() {
 		return
 
-		"\"EQCBlock\":{\n" + eqcHeader.toInnerJson() + ",\n" + transactions.toInnerJson() + ",\n"
-				+ signatures.toInnerJson() + "\n" + "}";
+		"\"EQCBlock\":{\n" + eqcHeader.toInnerJson() + ",\n" + root.toInnerJson() + ",\n" + transactions.toInnerJson()
+				+ ",\n" + signatures.toInnerJson() + "\n" + "}";
 
 	}
 
-	public void buildTransactions(SerialNumber height, AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, IOException {
+	public void accountingTransactions(ID height, AccountsMerkleTree accountsMerkleTree)
+			throws NoSuchFieldException, IllegalStateException, IOException {
 		Vector<Transaction> pendingTransactionList = new Vector<Transaction>();
 		Transaction transaction = null;
-		if (!height.isNextSerialNumber(accountsMerkleTree.getHeight())){
+		TxIn txIn = null;
+		ID initID;
+
+		if (!height.isNextID(accountsMerkleTree.getHeight())) {
 			throw new IllegalStateException("Current block's height is wrong isn't previous block's next height!");
 		}
-		accountsMerkleTree.setHeight(height);
+
+		/**
+		 * Heal Protocol If height equal to a specific height then update the ID No.1's
+		 * Address to a new Address the more information you can reference to
+		 * https://github.com/eqzip/eqcoin
+		 */
+
 		// Create CoinBase Transaction
 		Address address = new Address();
-		address.setAddress(Keystore.getInstance().getUserAccounts().get(5).getAddress());
+		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
 
 		// Add CoinBase into Transactions
-		pendingTransactionList.add(Util.generateCoinBaseTransaction(address, height));
+		pendingTransactionList.add(Util.generateCoinBaseTransaction(address, height, accountsMerkleTree));
 
 		// Get Transaction list
 		pendingTransactionList.addAll(EQCBlockChainH2.getInstance().getTransactionListInPool());
-
+		Log.info("Current have " + pendingTransactionList.size() + " pending Transactions.");
+		
 		// Handle every pending Transaction
 		for (int i = 0; i < pendingTransactionList.size(); ++i) {
 			transaction = pendingTransactionList.get(i);
-			
-			// Check CoinBase is valid
-			if((i == 0) && !transaction.isCoinBase()) {
+
+			// Only No.0 can be CoinBase Transaction
+			if ((i > 0) && (transaction.isCoinBase() || transaction.getTxIn() == null)) {
+				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
+				Log.Error("Only No. 0 can be CoinBase Transaction but No." + i
+						+ " is also CoinBase or TxIn is null this is invalid just discard it: "
+						+ transaction.toString());
+				continue;
+			}
+			// Check if the No.0 Transaction is CoinBase Transaction
+			else if ((i == 0) && !transaction.isCoinBase()) {
 				throw new IllegalArgumentException("No.0 Transaction must be CoinBase Transaction");
 			}
-			else {
-				if(!transaction.getTxOutList().get(0).getAddress().getSerialNumber().equals(SerialNumber.TWO) && (transaction.getTxOutList().get(0).getValue() != Util.EQC_FOUNDATION_COINBASE_REWARD))
-				throw new IllegalArgumentException("CoinBase Transaction's first Address must be EQC Foundation's Address which Serial Number should be No.2 and it's value should be " + Util.EQC_FOUNDATION_COINBASE_REWARD);
-			}
-			
+
 			// If Transaction already in this.transactions just continue
 			if (this.transactions.isTransactionExists(transaction)) {
 				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-				Log.Error("Transaction already exists this is invalid just discard it: "
-						+ transaction.toString());
+				Log.Error("Transaction already exists this is invalid just discard it: " + transaction.toString());
 				continue;
-			}
-			// Only No.0 can be CoinBase Transaction
-			if ((i > 0) && transaction.isCoinBase()) {
-				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-				Log.Error("Only No. 0 can be CoinBase Transaction but No." + i + " is also CoinBase this is invalid just discard it: "
-						+ transaction.toString());
-				continue;
-			}
-
-			// If isn't CoinBase Transaction
-			if (!transaction.isCoinBase()) {
-				
-				// Check if TxIn's Address exists and fill in TxIn's Serial Number
-				if (!accountsMerkleTree.isAddressExists(transaction.getTxIn().getAddress())) {
-					// TxIn doesn't exist illegal Transaction just discard it
-					// Delete this Transaction in Transaction List & TransactionPool
-					pendingTransactionList.remove(transaction);
-					// Delete relevant Transaction in pool
-					EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-					Log.Error("Transaction's TxIn doesn't exists this is invalid just discard it: "
-							+ transaction.toString());
-					continue;
-				} else {
-					// Fill in TxIn's Address' Serial Number
-					transaction.getTxIn().getAddress().setSerialNumber(accountsMerkleTree
-							.getAddressSerialNumber(transaction.getTxIn().getAddress()));
-					transaction.getPublickey().setSerialNumber(transaction.getTxIn().getAddress().getSerialNumber());
-				}
-
-				// Check if Transaction is valid
-				if (!transaction.isValid(accountsMerkleTree)) {
-					EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-					Log.Error("Transaction is invalid: " + transaction.toString());
-					continue;
-				} else {
-					
-					// Check if Transaction's Nonce is correct
-					if (!transaction.getNonce().subtract(accountsMerkleTree.getAccount(transaction.getTxIn().getAddress().getSerialNumber()).getNonce())
-							.equals(BigInteger.ONE)) {
-						// Can't delte it need do more job to mark this add new flag -
-						// Nonce doesn't continuous if more than 24 Hours just delete the relevant
-						// transaction in pool
-//						EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-						Log.Error("Transaction is invalid: " + transaction.toString());
-						continue;
-					} 
-//					else {
-//						
-//						// Update AccountsMerkleTree's MiningState's TxIn Account & it's Nonce
-//						accountStatusTxIn = null;
-//						accountStatusTxIn = AccountsMerkleTreeService.getInstance().getAccountsMerkleTree()
-//								.getAccountStatus(transaction.getTxIn().getAddress().getSerialNumber());
-//						if (accountStatusTxIn.getAccount(ACCOUNT_STATUS.MINING) == null) {
-//							accountStatusTxIn.setMiningAccount(accountStatusTxIn.getAccount(ACCOUNT_STATUS.FIXED));
-//						}
-//						accountStatusTxIn.getAccount(ACCOUNT_STATUS.MINING).getNonce().add(BigInteger.ONE);
-//						accountStatusTxIn.getAccount(ACCOUNT_STATUS.MINING).setNonceChanged(true);
-//					}
-				}
-
-				// Add Publickey if any
-				if (!transaction.isCoinBase()) {
-					// Check if PublicKey is exists in PublicKeyList if not then add it in current
-					// block's PublicKeyList
-					// if PublicKeyList's size is zero then use
-					// EQCBlockChainH2.getInstance().getLastPublicKeySerialNumber() get the last
-					// PublicKey' Serial Number
-					// otherwise get the Serial Number from the PublicKeyList's last PublicKey.
-					if (!accountsMerkleTree.isPublicKeyExists(transaction.getPublickey())) {
-//						transaction.getPublickey().setSerialNumber(transaction.getTxIn().getAddress().getSerialNumber());
-						transaction.getPublickey().setNew(true);
-//						transactions.getPublicKeyList().add(transaction.getPublickey());
-//						Publickey publickey = new Publickey();
-//						publickey.setPublickey(transaction.getPublickey().getPublicKey());
-//						publickey.setPublickeyCreateHeight(accountsMerkleTree.getHeight(ACCOUNT_STATUS.MINING));
-//						accountsMerkleTree.getAccountStatus(transaction.getTxIn().getAddress().getSerialNumber())
-//								.getAccount(ACCOUNT_STATUS.MINING).setPublickey(publickey);
-//						accountsMerkleTree.getAccountStatus(transaction.getTxIn().getAddress().getSerialNumber())
-//								.getAccount(ACCOUNT_STATUS.MINING).setPublickeyChanged(true);
-					}
-				}
 			}
 			
-			// Add new Address if any
-			// Check if current Transaction's all address is exists in AddressList if not
-			// then add it in current block's AddressList
-			// if AddressList's size is zero then use
-			// AccountsMerkleTreeService.getInstance().getAccountsMerkleTree().getTotalAccountNumber()
-			// get the
-			// Total Account Number then calculate Serial Number according to it
-			// otherwise get the Serial Number from the AddressList's last Address.
-			for (TxOut txOut : transaction.getTxOutList()) {
-				if (!accountsMerkleTree.isAddressExists(txOut.getAddress())) {
-					if (transactions.getAddressList().size() == 0) {
-						// Need test this if totalAccountNumberStatus can be modified in
-						// getTotalAccountNumber @2019-2-23. 2-26 have tested the original Biginteger can't be modified 
-						SerialNumber initSerialNumber = new SerialNumber(
-								accountsMerkleTree.getTotalAccountNumber()
-										.add(BigInteger.valueOf(Util.INIT_ADDRESS_SERIAL_NUMBER)));
-						txOut.getAddress().setSerialNumber(initSerialNumber);
-					} else {
-						txOut.getAddress()
-								.setSerialNumber(transactions.getAddressList().lastElement().getSerialNumber().getNextSerialNumber());
-					}
-					txOut.setNew(true);
-//					transactions.getAddressList().add(txOut.getAddress());
-//					// Due to already setAddressChanged(true) in addAccount so here does nothing
-//					accountsMerkleTree.addNewAccount(txOut.getAddress(), ACCOUNT_STATUS.MINING);
-				} else {
-					// For security issue need retrieve and fill in every Address' Serial Number according to it's AddressAI
-					txOut.getAddress().setSerialNumber(
-							accountsMerkleTree.getAddressSerialNumber(txOut.getAddress()));
+			// Check if isn't CoinbaseTransaction
+			if (!transaction.isCoinBase()) {
+				// Check if Transaction's TxIn's Address exists in Accounts must do this check
+				// which doesn't equal to
+				// check if accountsMerkleTree.getAccount return null
+				if (!accountsMerkleTree.isAccountExists(transaction.getTxIn().getAddress(), false)) {
+					EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
+					Log.Error("Transaction's TxIn Address doesn't exists in Accounts this is invalid just discard it: "
+							+ transaction.toString());
+					continue;
+				}
+				else {
+					// Fill in TxIn's Address and Publickey's Serial Number
+					transaction.getTxIn().getAddress().setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
+				}
+
+				// Check if Transaction's Nonce is correct
+				if (!transaction.isNonceCorrect(accountsMerkleTree)) {
+					// Can't delte it need do more job to mark this add new flag -
+					// Nonce doesn't continuous if more than 24 Hours just delete the relevant
+					// transaction in pool
+//					EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
+					Log.Error("Transaction's Nonce is invalid: ");
+					continue;
 				}
 			}
 
-			// Add Transaction into Transactions due to the extra Signature's space maybe
-			// here will waste some space but this isn't a bug
+			// Prepare Transaction
+			transaction.prepareAccounting(accountsMerkleTree, transactions.getAccountListInitId(accountsMerkleTree));
+
+			// If Transaction is OperationTransaction check if meet the preconditions
+			if (transaction instanceof OperationTransaction) {
+				if (!isMeetPreconditions(transaction, accountsMerkleTree)) {
+					EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
+					Log.Error("Transaction is invalid: " + transaction);
+					continue;
+				}
+			}
+
+			// Check if Transaction is valid here doesn't check Coinbase which will be check later
+			if (!transaction.isCoinBase() && !transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
+				Log.Error("Transaction is invalid: " + transaction);
+				continue;
+			}
+
+			// Add Transaction into Transactions
 			if ((transactions.getSize() + transaction.getBillingSize()) <= Util.ONE_MB) {
 				this.transactions.addTransaction(transaction);
-//				Account accountStatus = null;
 				// If current Transaction isn't CoinBase
 				if (!transaction.isCoinBase()) {
+					// Update Transaction
+					transaction.update(accountsMerkleTree);
+
 					// Add signature
 					signatures.addSignature(transaction.getSignature());
 
-					// Update current Transaction's relevant Account's AccountsMerkleTree's data
-					// Update current Transaction's TxIn Publickey if need
-					if (transaction.getPublickey().isNew()) {
-//						Publickey publickey = new Publickey();
-//						publickey.setPublickey(transaction.getPublickey().getPublicKey());
-//						publickey.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
-						accountsMerkleTree.savePublicKey(transaction.getPublickey(), height);
-//						accountsMerkleTree.getAccountStatus(transaction.getTxIn().getAddress().getSerialNumber())
-//								.getAccount(ACCOUNT_STATUS.MINING).setPublickey(publickey);
-//						accountsMerkleTree.getAccountStatus(transaction.getTxIn().getAddress().getSerialNumber())
-//								.getAccount(ACCOUNT_STATUS.MINING).setPublickeyChanged(true);
-					}
-					
-//					// Update current Transaction's TxIn Account if need
-//					accountStatus = accountsMerkleTree.getAccountStatus(transaction.getTxIn().getAddress().getSerialNumber());
-//					if (accountStatus.getAccount(ACCOUNT_STATUS.MINING) == null) {
-//						accountStatus.setMiningAccount(accountStatus.getAccount(ACCOUNT_STATUS.FIXED));
-//					}
-					
-					Account account = accountsMerkleTree.getAccount(transaction.getTxIn().getAddress().getSerialNumber());
-					// Update current Transaction's TxIn Account's Nonce
-//					accountStatus.getAccount(ACCOUNT_STATUS.MINING).getNonce().add(BigInteger.ONE);
-//					accountStatus.getAccount(ACCOUNT_STATUS.MINING).setNonceChanged(true);
-					account.increaseNonce();
-					
-					//Update current Transaction's TxIn Account's balance
-//					accountStatus.getMiningAccount().updateBalance(-transaction.getBillingValue());
-//					accountStatus.getMiningAccount().setBalanceUpdateHeight(height);
-					account.updateBalance(-transaction.getBillingValue());
-					accountsMerkleTree.saveAccount(account);
-					
 					// Update the CoinBase's TxFee
-					long value = this.transactions.getTransactionList().get(0).getTxOutList().get(1).getValue();
-					this.transactions.getTransactionList().get(0).getTxOutList().get(1)
-							.setValue(value + transaction.getTxFee());
-				}
-//				// Update current Transaction's TxOut if need
-//				for(TxOut txOut : transaction.getTxOutList()) {
-//					if(txOut.isNew()) {
-//						Account account = new Account();
-//						account.setAddress(txOut.getAddress());
-//						account.setAddressCreateHeight(height);
-//						accountsMerkleTree.saveAccount(account);
-//					}
-//				}
-				// Update current Transaction's TxOut Account
-				for(TxOut txOut : transaction.getTxOutList()) {
-					Account account = null;
-					if(txOut.isNew()) {
-						account = new Account();
-						account.setAddress(txOut.getAddress());
-						account.setAddressCreateHeight(height);
-					}
-					else {
-						account = accountsMerkleTree.getAccount(txOut.getAddress().getSerialNumber());
-					}
-					account.updateBalance(txOut.getValue());
-					account.setBalanceUpdateHeight(height);
-					accountsMerkleTree.saveAccount(account);
+					transactions.getCoinbaseTransaction().updateTxFee(transaction.getTxFee());
 				}
 			} else {
 				break;
 			}
 		}
-		
-		// Update CoinBase's Account
-		Account coinbase = accountsMerkleTree.getAccount(transactions.getTransactionList().get(0).getTxOutList().get(1).getAddress().getSerialNumber());
-		coinbase.updateBalance(transactions.getTransactionList().get(0).getTxOutList().get(1).getValue());
-		coinbase.setBalanceUpdateHeight(height);
-		accountsMerkleTree.saveAccount(coinbase);
-		
+
+		// Check if CoinBase isValid and update CoinBase's Account
+		if(!transactions.getCoinbaseTransaction().isCoinbaseValid(accountsMerkleTree, transactions.getTxFee())) {
+			throw new IllegalStateException("CoinbaseTransaction is invalid: " + transactions.getCoinbaseTransaction());
+		}
+		else {
+			transactions.getCoinbaseTransaction().update(accountsMerkleTree);
+		}
+
 		// Build AccountsMerkleTree and generate Root
 		accountsMerkleTree.buildAccountsMerkleTree();
 		accountsMerkleTree.generateRoot();
 
-//		// Initial Index
-//		index.setTotalSupply(Util.cypherTotalSupply(root.getHeight()));
-//		EQCBlock previousBlock = EQCBlockChainH2.getInstance()
-//				.getEQCBlock(new SerialNumber(root.getHeight().getSerialNumber().subtract(BigInteger.ONE)), true);
-//		index.setTotalAccountNumbers(previousBlock.getIndex().getTotalAccountNumbers()
-//				.add(BigInteger.valueOf(transactions.getAddressList().size())));
-//		index.setTotalTransactionNumbers(previousBlock.getIndex().getTotalTransactionNumbers()
-//				.add(BigInteger.valueOf(transactions.getTransactionNumbers())));
-//		index.setAccountsMerkleTreeRootList(accountsMerkleTree.getAccountsMerkleTreeRootList());
-//		index.setTransactionsHash(transactions.getHash());
-
 		// Initial Root
-		// Already set height in the Constructor
-//		root.setIndexHash(index.getHash());
-//		root.setAccountsHash(index.getAccountsMerkleTreeRootListRoot());
-		root.setTotalSupply(Util.cypherTotalSupply(root.getHeight()));
-		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance()
-				.getEQCBlock(new SerialNumber(root.getHeight().subtract(BigInteger.ONE)), true);
-		root.setTotalAccountNumbers(previousBlock.getRoot().getTotalAccountNumbers()
-				.add(BigInteger.valueOf(transactions.getAddressList().size())));
-		root.setTotalTransactionNumbers(previousBlock.getRoot().getTotalTransactionNumbers()
-				.add(BigInteger.valueOf(transactions.getTransactionNumbers())));
-		root.setTransactionsMerkelTreeRoot(transactions.getTransactionsMerkelTreeRoot());
+		Statistics statistics = accountsMerkleTree.getStatistics();
+		// Check total supply
+		Log.info("" + statistics.totalSupply);
+		Log.info("" + Util.cypherTotalSupply(eqcHeader.getHeight()));
+		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
+			Log.Error("Total supply is invalid!");
+			throw new IllegalStateException("Total supply is invalid!");
+		} else {
+			root.setTotalSupply(Util.cypherTotalSupply(eqcHeader.getHeight()));
+		}
+		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(), true);
+		// Check total Account numbers
+		if(!previousBlock.getRoot().getTotalAccountNumbers().add(BigInteger.valueOf(transactions.getNewAccountList().size())).equals(accountsMerkleTree.getTotalAccountNumbers())){
+			Log.Error("Total Account numbers is invalid!");
+			throw new IllegalStateException("Total Account numbers is invalid!");
+		}
+		else {
+			root.setTotalAccountNumbers(accountsMerkleTree.getTotalAccountNumbers());
+		}
+		// Check total Transaction numbers
+		if (!previousBlock.getRoot().getTotalTransactionNumbers()
+				.add(BigInteger.valueOf(transactions.getNewTransactionList().size())).equals(statistics.totalTransactionNumbers)) {
+			Log.Error("Total Transaction numbers is invalid!");
+			throw new IllegalStateException("Total Transaction numbers is invalid!");
+		} else {
+			root.setTotalTransactionNumbers(statistics.totalTransactionNumbers);
+		}
+		root.setAccountsMerkelTreeRoot(accountsMerkleTree.getRoot());
+		root.setTransactionsMerkelTreeRoot(getTransactionsMerkelTreeRoot());
 		// Set EQCHeader's Root's hash
 		eqcHeader.setRootHash(root.getHash());
+		
+	}
 
+	public boolean isMeetPreconditions(Object... objects) {
+		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
+		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
+		if (operationTransaction.getOperation() instanceof UpdateAddressOperation) {
+			if (!operationTransaction.getOperation().isMeetPreconditions(accountsMerkleTree)) {
+				return false;
+			}
+		} else {
+			return false;
+		}
+		return true;
+	}
+
+	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IOException {
+
+		/**
+		 * Heal Protocol If height equal to a specific height then update the ID No.1's
+		 * Address to a new Address the more information you can reference to
+		 * https://github.com/eqzip/eqcoin
+		 */
+
+		// Check if Transactions' size < 1 MB
+		if (transactions.getSize() > Util.ONE_MB) {
+			Log.Error("EQCBlock size is invalid");
+			return false;
+		}
+
+		// Check if Target is valid
+		if (!eqcHeader.isDifficultyValid(accountsMerkleTree)) {
+			Log.Error("EQCHeader difficulty is invalid");
+			return false;
+		}
+
+		// Check if AddressList is valid
+		if (!transactions.isAccountListValid(accountsMerkleTree)) {
+			Log.Error("EQCHeader AddressList is invalid");
+			return false;
+		}
+
+		// Check if PublickeyList is valid
+		if (!transactions.isPublickeyListValid(accountsMerkleTree)) {
+			Log.Error("EQCHeader PublickeyList is invalid");
+			return false;
+		}
+
+		// Check if Signatures' size and Transaction size is valid
+		if (transactions.getNewTransactionList().size() != (signatures.getSignatureList().size() + 1)) {
+			return false;
+		}
+
+		// Check if every Transaction is valid
+		long totalTxFee = 0;
+		Vector<Transaction> transactionList = transactions.getNewTransactionList();
+		for (int i = 0; i < transactionList.size(); ++i) {
+			Transaction transaction = transactionList.get(i);
+			if ((i == 0) && (!transaction.isCoinBase())) {
+				return false;
+			} else {
+				CoinbaseTransaction coinbaseTransaction = (CoinbaseTransaction) transaction;
+				if (!coinbaseTransaction.isCoinbaseValid(accountsMerkleTree, transactions.getTxFee())) {
+					return false;
+				}
+			}
+
+			// Check only No.0 is Coinbase
+			if ((i > 0) && (transaction.isCoinBase())) {
+				return false;
+			}
+
+			transaction.prepareVerify(accountsMerkleTree, signatures.getSignatureList().get(i + 1));
+
+			// If is OperationTransaction check it's isMeetPreconditions
+			if (transaction instanceof OperationTransaction) {
+				if (!isMeetPreconditions(transaction, accountsMerkleTree)) {
+					Log.Error("OperationTransaction doesn't meet preconditions: " + transaction);
+					return false;
+				}
+			}
+
+			// Check checkpoint
+			if (eqcHeader.getHeight().mod(Util.EUROPA).equals(BigInteger.ZERO)) {
+				if ((i == 1) && !transaction.getTxIn().getAddress().getID().equals(ID.TWO)) {
+					return false;
+				} else if (!(transaction instanceof OperationTransaction)) {
+					return false;
+				} else {
+					OperationTransaction operationTransaction = (OperationTransaction) transaction;
+					if (!(operationTransaction.getOperation() instanceof UpdateAddressOperation)) {
+						return false;
+					} else {
+						if (!operationTransaction.isValid(accountsMerkleTree, null)) {
+							return false;
+						} else {
+							operationTransaction.execute(accountsMerkleTree,
+									operationTransaction.getTxIn().getAddress().getID());
+							continue;
+						}
+					}
+				}
+			}
+
+			if (!transaction.isValid(accountsMerkleTree, null)) {
+				Log.info("Transaction is invalid: " + transaction);
+				return false;
+			} else {
+				// If is OperationTransaction just execute it
+				if (transaction instanceof OperationTransaction) {
+					((OperationTransaction) transaction).execute(accountsMerkleTree,
+							transaction.getTxIn().getAddress().getID());
+				}
+				// Update AccountsMerkleTree relevant Account's status
+				transaction.update(accountsMerkleTree);
+			}
+		}
+
+		// Build AccountsMerkleTree and generate Root and Statistics
+		accountsMerkleTree.buildAccountsMerkleTree();
+		accountsMerkleTree.generateRoot();
+		Statistics statistics = accountsMerkleTree.getStatistics();
+
+		// Verify Root
+		// Check total supply
+		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
+			Log.Error("Total supply is invalid!");
+			return false;
+		}
+		if(statistics.totalSupply != root.getTotalSupply()){
+			Log.Error("Total supply is invalid!");
+			return false;
+		}
+		
+		// Check total Transaction numbers
+		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(), true);
+		if (!previousBlock.getRoot().getTotalAccountNumbers()
+				.add(BigInteger.valueOf(transactions.getNewAccountList().size()))
+				.equals(statistics.totalTransactionNumbers)) {
+			Log.Error("Total Transaction numbers is invalid!");
+			return false;
+		}
+		if(!statistics.totalTransactionNumbers.equals(root.getTotalAccountNumbers())) {
+			Log.Error("Total Transaction numbers is invalid!");
+			return false;
+		}
+		// Check AccountsMerkelTreeRoot
+		if(!Arrays.equals(root.getAccountsMerkelTreeRoot(), accountsMerkleTree.getRoot())) {
+			Log.Error("AccountsMerkelTreeRoot is invalid!");
+			return false;
+		}
+		// Check TransactionsMerkelTreeRoot
+		if(!Arrays.equals(root.getTransactionsMerkelTreeRoot(), getTransactionsMerkelTreeRoot())) {
+			Log.Error("AccountsMerkelTreeRoot is invalid!");
+			return false;
+		}
+		// Verify EQCHeader
+		if(!eqcHeader.isValid(accountsMerkleTree, root.getHash())) {
+			Log.Error("EQCHeader is invalid!");
+			return false;
+		}
+		
+		// Merge AccountsMerkleTree relevant Account's status
+		if(!accountsMerkleTree.merge()) {
+			Log.Error("Merge AccountsMerkleTree relevant Account's status error occur");
+			return false;
+		}
+
+		return true;
+	}
+
+	public static boolean verify(EQCBlock eqcBlock, AccountsMerkleTree accountsMerkleTree) {
+		// Check if EQCHeader is valid
+		BigInteger target = Util.targetBytesToBigInteger(Util.cypherTarget(eqcBlock.getHeight()));
+		if (new BigInteger(1, Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(eqcBlock.getEqcHeader().getBytes(), Util.HUNDRED_THOUSAND, false))
+				.compareTo(target) > 0) {
+			Log.Error("EQCHeader is invalid");
+			return false;
+		}
+
+		// Check if Transactions size is less than 1 MB
+		if (eqcBlock.getTransactions().getSize() > Util.ONE_MB) {
+			Log.Error("Transactions size  is invalid, size: " + eqcBlock.getTransactions().getSize());
+			return false;
+		}
+
+		// Check if AddressList is correct the first Address' Serial Number is equal to
+		// previous block's last Address' Serial Number + 1
+		// Every Address should be unique in current AddressList and doesn't exists in
+		// the history AddressList in H2
+		// Every Address's Serial Number should equal to previous Address'
+		// getNextSerialNumber
+
+		// Check if PublicKeyList is correct the first PublicKey's Serial Number is
+		// equal to previous block's last PublicKey's getNextSerialNumber
+		// Every PublicKey should be unique in current PublicKeyList and doesn't exists
+		// in the history PublicKeyList in H2
+		// Every PublicKey's Serial Number should equal to previous PublicKey's
+		// getNextSerialNumber
+
+		// Get Transaction list and Signature list
+		Vector<Transaction> transactinList = eqcBlock.getTransactions().getNewTransactionList();
+		Vector<byte[]> signatureList = eqcBlock.getSignatures().getSignatureList();
+
+		// In addition to the CoinBase transaction, the following checks are made for
+		// all other transactions.
+		// Check if every Transaction's PublicKey is exists
+		if (!eqcBlock.isEveryPublicKeyExists()) {
+			Log.Error("Every Transaction's PublicKey should exists");
+			return false;
+		}
+		// Check if every Transaction's Address is exists
+		if (!eqcBlock.isEveryAddressExists()) {
+			Log.Error("Every Transaction's Address should exists");
+			return false;
+		}
+
+		// Fill in every Transaction's PublicKey, Signature, relevant Address for verify
+		eqcBlock.buildTransactionsForVerify();
+
+		// Check if only have CoinBase Transaction
+		if (signatureList == null) {
+			if (transactinList.size() != 1) {
+				Log.Error(
+						"Only have CoinBase Transaction but the number of Transaction isn't equal to 1, current size: "
+								+ transactinList.size());
+				return false;
+			}
+		} else {
+			// Check if every Transaction has it's Signature
+			if ((transactinList.size() - 1) != signatureList.size()) {
+				Log.Error("Transaction's number: " + (transactinList.size() - 1)
+						+ " doesn't equal to Signature's number: " + signatureList.size());
+				return false;
+			}
+		}
+
+		// Check if CoinBase is correct - CoinBase's Address&Value is valid
+		if (!transactinList.get(0).isCoinBase()) {
+			Log.Error("The No.0 Transaction isn't CoinBase");
+			return false;
+		}
+		// Check if CoinBase's TxOut Address is valid
+		if (!transactinList.get(0).isTxOutAddressValid()) {
+			Log.Error("The CoinBase's TxOut's Address is invalid: "
+					+ transactinList.get(0).getTxOutList().get(0).toString());
+			return false;
+		}
+		// Check if CoinBase's value is valid
+		long totalTxFee = 0;
+		for (int i = 1; i < transactinList.size(); ++i) {
+			totalTxFee += transactinList.get(i).getTxFee();
+		}
+		long coinBaseValue = 0;
+		if (eqcBlock.getHeight().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
+			coinBaseValue = Util.COINBASE_REWARD + totalTxFee;
+			if (transactinList.get(0).getTxOutValues() != coinBaseValue) {
+				Log.Error("CoinBase's value: " + transactinList.get(0).getTxOutValues()
+						+ " doesn't equal to COINBASE_REWARD + totalTxFee: " + (Util.COINBASE_REWARD + totalTxFee));
+				return false;
+			}
+		} else {
+			coinBaseValue = totalTxFee;
+			if (transactinList.get(0).getTxOutValues() != coinBaseValue) {
+				Log.Error("CoinBase's value: " + transactinList.get(0).getTxOutValues()
+						+ " doesn't equal to totalTxFee: " + totalTxFee);
+				return false;
+			}
+		}
+
+		// Check if only have one CoinBase
+		for (int i = 1; i < transactinList.size(); ++i) {
+			if (transactinList.get(i).isCoinBase()) {
+				Log.Error("Every EQCBlock should has only one CoinBase but No. " + i + " is also CoinBase.");
+				return false;
+			}
+		}
+
+		// Check if Signature is unique in current Signatures and doesn't exists in the
+		// history Signature table in H2
+		for (int i = 0; i < signatureList.size(); ++i) {
+			for (int j = i + 1; j < signatureList.size(); ++j) {
+				if (Arrays.equals(signatureList.get(i), signatureList.get(j))) {
+					Log.Error("Signature doesn't unique in current  Signature list");
+					return false;
+				}
+			}
+		}
+
+		for (byte[] signature : signatureList) {
+			if (EQCBlockChainH2.getInstance().isSignatureExists(signature)) {
+				Log.Error("Signature doesn't unique in H2's history Signature list");
+				return false;
+			}
+		}
+
+		// Check if every Transaction is valid
+		for (Transaction transaction : eqcBlock.getTransactions().getNewTransactionList()) {
+			if (transaction.isCoinBase()) {
+				
+			} else {
+				try {
+					if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+						Log.Error("Every Transaction should valid");
+						return false;
+					}
+				} catch (NoSuchFieldException | IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error("Every Transaction should valid: " + e.getMessage());
+					return false;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	public void buildTransactionsForVerify() {
 		// Only have CoinBase Transaction just return
-		if (transactions.getTransactionList().size() == 1) {
-			Transaction transaction = transactions.getTransactionList().get(0);
+		if (transactions.getNewTransactionList().size() == 1) {
+			Transaction transaction = transactions.getNewTransactionList().get(0);
 			// Set Address for every Transaction
 			// Set TxOut Address
 			for (TxOut txOut : transaction.getTxOutList()) {
-				txOut.getAddress().setAddress(Util.getAddress(txOut.getAddress().getSerialNumber(), this));
+				txOut.getAddress().setReadableAddress(Util.getAddress(txOut.getAddress().getID(), this));
 			}
 			return;
 		}
@@ -609,38 +789,38 @@ public class EQCBlock implements EQCTypable {
 		// Bug fix change to verify if every Transaction's signature is equal to
 		// Signatures
 		for (int i = 1; i < signatures.getSignatureList().size(); ++i) {
-			transactions.getTransactionList().get(i).setSignature(signatures.getSignatureList().get(i));
+			transactions.getNewTransactionList().get(i).setSignature(signatures.getSignatureList().get(i));
 		}
 
-		for (int i = 1; i < transactions.getTransactionList().size(); ++i) {
-			Transaction transaction = transactions.getTransactionList().get(i);
+		for (int i = 1; i < transactions.getNewTransactionList().size(); ++i) {
+			Transaction transaction = transactions.getNewTransactionList().get(i);
 			// Set PublicKey for every Transaction
 			// Bug fix before add in Transactions every transaction should have signature &
 			// PublicKey.
-			transaction.setPublickey(Util.getPublicKey(transaction.getTxIn().getAddress().getSerialNumber(), this));
+			transaction.setPublickey(Util.getPublicKey(transaction.getTxIn().getAddress().getID(), this));
 			// Set Address for every Transaction
 			// Set TxIn Address
 			transaction.getTxIn().getAddress()
-					.setAddress(Util.getAddress(transaction.getTxIn().getAddress().getSerialNumber(), this));
+					.setReadableAddress(Util.getAddress(transaction.getTxIn().getAddress().getID(), this));
 			// Set TxOut Address
 			for (TxOut txOut : transaction.getTxOutList()) {
-				txOut.getAddress().setAddress(Util.getAddress(txOut.getAddress().getSerialNumber(), this));
+				txOut.getAddress().setReadableAddress(Util.getAddress(txOut.getAddress().getID(), this));
 			}
 		}
 	}
 
 	public boolean isEveryAddressExists() {
-		for (Transaction transaction : transactions.getTransactionList()) {
+		for (Transaction transaction : transactions.getNewTransactionList()) {
 			// Check if TxIn Address exists
 			if (!transaction.isCoinBase()) {
-				if (Util.getAddress(transaction.getTxIn().getAddress().getSerialNumber(), this) == null) {
+				if (Util.getAddress(transaction.getTxIn().getAddress().getID(), this) == null) {
 					return false;
 				}
 			}
 
 			// Check if All TxOut Address exists
 			for (TxOut txOut : transaction.getTxOutList()) {
-				if (Util.getAddress(txOut.getAddress().getSerialNumber(), this) == null) {
+				if (Util.getAddress(txOut.getAddress().getID(), this) == null) {
 					return false;
 				}
 			}
@@ -649,14 +829,11 @@ public class EQCBlock implements EQCTypable {
 	}
 
 	public boolean isEveryPublicKeyExists() {
-		if (transactions.getTransactionList().size() == 1) {
+		if (transactions.getNewTransactionList().size() == 1) {
 			return true;
 		}
 		for (int i = 1; i < transactions.getSize(); ++i) {
-			Transaction transaction = transactions.getTransactionList().get(i);
-			if (Util.getPublicKey(transaction.getTxIn().getAddress().getSerialNumber(), this) == null) {
-				return false;
-			}
+			return false;
 		}
 		return true;
 	}
@@ -667,7 +844,6 @@ public class EQCBlock implements EQCTypable {
 		try {
 			os.write(eqcHeader.getBin());
 			os.write(root.getBin());
-//			os.write(index.getBin());
 			os.write(transactions.getBin());
 			os.write(signatures.getBin());
 		} catch (IOException e) {
@@ -701,22 +877,91 @@ public class EQCBlock implements EQCTypable {
 		this.root = root;
 	}
 
-//	/**
-//	 * @return the index
-//	 */
-//	public Index getIndex() {
-//		return index;
-//	}
-//
-//	/**
-//	 * @param index the index to set
-//	 */
-//	public void setIndex(Index index) {
-//		this.index = index;
-//	}
-
 	public byte[] getHash() {
 		return eqcHeader.getHash();
 	}
+
+	@Override
+	public boolean isSanity(AddressShape... addressShape) {
+		if (addressShape.length != 0) {
+			return false;
+		}
+		if (eqcHeader == null || root == null || transactions == null) {
+			return false;
+		}
+		if (transactions.getNewTransactionList().size() == 0) {
+			return false;
+		}
+		if (!transactions.getNewTransactionList().get(0).isCoinBase()) {
+			return false;
+		}
+		if (transactions.getNewTransactionList().size() == 1) {
+			if (signatures != null) {
+				return false;
+			}
+		} else {
+			for (int i = 1; i < transactions.getNewAccountList().size(); ++i) {
+				if (transactions.getNewTransactionList().get(i).isCoinBase()) {
+					return false;
+				}
+			}
+			if (transactions.getNewTransactionList().size() != (signatures.getSignatureList().size() + 1)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public byte[] getTransactionsMerkelTreeRoot() {
+		Vector<byte[]> transactionsMerkelTreeRootList = new Vector<>();
+		byte[] bytes = null;
+		transactionsMerkelTreeRootList.add(transactions.getNewTransactionListMerkelTreeRoot());
+		
+		if ((bytes = signatures.getSignaturesMerkelTreeRoot()) != null) {
+			transactionsMerkelTreeRootList.add(bytes);
+		}
+		else {
+			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
+		}
+		
+		if ((bytes = transactions.getNewAccountListMerkelTreeRoot()) != null) {
+			transactionsMerkelTreeRootList.add(bytes);
+		}
+		else {
+			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
+		}
+		
+		if ((bytes = transactions.getNewPublickeyListMerkelTreeRoot()) != null) {
+			transactionsMerkelTreeRootList.add(bytes);
+		}
+		else {
+			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
+		}
+		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getMerkleTreeRoot(transactionsMerkelTreeRootList), Util.THOUSANDPLUS,
+				false);
+	}
+
+	@Override
+	public byte[] getBytes(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getBin(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+//	public boolean isAddressListAddressUnique() {
+//		for (int i = 0; i < transactions.getAddressList().size(); ++i) {
+//			for (int j = i + 1; j < transactions.getAddressList().size(); ++j) {
+//				if (transactions.getAddressList().get(i).equals(transactions.getAddressList().get(j))) {
+//					return false;
+//				}
+//			}
+//		}
+//		return true;
+//	}
 
 }

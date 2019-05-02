@@ -1,6 +1,18 @@
 /**
- * EQCoin core - EQZIP's EQCoin core library
- * @copyright 2018 EQZIP Inc.  All rights reserved...
+ * EQCoin core - EQCOIN Foundation's EQCoin core library
+ * @copyright 2018-present EQCOIN Foundation All rights reserved...
+ * Copyright of all works released by EQCOIN Foundation or jointly released by
+ * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQCOIN Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
  * https://www.eqzip.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -21,11 +33,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
-import com.eqzip.eqcoin.keystore.AddressTool;
-import com.eqzip.eqcoin.util.EQCType;
+import com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape;
+import com.eqzip.eqcoin.serialization.EQCTypable;
+import com.eqzip.eqcoin.serialization.EQCType;
 import com.eqzip.eqcoin.util.Log;
-import com.eqzip.eqcoin.util.SerialNumber;
+import com.eqzip.eqcoin.util.ID;
 import com.eqzip.eqcoin.util.Util;
 
 /**
@@ -37,165 +51,74 @@ import com.eqzip.eqcoin.util.Util;
  * @date Sep 28, 2018
  * @email 10509759@qq.com
  */
-public class PublicKey {
-	// Current publickey's relevant address' serial number
-	private SerialNumber addressSN = null;
-	// The No. snAddress relevant public key if the address is V1&V2 which is fixed
-	// bytes if is V3 which is bin
+public class PublicKey implements EQCTypable {
+	/** 
+	 * Current PublicKey's relevant address' ID.
+	 */
+	private ID id = null;
+	/**
+	 * The No. Address relevant public key which is Bin type.
+	 */
 	private byte[] publicKey = null;
+	/**
+	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
+	 * verified.
+	 */
+	private final static byte VERIFICATION_COUNT = 2;
+	
+	private boolean isNew;
 
 	public PublicKey() {
 		super();
+		isNew = false;
 	}
 
-	public PublicKey(byte[] bytes) {
+	public PublicKey(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		int type;
 		byte[] data;
-		int iLen = 0;
 
-		// Parse address' serial number
-		ByteBuffer buff = ByteBuffer.allocate(10);
-		while ((((type = is.read()) != -1) && ((byte) type & EQCType.BITS) != 0)) {
-			buff.put((byte) type);
+		// Parse PublicKey's serial number
+		if ((data = EQCType.parseEQCBits(is)) != null) {
+			id = new ID(data);
 		}
-		buff.put((byte) type);
-		buff.flip();
-		addressSN = new SerialNumber(buff.array());
 
 		// Parse publicKey
-		byte addressVersion = Util.getAddressVersion(addressSN);
-		if (addressVersion == AddressTool.V1) {
-			data = new byte[AddressTool.V1_PUBLICKEY_LEN];
-			try {
-				is.read(data);
-				publicKey = data;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else if (addressVersion == AddressTool.V2) {
-			data = new byte[AddressTool.V2_PUBLICKEY_LEN];
-			try {
-				is.read(data);
-				publicKey = data;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else if (addressVersion == AddressTool.V3) {
-			type = is.read();
-			if (type == -1) {
-				throw new IndexOutOfBoundsException("During parse signaturesHash error haven't relevant data");
-			} else if (EQCType.isBin(type)) {
-				try {
-					// Get xxx raw data
-					iLen = EQCType.getBinLen(type);
-					data = new byte[iLen];
-					is.read(data);
-					// Get xxx raw data's value
-					iLen = EQCType.getBinDataLen(type, data);
-					// Read the content
-					data = new byte[iLen];
-					iLen = is.read(data);
-					if (iLen == data.length) {
-						publicKey = data;
-					}
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					Log.Error(e.getMessage());
-				}
-
-			}
+		data = null;
+		if ((data = EQCType.parseBIN(is)) != null) {
+			publicKey = data;
 		}
 	}
-	
-	public static boolean isValid(byte[] bytes) {
+
+	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		int type;
 		byte[] data;
-		int iLen = 0;
 		byte validCount = 0;
 
-		// Parse address' serial number
-		ByteBuffer buff = ByteBuffer.allocate(10);
-		while ((((type = is.read()) != -1) && ((byte) type & EQCType.BITS) != 0)) {
-			buff.put((byte) type);
-		}
-		buff.put((byte) type);
-		buff.flip();
-		SerialNumber addressSN = new SerialNumber(buff.array());
-		if(type != -1) {
+		// Parse PublicKey's serial number
+		if ((data = EQCType.parseEQCBits(is)) != null) {
 			++validCount;
 		}
 
 		// Parse publicKey
-		byte addressVersion = Util.getAddressVersion(addressSN);
-		if (addressVersion == AddressTool.V1) {
-			data = new byte[AddressTool.V1_PUBLICKEY_LEN];
-			try {
-				iLen = is.read(data);
-				if(iLen == data.length) {
-					++validCount;
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error(e.getMessage());
-			}
-		} else if (addressVersion == AddressTool.V2) {
-			data = new byte[AddressTool.V2_PUBLICKEY_LEN];
-			try {
-				iLen = is.read(data);
-				if(iLen == data.length) {
-					++validCount;
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else if (addressVersion == AddressTool.V3) {
-			type = is.read();
-			if (type == -1) {
-				throw new IndexOutOfBoundsException("During parse signaturesHash error haven't relevant data");
-			} else if (EQCType.isBin(type)) {
-				try {
-					// Get xxx raw data
-					iLen = EQCType.getBinLen(type);
-					data = new byte[iLen];
-					is.read(data);
-					// Get xxx raw data's value
-					iLen = EQCType.getBinDataLen(type, data);
-					// Read the content
-					data = new byte[iLen];
-					iLen = is.read(data);
-					if (iLen == data.length) {
-						++validCount;
-					}
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					Log.Error(e.getMessage());
-				}
-
-			}
+		data = null;
+		if ((data = EQCType.parseBIN(is)) != null) {
+			++validCount;
 		}
-		return validCount == 2;
+		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
 	}
 
+	/**
+	 * Get the PublicKey's bytes for storage it in the EQC block chain.
+	 * 
+	 * @return byte[]
+	 */
+	@Override
 	public byte[] getBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(addressSN.getBits());
-			byte addressVersion = Util.getAddressVersion(addressSN);
-			if ((addressVersion == AddressTool.V1) || (addressVersion == AddressTool.V2)) {
-				os.write(publicKey);
-			} else if (addressVersion == AddressTool.V3) {
-				if (publicKey != null) {
-					os.write(EQCType.bytesToBin(publicKey));
-				}
-			}
+			os.write(id.getEQCBits());
+			Log.info("publicKey raw data len: " + publicKey.length);
+			os.write(EQCType.bytesToBIN(publicKey));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -204,18 +127,29 @@ public class PublicKey {
 		return os.toByteArray();
 	}
 
+	public int getBillingSize() {
+		int size = 0;
+		size += Util.BASIC_SERIAL_NUMBER_LEN;
+		if(publicKey == null) {
+			throw new NullPointerException("Publickey shouldn't be null.");
+		}
+		size += EQCType.bytesToBIN(publicKey).length;
+		size += EQCType.getEQCTypeOverhead(size);
+	    return size;
+	}
+	
 	/**
-	 * @return the addressSN
+	 * @return the publickeyID
 	 */
-	public SerialNumber getAddressSN() {
-		return addressSN;
+	public ID getID() {
+		return id;
 	}
 
 	/**
-	 * @param addressSN the addressSN to set
+	 * @param publickeyID the publickeyID to set
 	 */
-	public void setAddressSN(SerialNumber addressSN) {
-		this.addressSN = addressSN;
+	public void setID(ID id) {
+		this.id = id;
 	}
 
 	/**
@@ -232,4 +166,108 @@ public class PublicKey {
 		this.publicKey = publicKey;
 	}
 
+	/**
+	 * Get the PublicKey's BIN for storage it in the EQC block chain.
+	 * For save the space the Address' shape is Serial Number which is the EQCBits type.
+	 * 
+	 * @return byte[]
+	 */
+	@Override
+	public byte[] getBin() {
+		// TODO Auto-generated method stub
+		return EQCType.bytesToBIN(getBytes());
+	}
+
+	/**
+	 * @return the isNew
+	 */
+	public boolean isNew() {
+		return isNew;
+	}
+
+	/**
+	 * @param isNew the isNew to set
+	 */
+	public void setNew(boolean isNew) {
+		this.isNew = isNew;
+	}
+	
+	@Override
+	public boolean isSanity(AddressShape... addressShape) {
+		if(addressShape.length == 0) {
+			if(id == null || publicKey == null) {
+				return false;
+			}
+		}
+		else if(addressShape.length == 1) {
+			if(addressShape[0] == AddressShape.ID) {
+				if(id == null) {
+					return false;
+				}
+			}
+			else {
+				if(publicKey == null) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public byte[] getBytes(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getBin(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(publicKey);
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		PublicKey other = (PublicKey) obj;
+		if (!Arrays.equals(publicKey, other.publicKey))
+			return false;
+		return true;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "{\n" + toInnerJson() + "\n}";
+	}
+
+	public String toInnerJson() {
+		return "\"Publickey\":" + "{\n" + "\"ID\":" + "\"" + ((id == null) ? null : id) + "\"" + ",\n"
+				+ "\"Publickey\":" + "\"" + Util.dumpBytes(publicKey, 16) + "\""
+				+ "\n" + "}";
+	}
+	
 }

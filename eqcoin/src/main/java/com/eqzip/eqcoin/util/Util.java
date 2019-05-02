@@ -34,12 +34,14 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
@@ -113,6 +115,7 @@ import com.eqzip.eqcoin.rpc.avro.Status;
 import com.eqzip.eqcoin.serialization.EQCTypable;
 import com.eqzip.eqcoin.serialization.EQCType;
 import com.eqzip.eqcoin.serialization.EQCType.ARRAY;
+import com.eqzip.eqcoin.test.Test;
 import com.eqzip.eqcoin.util.Util.AddressTool.AddressType;
 import com.eqzip.eqcoin.util.Util.AddressTool.P2SHAddress.Peer;
 
@@ -128,6 +131,8 @@ public final class Util {
 	 * Singularity - EQC's basic unit of measure. 1 EQC = 10000 singularity
 	 */
 	public final static long ABC = 10000;
+	
+	public final static byte[] MAGIC_HASH = UnsignedBiginteger(new BigInteger("200189AC5AFA3CF07356C09C311B01619BC5513AF0792434F2F9CBB7E1473F39711981A4D8AB36CA2BEF35673EA7BF12F0673F6040659832E558FAEFBE4075E5", 16)).toByteArray();
 
 	public final static byte[] SINGULARITY_HASH = {};
 
@@ -163,9 +168,9 @@ public final class Util {
 
 	public final static int SIXTEEN = 16;
 
-	public final static int HUNDRED = 100;
+	public final static int HUNDREDPULS = 101;
 	
-	public final static int THOUSAND = 100000;
+	public final static int THOUSANDPLUS = 1001;
 
 	public final static int HUNDRED_THOUSAND = 100000;
 
@@ -191,6 +196,8 @@ public final class Util {
 //	static {
 //		PATH = System.getProperty("user.dir") + "/EQCOIN";
 //	}
+	
+	public static final String MAGIC_PATH = ".\\src\\main\\QuidditchHelixFlashForward";
 
 	public static final String KEYSTORE_PATH = PATH + File.separator + "EQCoin.keystore";
 
@@ -212,15 +219,22 @@ public final class Util {
 
 	public final static String H2_DATABASE_NAME = H2_PATH + File.separator + "EQC";
 
-	public final static int P256_BASIC_SIGNATURE_LEN = 70;
+	/*  @see 压缩公钥&签名长度规范
+		EC长度 压缩公钥长度(bytes)  签名长度(bytes)
+		P256 		33 				70、71、72
+		P521 		67 			  137、138、139
+	 */
+	public final static int P256_BASIC_SIGNATURE_LEN = 73;
 
-	public final static int P521_BASIC_SIGNATURE_LEN = 137;
+	public final static int P521_BASIC_SIGNATURE_LEN = 140;
 
 	public final static int P256_BASIC_PUBLICKEY_LEN = 34;
 
 	public final static int P521_BASIC_PUBLICKEY_LEN = 68;
 	
-	public final static int BASIC_SERIAL_NUMBER_LEN = 8;
+	public final static int BASIC_SERIAL_NUMBER_LEN = 5;
+	
+	public final static int BASIC_VALUE_NUMBER_LEN = 8;
 
 	public final static int INIT_ADDRESS_SERIAL_NUMBER = 1;
 
@@ -245,6 +259,21 @@ public final class Util {
 	public static final int MAX_DIFFICULTY_MULTIPLE = 4;
 	
 	public static final BigInteger EUROPA = UnsignedBiginteger(BigInteger.valueOf(1008));
+	
+	public static final byte[] NULL_HASH = UnsignedBiginteger(new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16)).toByteArray();
+	
+	public static ID [] FIBONACCI = {
+			new ID(1597),
+			new ID(2584),
+			new ID(4181),
+			new ID(6765),
+			new ID(10946),
+			new ID(17711),
+			new ID(28657),
+			new ID(46368),
+			new ID(75025),
+			new ID(121393)
+	};
 	
 	public enum STATUS {
 		OK, ERROR
@@ -290,18 +319,18 @@ public final class Util {
 			EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.ZERO));
 			Configuration.getInstance().updateIsInitSingularityBlock(true);
 		}
-		cookie = new Cookie();
-		cookie.setIp(getIP());
-		cookie.setVersion(PROTOCOL_VERSION);
-		if (cookie.getIp().length() == 0) {
-			Log.Error("During get IP error occur please check your network");
-		} else {
-			Log.info(cookie.toString());
-		}
-		status = new Status();
-		status.setCookie(cookie);
-		status.setCode(STATUS.OK.ordinal());
-		status.setMessage("");
+//		cookie = new Cookie();
+//		cookie.setIp(getIP());
+//		cookie.setVersion(PROTOCOL_VERSION);
+//		if (cookie.getIp().length() == 0) {
+//			Log.Error("During get IP error occur please check your network");
+//		} else {
+//			Log.info(cookie.toString());
+//		}
+//		status = new Status();
+//		status.setCookie(cookie);
+//		status.setCode(STATUS.OK.ordinal());
+//		status.setMessage("");
 	}
 
 //	private static void init(final OS os) {
@@ -333,11 +362,13 @@ public final class Util {
 	public static byte[] multipleExtend(final byte[] data, final int multiple) {
 		byte[] result = null;
 		BigInteger begin = new BigInteger(1, data);
-		BigInteger end = begin.add(BigInteger.valueOf(multiple));
+		BigInteger divisor = begin.divide(BigInteger.valueOf(multiple));
+		BigInteger end = begin.multiply(BigInteger.valueOf(multiple).multiply(FIBONACCI[9]).multiply(divisor));
+		
 		int bufferLen = end.toByteArray().length * multiple;
 		ByteBuffer byteBuffer = ByteBuffer.allocate(bufferLen);
 		for (int i = 0; i < multiple; ++i) {
-			byteBuffer.put(begin.add(BigInteger.valueOf(i)).toByteArray());
+			byteBuffer.put(begin.multiply(BigInteger.valueOf(i).multiply(divisor).multiply(FIBONACCI[i%10])).toByteArray());
 		}
 		byteBuffer.flip();
 		if(byteBuffer.remaining() == bufferLen) {
@@ -348,7 +379,11 @@ public final class Util {
 //			Log.info("multipleExtend not equal");
 			result = new byte[byteBuffer.remaining()];
 			byteBuffer.get(result);
+//			Log.info(Util.dumpBytes(Util.CRC32C(result), 16));
+//			Log.info("Len: " + result.length);
 		}
+		
+		
 //		for (int i = 0; i < multiple; ++i) {
 //			for (int j = 0; j < data.length; ++j) {
 //				result[j + data.length * i] = data[j];
@@ -488,7 +523,7 @@ public final class Util {
 
 	public static String bigIntegerToFixedLengthString(final BigInteger foo, final int len) {
 		String tmp = foo.toString(16);
-		Log.info(tmp.length() + "  " + tmp);
+//		Log.info(tmp.length() + "  " + tmp);
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < len / 4 - tmp.length(); ++i) {
 			sb.append("0");
@@ -594,6 +629,7 @@ public final class Util {
 	 */
 	public static byte[] EQCCHA_MULTIPLE(final byte[] bytes, int multiple, boolean isCompress) {
 		byte[] hash = null;
+//		Log.info("Len: " + bytes.length);
 		try {
 			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(bytes, multiple));		
 			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
@@ -609,21 +645,46 @@ public final class Util {
 		return hash;
 	}
 	
-	public static byte[] EQCCHA_MULTIPLE_FIBONACCI_MERKEL(final byte[] bytes) {
-		
+	/**
+	 * EQCCHA - EQCOIN complex hash algorithm used for calculate the hash
+	 * of EQC block chain's address.
+	 * 
+	 * @param bytes      The raw data for example EQC block chain's header or
+	 *                   address
+	 * @param isCompress If this is an address or signatures. Then at the end use
+	 *                   SHA3-256 to reduce the size of it
+	 * @return Hash value processed by EQCCHA
+	 */
+	public static byte[] EQCCHA(final byte[] bytes, int multiple, boolean isCompress) {
+		byte[] hash = null;
+//		Log.info("Len: " + bytes.length);
+		try {
+			hash = MessageDigest.getInstance("SHA3-512").digest(bytes);		
+			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
+			// Due to this is an address or signature so here use SHA3-256 reduce the size of it
+			if (isCompress) {
+				hash = SHA3_256(multipleExtend(hash, multiple));
+			}
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return hash;
+	}
+	
+	public static byte[] EQCCHA_MULTIPLE_FIBONACCI_MERKEL(final byte[] bytes, int multiple, boolean isCompress) {
 		Vector<byte[]> ten = new Vector<byte[]>();
 		BigInteger begin = new BigInteger(1, bytes);
+		BigInteger divisor = begin.divide(BigInteger.valueOf(multiple));
 		MerkleTree merkleTree = null;
-		
 		for(int i=0; i<10; ++i) {
-//			Log.info("" + i);
-			ten.add(EQCCHA_MULTIPLE(begin.add(BigInteger.valueOf(i*HUNDRED_THOUSAND)).toByteArray(), THOUSAND, false));
+			ten.add(EQCCHA_MULTIPLE(begin.multiply(BigInteger.valueOf(i).multiply(divisor).multiply(FIBONACCI[i])).toByteArray(), multiple, false));
+//			Log.info("i: " + i + " len: " + ten.get(i).length);
 		}
 		merkleTree = new MerkleTree(ten);
 		merkleTree.generateRoot();
-		
-		return EQCCHA_MULTIPLE(merkleTree.getRoot(), HUNDRED_THOUSAND, false);
-		
+		return EQCCHA_MULTIPLE(merkleTree.getRoot(), multiple, isCompress);
 	}
 	
 	public static byte[] SHA3_256(byte[] bytes) {
@@ -916,25 +977,44 @@ public final class Util {
 		 * @return EQC address
 		 */
 		public static String generateAddress(byte[] publicKey, AddressType type) {
-			byte[] publickey_hash_trim = trim(EQCCHA_MULTIPLE(publicKey, Util.HUNDRED, true));
+			byte[] publickey_hash = EQCCHA_MULTIPLE_FIBONACCI_MERKEL(publicKey, HUNDREDPULS, true);
+			return _generateAddress(publickey_hash, type);
+		}
+		
+		private static String _generateAddress(byte[] publickey_hash, AddressType type) {
+			byte[] type_publickey_hash = null;
+			byte[] CRC32C = null;
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			
-			// Calculate (type | trim(PublickeyHash))'s CRC32C
+			// Calculate (type + PublickeyHash)'s CRC32C
 			try {
 				os.write(type.ordinal());
 //				Log.info("AddressType: " + type.ordinal());
-				os.write(publickey_hash_trim);
+				os.write(publickey_hash);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				Log.Error(e.getMessage());
 			}
-			byte[] crc32c = CRC32C(multipleExtend(os.toByteArray(), HUNDRED));
-			// Generate address Base58(type) + Base58((trim(HASH) + (type | trim(HASH))'s
-			// CRC32C))
-			os = new ByteArrayOutputStream();
 			try {
-				os.write(publickey_hash_trim);
+				type_publickey_hash = os.toByteArray();
+				CRC32C = CRC32C(type_publickey_hash);
+				os = new ByteArrayOutputStream();
+				os.write(CRC32C);
+				os.write(type.ordinal());
+				os.write(CRC32C);
+				os.write(publickey_hash);
+				os.write(CRC32C);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.Error(e.getMessage());
+			}
+			byte[] crc32c = CRC32C(multipleExtend(os.toByteArray(), HUNDREDPULS));
+			// Generate address Base58(type) + Base58((HASH + (type + HASH)'s CRC32C))
+			try {
+				os = new ByteArrayOutputStream();
+				os.write(publickey_hash);
 				os.write(crc32c);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -944,24 +1024,18 @@ public final class Util {
 			return Base58.encode(new byte[] { (byte) type.ordinal() }) + Base58.encode(os.toByteArray());
 		}
 		
-		public static boolean verifyAddress(String address, byte[] publickey) {
-			byte[] bytes = null;
-			byte[] crc32c = new byte[CRC32C_LEN];
-			byte[] CRC32C = new byte[CRC32C_LEN];
-			byte[] publickey_hash_trim = trim(EQCCHA_MULTIPLE(publickey, HUNDRED, true));
+		public static boolean verifyAddressPublickey(String address, byte[] publickey) {
+			byte[] hidden_address = null;
+			byte[] publickey_hash = null;
 			try {
-				bytes = Base58.decode(address.substring(1));
-				System.arraycopy(bytes, bytes.length - CRC32C_LEN, crc32c, 0, crc32c.length);
-				ByteArrayOutputStream os = new ByteArrayOutputStream();
-				os.write(Base58.decode(address.substring(0, 1)));
-				os.write(bytes, 0, bytes.length - CRC32C_LEN);
-				CRC32C = CRC32C(multipleExtend(os.toByteArray(), HUNDRED));
+				publickey_hash = EQCCHA_MULTIPLE_FIBONACCI_MERKEL(publickey, HUNDREDPULS, true);
+				hidden_address = Base58.decode(address.substring(1));
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				Log.Error(e.getMessage());
 			}
-			return Arrays.equals(crc32c, CRC32C) && Arrays.equals(publickey_hash_trim, Arrays.copyOf(bytes, bytes.length - CRC32C_LEN));
+			return Arrays.equals(publickey_hash, Arrays.copyOf(hidden_address, hidden_address.length - CRC32C_LEN));
 		}
 		
 		public static byte[] addressToAI(String address) {
@@ -993,42 +1067,69 @@ public final class Util {
 			else {
 				throw new UnsupportedOperationException("Unsupport type: " + bytes[0]);
 			}
-			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			// Calculate (type | trim(HASH))'s CRC32C
+			
+			return _generateAddress(Arrays.copyOfRange(bytes, 1, bytes.length), addressType);
+		}
+		
+		public static boolean isAddressFormatValid(String address) {
+			byte[] bytes = null;
+			String addressContent = null, subString = null;
+			char[] addressChar = null;
 			try {
-				os.write(addressType.ordinal());
-				os.write(Arrays.copyOfRange(bytes, 1, bytes.length));
-			} catch (IOException e) {
+				if(address.length() < MIN_ADDRESS_LEN || address.length() > MAX_ADDRESS_LEN) {
+					return false;
+				}
+				addressChar = address.toCharArray();
+				if(addressChar[0] != '1' && addressChar[0] != '2') {
+					return false;
+				}
+				for(char alphabet : addressChar) {
+					if(!Base58.isBase58Char(alphabet)) {
+						return false;
+					}
+				}
+//				subString = address.substring(1);
+//				bytes = Base58.decode(subString);
+//				addressContent = Base58.encode(bytes);
+//				if(!addressContent.equals(subString)) {
+//					return false;
+//				}
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				Log.Error(e.getMessage());
 			}
-			byte[] crc32c = CRC32C(multipleExtend(os.toByteArray(), HUNDRED));
-			// Generate address Base58(type) + Base58((trim(HASH) + (type | trim(HASH))'s
-			// CRC32C))
-			os = new ByteArrayOutputStream();
-			try {
-				os.write(Arrays.copyOfRange(bytes, 1, bytes.length));
-				os.write(crc32c);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 			
-			return Base58.encode(new byte[] { (byte) addressType.ordinal() }) + Base58.encode(os.toByteArray());
+			return true;
 		}
 		
-		public static boolean verifyAddress(String address) {
+		public static boolean verifyAddressCRC32C(String address) {
 			byte[] bytes = null;
 			byte[] crc32c = new byte[CRC32C_LEN];
 			byte[] CRC32C = null;
+			byte[] CRC32CC = null;
+			byte[] type_publickey_hash = null;
+			
 			try {
 				bytes = Base58.decode(address.substring(1));
 				System.arraycopy(bytes, bytes.length - CRC32C_LEN, crc32c, 0, CRC32C_LEN);
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
 				os.write(Base58.decode(address.substring(0, 1)));
 				os.write(bytes, 0, bytes.length - CRC32C_LEN);
-				CRC32C = CRC32C(multipleExtend(os.toByteArray(), HUNDRED));
+				try {
+					type_publickey_hash = os.toByteArray();
+					CRC32CC = CRC32C(type_publickey_hash);
+					os = new ByteArrayOutputStream();
+					os.write(CRC32CC);
+					os.write(Base58.decode(address.substring(0, 1)));
+					os.write(CRC32CC);
+					os.write(bytes, 0, bytes.length - CRC32C_LEN);
+					os.write(CRC32CC);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				CRC32C = CRC32C(multipleExtend(os.toByteArray(), HUNDREDPULS));
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -1446,7 +1547,7 @@ public final class Util {
 						throw new IllegalStateException("P2SH address's peer's address number should between [1-3].");
 					}
 					for(String address:addresses) {
-						if(!AddressTool.verifyAddress(address)) {
+						if(!AddressTool.verifyAddressCRC32C(address)) {
 							addressList.clear();
 							throw new IllegalStateException("P2SH address's peer's address format is wrong can't pass the verify.");
 						}
@@ -1798,7 +1899,7 @@ public final class Util {
 				}
 				else {
 					for(int i=0; i<peer.getAddressList().size(); ++i) {
-						if(!AddressTool.verifyAddress(peer.getAddressList().get(i), peerPublickeys.getPublickeyList().get(i))) {
+						if(!AddressTool.verifyAddressPublickey(peer.getAddressList().get(i), peerPublickeys.getPublickeyList().get(i))) {
 							isValid = false;
 							Log.Error("VerifyPublickey address verify failed please check your Publickey");
 							break;
@@ -1830,16 +1931,23 @@ public final class Util {
 		
 	}
 
-	public static Transaction generateCoinBaseTransaction(Address address, ID height) {
+	public static Transaction generateCoinBaseTransaction(Address address, ID height, AccountsMerkleTree accountsMerkleTree) {
 		Transaction transaction = new CoinbaseTransaction();
 		TxOut eqcFoundationTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		minerTxOut.setAddress(address);
 		eqcFoundationTxOut.setAddress(Util.DB().getAddress(ID.ONE));
 		if (height.compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
+			if(accountsMerkleTree.isAccountExists(address, true)) {
+				transaction.setNonce(accountsMerkleTree.getAccount(address).getNonce().getNextID());
+			}
+			else {
+				transaction.setNonce(ID.ONE);
+			}
 			eqcFoundationTxOut.setValue(Util.EQC_FOUNDATION_COINBASE_REWARD);
 			minerTxOut.setValue(Util.MINER_COINBASE_REWARD);
 		} else {
+			transaction.setNonce(accountsMerkleTree.getAccount(ID.ONE).getNonce().getNextID());
 			eqcFoundationTxOut.setValue(0);
 			minerTxOut.setValue(0);
 		}
@@ -1849,6 +1957,7 @@ public final class Util {
 	}
 
 	public static EQCBlock gestationSingularityBlock() {
+		saveEQCBlockTailHeight(ID.ZERO);
 		// Create AccountsMerkleTree
 		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO, new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
 		
@@ -1863,7 +1972,7 @@ public final class Util {
 		// Create Transaction
 		Transaction transaction = new CoinbaseTransaction();
 		TxOut txOut = new TxOut();
-		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getAddress());
+		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		txOut.getAddress().setID(ID.ONE);
 		txOut.setValue(EQC_FOUNDATION_COINBASE_REWARD);
 		txOut.setNew(true);
@@ -1877,7 +1986,7 @@ public final class Util {
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		
 		txOut = new TxOut();
-		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getAddress());
+		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
 		txOut.getAddress().setID(ID.TWO);
 		txOut.setValue(MINER_COINBASE_REWARD);
 		txOut.setNew(true);
@@ -1887,9 +1996,10 @@ public final class Util {
 		account.setAddressCreateHeight(ID.ZERO);
 		account.setBalance(MINER_COINBASE_REWARD);
 		account.setBalanceUpdateHeight(ID.ZERO);
+		account.setNonce(ID.ONE);
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumbers();
-
+		transaction.setNonce(ID.ONE);
 		eqcBlock.getTransactions().addTransaction(transaction);
 		
 		// Add new address in address list
@@ -1920,7 +2030,7 @@ public final class Util {
 
 		// Create EQC block header
 		EQCHeader header = new EQCHeader();
-		header.setPreHash(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), HUNDRED_THOUSAND, false));
+		header.setPreHash(MAGIC_HASH);
 		header.setTarget(Util.getDefaultTargetBytes());
 		header.setHeight(ID.ZERO);
 		header.setTimestamp(new ID(0));
@@ -1994,7 +2104,7 @@ public final class Util {
 		PublicKey publicKey = null;
 		publicKey = EQCBlockChainH2.getInstance().getPublicKey(serialNumber);
 		if (publicKey == null) {
-			Vector<PublicKey> publicKeyList = eqcBlock.getTransactions().getPublicKeyList();
+			Vector<PublicKey> publicKeyList = eqcBlock.getTransactions().getNewPublicKeyList();
 			for (PublicKey publicKey2 : publicKeyList) {
 				if (publicKey2.equals(serialNumber)) {
 					publicKey = publicKey2;
@@ -2009,7 +2119,7 @@ public final class Util {
 		Address address = null;
 		address = EQCBlockChainH2.getInstance().getAddress(serialNumber);
 		if (address == null) {
-			Vector<Address> addressList = eqcBlock.getTransactions().getAddressList();
+			Vector<Address> addressList = eqcBlock.getTransactions().getNewAccountList();
 			for (Address address2 : addressList) {
 				if (address2.equals(serialNumber)) {
 					address = address2;
@@ -2103,7 +2213,7 @@ public final class Util {
 	public static long getBalance(String address) {
 		Address strAddress = new Address();
 		strAddress.setReadableAddress(address);
-		strAddress.setID(EQCBlockChainH2.getInstance().getAddressSerialNumber(strAddress));
+		strAddress.setID(EQCBlockChainH2.getInstance().getAddressID(strAddress));
 		return EQCBlockChainH2.getInstance().getBalance(strAddress);
 	}
 
@@ -2217,7 +2327,7 @@ public final class Util {
 //		Log.info(dumpBytes(longToBytes(crc32c.getValue()), 16) + " Len: " + longToBytes(crc32c.getValue()).length);
 //		Log.info(dumpBytes(intToBytes((int) crc32c.getValue()), 16) + " Len: " + intToBytes((int) crc32c.getValue()).length);
 //		Log.info("" + crc32c.getValue());
-		return AddressTool.trim(intToBytes((int) crc32c.getValue()));
+		return intToBytes((int) (crc32c.getValue() & 0xFFFFFFFF));
 	}
 	
 	public static EQCBlockChain DB(DB db) {
@@ -2241,6 +2351,54 @@ public final class Util {
 			value = new BigInteger(1, foo.toByteArray());
 		}
 		return value;
+	}
+	
+	public static void cypherSingularityEQCBlockPreHash() {
+		File file = new File(MAGIC_PATH);
+		Vector<byte[]> vector = new Vector<>();
+		MerkleTree merkleTree = null;
+		for (File photo : file.listFiles()) {
+			try {
+				vector.add(new FileInputStream(photo).readAllBytes());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		Vector<byte[]> reverse = new Vector<>();
+		for(int i=vector.size()-1; i>=0; --i) {
+			reverse.add(vector.get(i));
+		}
+		merkleTree = new MerkleTree(reverse);
+		merkleTree.generateRoot();
+		Log.info("Root: " + dumpBytes(merkleTree.getRoot(), 16));
+		Log.info("Magic: " + dumpBytes(EQCCHA_MULTIPLE_FIBONACCI_MERKEL(merkleTree.getRoot(), HUNDRED_THOUSAND, false), 16));
+		Log.info(new BigInteger(1, EQCCHA_MULTIPLE_FIBONACCI_MERKEL(merkleTree.getRoot(), HUNDRED_THOUSAND, false)).toString());
+	}
+
+	public static ID fibonacci(long number) {
+		ID a = ID.ONE, b = ID.ONE, c = ID.ZERO;
+		if(number <= 2) {
+			return ID.ONE;
+		}
+		for(int i=3; i<=number; ++i) {
+			c = a.add(b);
+			a = b;
+			b = c;
+		}
+		return c;
+	}
+
+	public static String getSizeJson(int size) {
+		return 
+		"{\n" +
+		"\"Size\":\"" + size + "\"" +
+		"\n}";
+	}
+	
+	public static void saveEQCBlockTailHeight(ID height) {
+		EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(height);
+		EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(height);
 	}
 	
 }

@@ -63,14 +63,19 @@ public class Base58 {
 		sb.insert(0, ALPHABET.charAt(foo.intValue()));
 		// Due to BigInteger ignore the leading zeroes of Hash
 		// So here just insert the leading zeroes of Hash into the Number 
-		for (byte b : bytes) {
-			if (b == 0) {
-				sb.insert(0, ALPHABET.charAt(0));
-			} else {
-				break;
+		// When length equal to 1 which means it is the type of Address which
+		// without leading zeroes doesn't need special handle. But when length bigger
+		// than 1 which means it is the Hash of Publickey many be exists leading zeroes
+		// need special handle.
+		if (bytes.length > 1) {
+			for (byte b : bytes) {
+				if (b == 0) {
+					sb.insert(0, ALPHABET.charAt(0));
+				} else {
+					break;
+				}
 			}
 		}
-		
 		return sb.toString();
 	}
 
@@ -85,13 +90,17 @@ public class Base58 {
 		// parses as positive. Detect
 		// that case here and chop it off.
 		boolean stripSignByte = bytes.length > 1 && bytes[0] == 0 && bytes[1] < 0;
-		Log.info("stripSignByte: " + stripSignByte);
+//		Log.info("stripSignByte: " + stripSignByte);
 		// Count the leading zeroes, if any.
 		int leadingZeros = 0;
 		for (int i = 0; (i < input.length() && input.charAt(i) == ALPHABET.charAt(0)); ++i) {
 			leadingZeros++;
 		}
-		if(stripSignByte || leadingZeros > 0) {
+		// When length equal to 1 which means it is the type of Address which
+		// without leading zeroes doesn't need special handle. But when length bigger
+		// than 1 which means it is the Hash of Publickey many be exists leading zeroes
+		// need special handle.
+		if((stripSignByte || leadingZeros > 0) && bytes.length > 1) {
 			decode = new byte[bytes.length - (stripSignByte ? 1 : 0) + leadingZeros];
 			System.arraycopy(bytes, stripSignByte ? 1 : 0, decode, leadingZeros, decode.length - leadingZeros);
 		}

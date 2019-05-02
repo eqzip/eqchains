@@ -40,9 +40,9 @@ class SerialNumberTest {
 
 	@Test
 	void testSerialNumberBigInteger() {
-		SerialNumber sn0 = new SerialNumber(BigInteger.valueOf(188888));
-		byte[] bytes = sn0.getBits();
-		SerialNumber sn1 = new SerialNumber(bytes);
+		ID sn0 = new ID(BigInteger.valueOf(188888));
+		byte[] bytes = sn0.getEQCBits();
+		ID sn1 = new ID(bytes);
 	}
 
 	@Test

@@ -34,8 +34,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Vector;
 
+import com.eqzip.eqcoin.blockchain.Account;
 import com.eqzip.eqcoin.blockchain.AccountsMerkleTree;
 import com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape;
+import com.eqzip.eqcoin.blockchain.transaction.Transaction.TransactionType;
 import com.eqzip.eqcoin.serialization.EQCType;
 import com.eqzip.eqcoin.util.Log;
 import com.eqzip.eqcoin.util.ID;
@@ -80,7 +82,12 @@ public class CoinbaseTransaction extends Transaction {
 					this.transactionType = TransactionType.COINBASE;
 				}
 			}
-
+			
+			// Parse nonce
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				nonce = new ID(data);
+			}
+			
 			// Parse TxOut
 			data = null;
 			while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
@@ -116,6 +123,12 @@ public class CoinbaseTransaction extends Transaction {
 					this.transactionType = TransactionType.COINBASE;
 				}
 			}
+			
+			// Parse nonce
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				nonce = new ID(data);
+			}
 
 			// Parse TxOut
 			data = null;
@@ -146,7 +159,7 @@ public class CoinbaseTransaction extends Transaction {
 		byte[] data;
 		byte txOutValidCount = 0;
 		int type = -1;
-		boolean isTxOutValid = false, isSoloValid = false, isTransactionTypeValid = false;
+		boolean isTxOutValid = false, isSoloValid = false, isTransactionTypeValid = false, isNonceValid = false;
 
 		if (addressShape == Address.AddressShape.ID) {
 			// Parse Solo
@@ -163,6 +176,11 @@ public class CoinbaseTransaction extends Transaction {
 				if (transactionType == TransactionType.COINBASE.ordinal()) {
 					isTransactionTypeValid = true;
 				} 
+			}
+			
+			// Parse nonce
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				isNonceValid = true;
 			}
 
 			// Parse TxOut
@@ -195,6 +213,11 @@ public class CoinbaseTransaction extends Transaction {
 				}
 			}
 
+			// Parse nonce
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				isNonceValid = true;
+			}
+			
 			// Parse TxOut
 			data = null;
 			while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
@@ -210,7 +233,7 @@ public class CoinbaseTransaction extends Transaction {
 			}
 		}
 
-		return isSoloValid && isTransactionTypeValid && (txOutValidCount != Util.TWO) && isTxOutValid
+		return isSoloValid && isTransactionTypeValid && isNonceValid && (txOutValidCount == Util.TWO) && isTxOutValid
 				&& EQCType.isInputStreamEnd(is);
 	}
 
@@ -229,6 +252,8 @@ public class CoinbaseTransaction extends Transaction {
 			os.write(EQCType.longToEQCBits(SOLO));
 			// Serialization Transaction type
 			os.write(EQCType.longToEQCBits(TransactionType.COINBASE.ordinal()));
+			// Serialization nonce
+			os.write(EQCType.bigIntegerToEQCBits(nonce));
 			// Serialization TxOut
 			for (TxOut txOut : txOutList) {
 				os.write(txOut.getBytes(addressShape));
@@ -270,24 +295,7 @@ public class CoinbaseTransaction extends Transaction {
 	 */
 	@Override
 	public byte[] getBin() {
-		return getBin(Address.AddressShape.ID);
-	}
-
-	public boolean isAllValueValid(AccountsMerkleTree accountsMerkleTree) {
-		boolean isSucc = true;
-		// Here only checking whether the basic value of
-		// CoinBase Reward is correct does not include checking the Txfee
-		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
-			if ((txOutList.get(0).getValue() != Util.EQC_FOUNDATION_COINBASE_REWARD)
-					&& (txOutList.get(1).getValue() != Util.MINER_COINBASE_REWARD)) {
-				throw new IllegalArgumentException("CoinBase Transaction's basic value is invalid");
-			}
-		} else {
-			if ((txOutList.get(0).getValue() != 0) && (txOutList.get(1).getValue() != 0)) {
-				throw new IllegalArgumentException("CoinBase Transaction's basic value is invalid");
-			}
-		}
-		return isSucc;
+		return EQCType.bytesToBIN(getBytes());
 	}
 
 	/*
@@ -300,35 +308,27 @@ public class CoinbaseTransaction extends Transaction {
 	@Override
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
-		boolean isSucc = true;
+		return false;
+	}
 
-		if(!isSanity(addressShape)) {
-			return false;
-		}
-		
-		// Check if the first reward Address is EQC FOUNDATION's Address
-		if (!txOutList.get(0).getAddress().getID().equals(ID.TWO)) {
-			isSucc = false;
-		}
-
-		// Check if the basic value of CoinBase Reward is correct
-		if (!isAllValueValid(accountsMerkleTree)) {
-			isSucc = false;
-		}
-
-		return isSucc;
+	/* (non-Javadoc)
+	 * @see com.eqzip.eqcoin.blockchain.transaction.Transaction#isTxOutNumberValid()
+	 */
+	@Override
+	public boolean isTxOutNumberValid() {
+		// TODO Auto-generated method stub
+		return txOutList.size() <= 2;
 	}
 
 	@Override
 	public boolean isSanity(AddressShape ...addressShape) {
-		if(txIn != null) {
+		if(transactionType == null || txIn != null || nonce == null || txOutList == null) {
 			return false;
 		}
-		if(txOutList == null) {
+		if (transactionType != TransactionType.COINBASE) {
 			return false;
 		}
-		// Check if CoinBase only have two TxOut
-		if (txOutList.size() != Util.TWO) {
+		if (!isTxOutNumberValid()) {
 			return false;
 		}
 		for(TxOut txOut : txOutList) {
@@ -336,7 +336,6 @@ public class CoinbaseTransaction extends Transaction {
 				return false;
 			}
 		}
-		
 		return true;
 	}
 
@@ -346,8 +345,8 @@ public class CoinbaseTransaction extends Transaction {
 	@Override
 	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) {
 		// Update TxOut's Address' isNew status if need
-		for (TxOut txOut : getTxOutList()) {
-			if (!accountsMerkleTree.isAddressExists(txOut.getAddress(), true)) {
+		for (TxOut txOut : txOutList) {
+			if (!accountsMerkleTree.isAccountExists(txOut.getAddress(), true)) {
 				txOut.getAddress().setID(initID);
 				txOut.setNew(true);
 				initID = initID.getNextID();
@@ -357,25 +356,40 @@ public class CoinbaseTransaction extends Transaction {
 				txOut.getAddress().setID(accountsMerkleTree.getAddressID(txOut.getAddress()));
 			}
 		}
+		// Set Nonce
+		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
+			if (accountsMerkleTree.isAccountExists(txOutList.get(1).getAddress(), true)) {
+				nonce = accountsMerkleTree.getAccount(txOutList.get(1).getAddress()).getNonce().getNextID();
+			} else {
+				nonce = ID.ONE;
+			}
+		} else {
+			nonce = accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getNonce().getNextID();
+		}
 	}
 	
-	public boolean isCoinbaseValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape, long txFee) {
+	public boolean isCoinbaseValid(AccountsMerkleTree accountsMerkleTree, long txFee) {
 		long eqcFoundationCoinBaseValue = 0;
 		long minerCoinBaseValue = 0;
-		if(!isSanity(addressShape)) {
+		if(!isSanity()) {
 			return false;
 		}
-		
-		if(!(transactionType == TransactionType.COINBASE)) {
-			return false;
-		}
-
 		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
 			if(txOutList.size() != Util.TWO) {
 				return false;
 			}
 			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
 				return false;
+			}
+			if (accountsMerkleTree.isAccountExists(txOutList.get(1).getAddress(), true)) {
+				if (nonce.getPreviousID().compareTo(
+						accountsMerkleTree.getAccount(txOutList.get(1).getAddress()).getNonce()) != 0) {
+					return false;
+				}
+			} else {
+				if(nonce.compareTo(ID.ONE) != 0) {
+					return false;
+				}
 			}
 			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
 			minerCoinBaseValue =  txOutList.get(1).getValue();
@@ -392,6 +406,9 @@ public class CoinbaseTransaction extends Transaction {
 			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
 				return false;
 			}
+			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getNonce()) != 0) {
+				return false;
+			}
 			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
 			if (eqcFoundationCoinBaseValue != txFee) {
 				return false;
@@ -399,5 +416,92 @@ public class CoinbaseTransaction extends Transaction {
 		}
 		return true;
 	}
+	
+	public void updateTxFee(long txFee) {
+		txOutList.get(0).updateValue(txFee);
+	}
+	
+	public void update(AccountsMerkleTree accountsMerkleTree) {
+		Account account = null;
+		// Update current Transaction's TxOut Account
+		for (TxOut txOut : txOutList) {
+			if (txOut.isNew()) {
+				account = new Account();
+				account.setAddress(txOut.getAddress());
+				account.setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+			} else {
+				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
+			}
+			account.updateBalance(txOut.getValue());
+			account.setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
+			// Update Nonce
+			if(accountsMerkleTree.getHeight().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
+				if(account.getAddress().getID().compareTo(ID.ONE) > 0) {
+					account.increaseNonce();
+				}
+			}
+			else {
+				if(account.getAddress().getID().compareTo(ID.ONE) == 0) {
+					account.increaseNonce();
+				}
+			}
+			if(accountsMerkleTree.saveAccount(account) && txOut.isNew()) {
+				accountsMerkleTree.increaseTotalAccountNumbers();
+			}
+		}
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return
+
+		"{\n" + toInnerJson() + "\n}";
+
+	}
+
+	public String toInnerJson() {
+		return
+
+		"\"CoinbaseTransaction\":" + "\n{\n" + TxIn.coinBase() + ",\n"
+		+ "\"TxOutList\":" + "\n{\n" + "\"Size\":" + "\"" + txOutList.size() + "\"" + ",\n"
+		+ "\"List\":" + "\n" + getTxOutString() + "\n},\n" + "\"Nonce\":" + "\"" + nonce + "\"" + "\n}";
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqzip.eqcoin.blockchain.transaction.Transaction#getBillingSize()
+	 */
+	@Override
+	public int getBillingSize() {
+		int size = 0;
+
+		// Transaction's ID format's size which storage in the EQC Blockchain
+		size += getBin().length;
+		Log.info("ID size: " + size);
+
+		// Transaction's AddressList size which storage the new Address
+		for (TxOut txOut : txOutList) {
+			if (txOut.isNew()) {
+				size += txOut.getAddress().getBin(AddressShape.AI).length;
+				Log.info("New TxOut: " + txOut.getAddress().getBin(AddressShape.AI).length);
+			}
+		}
+		
+		Log.info("Total size: " + size);
+		return size;
+	}
+	
+//	public String toInnerJsons() {
+//		return
+//
+//		"\"Transaction\":" + "\n{\n" + ((txIn == null) ? TxIn.coinBase() : txIn.toInnerJson()) + ",\n"
+//				+ "\"txOutList\":" + "\n" + getTxOutString() + ",\n" + "\"Nonce\":" + "\"" + nonce + "\"" + ",\n"
+//				+ "\"signature\":" + "\"" + Util.getHexString(signature) + "\"" + ",\n" + "\"publickey\":" + "\""
+//				+ ((publickey == null) ? null : Util.getHexString(publickey.getPublicKey())) + "\"" + "\n" + "}";
+//	}
 	
 }

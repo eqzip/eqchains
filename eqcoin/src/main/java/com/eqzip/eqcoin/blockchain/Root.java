@@ -48,12 +48,9 @@ import com.eqzip.eqcoin.util.Util;
  */
 public class Root implements EQCTypable {
 	private ID version;
-	private ID height;
 	private long totalSupply;
 	private ID totalAccountNumbers;
 	private ID totalTransactionNumbers;
-//	private byte[] indexHash;
-	
 	/**
 	 * Save the root of Accounts Merkel Tree.
 	 */
@@ -68,7 +65,7 @@ public class Root implements EQCTypable {
 	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
 	 * verified.
 	 */
-	private static byte VERIFICATION_COUNT = 7;
+	private static byte VERIFICATION_COUNT = 6;
 
 	public Root() {
 		version = ID.ZERO;
@@ -82,18 +79,6 @@ public class Root implements EQCTypable {
 		if ((data = EQCType.parseEQCBits(is)) != null) {
 			version = new ID(data);
 		}
-
-		// Parse Height
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			height = new ID(data);
-		}
-
-//		// Parse Index hash
-//		data = null;
-//		if ((data = EQCType.parseBIN(is)) != null) {
-//			indexHash = data;
-//		}
 
 		// Parse totalSupply
 		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(bytes)) {
@@ -133,12 +118,6 @@ public class Root implements EQCTypable {
 			++validCount;
 		}
 
-		// Parse Height
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			++validCount;
-		}
-
 		// Parse totalSupply
 		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(bytes)) {
 			++validCount;
@@ -170,7 +149,7 @@ public class Root implements EQCTypable {
 	}
 
 	public byte[] getHash() {
-		return Util.EQCCHA_MULTIPLE(getBytes(), Util.HUNDRED_THOUSAND, false);
+		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND, false);
 	}
 
 	@Override
@@ -178,8 +157,6 @@ public class Root implements EQCTypable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(version.getEQCBits());
-			os.write(height.getEQCBits());
-//			os.write(EQCType.bytesToBIN(indexHash));
 			os.write(EQCType.longToEQCBits(totalSupply));
 			os.write(totalAccountNumbers.getEQCBits());
 			os.write(totalTransactionNumbers.getEQCBits());
@@ -211,34 +188,6 @@ public class Root implements EQCTypable {
 	public void setVersion(ID version) {
 		this.version = version;
 	}
-
-	/**
-	 * @return the height
-	 */
-	public ID getHeight() {
-		return height;
-	}
-
-	/**
-	 * @param height the height to set
-	 */
-	public void setHeight(ID height) {
-		this.height = height;
-	}
-
-//	/**
-//	 * @return the indexHash
-//	 */
-//	public byte[] getIndexHash() {
-//		return indexHash;
-//	}
-//
-//	/**
-//	 * @param indexHash the indexHash to set
-//	 */
-//	public void setIndexHash(byte[] indexHash) {
-//		this.indexHash = indexHash;
-//	}
 
 	/**
 	 * @return the accountsMerkelTreeRoot
@@ -321,12 +270,11 @@ public class Root implements EQCTypable {
 	}
 
 	public String toInnerJson() {
-		return "\"Root\":" + "\n{\n" + "\"Version\":" + "\"" + version + "\"" + ",\n" + "\"Height\":" + "\"" + height
-				+ "\"" + ",\n" + "\"TotalSupply\":" + "\"" + totalSupply + "\"" + ",\n" + "\"TotalAccountNumbers\":"
+		return "\"Root\":" + "\n{\n" + "\"Version\":" + "\"" + version + "\"" + ",\n" + "\"TotalSupply\":" + "\"" + totalSupply + "\"" + ",\n" + "\"TotalAccountNumbers\":"
 				+ "\"" + totalAccountNumbers + "\"" + ",\n" + "\"TotalTransactionNumbers\":" + "\""
 				+ totalTransactionNumbers + "\"" + ",\n" + "\"AccountsMerkelTreeRoot\":" + "\""
-				+ Util.getHexString(accountsMerkelTreeRoot) + "\"" + ",\n" + "\"TransactionsMerkelTreeRoot\":" + "\""
-				+ Util.getHexString(transactionsMerkelTreeRoot) + "\"" + "\n" + "}";
+				+ Util.dumpBytes(accountsMerkelTreeRoot, 16) + "\"" + ",\n" + "\"TransactionsMerkelTreeRoot\":" + "\""
+				+ Util.dumpBytes(transactionsMerkelTreeRoot, 16) + "\"" + "\n" + "}";
 	}
 
 	@Override
@@ -334,7 +282,7 @@ public class Root implements EQCTypable {
 		if (addressShape.length != 0) {
 			return false;
 		}
-		if (version == null || height == null || totalAccountNumbers == null || totalTransactionNumbers == null
+		if (version == null || totalAccountNumbers == null || totalTransactionNumbers == null
 				|| accountsMerkelTreeRoot == null || transactionsMerkelTreeRoot == null) {
 			return false;
 		}

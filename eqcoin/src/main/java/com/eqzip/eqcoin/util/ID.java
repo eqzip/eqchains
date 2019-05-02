@@ -117,4 +117,13 @@ public class ID extends BigInteger {
 		return new ID(super.add(val));
 	}
 
+	/* (non-Javadoc)
+	 * @see java.math.BigInteger#subtract(java.math.BigInteger)
+	 */
+	@Override
+	public ID subtract(BigInteger val) {
+		// TODO Auto-generated method stub
+		return new ID(super.subtract(val));
+	}
+
 }

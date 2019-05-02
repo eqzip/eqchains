@@ -1,6 +1,18 @@
 /**
- * EQCoin core - EQZIP's EQCoin core library
- * @copyright 2018 EQZIP Inc.  All rights reserved...
+ * EQCoin core - EQCOIN Foundation's EQCoin core library
+ * @copyright 2018-present EQCOIN Foundation All rights reserved...
+ * Copyright of all works released by EQCOIN Foundation or jointly released by
+ * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQCOIN Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
  * https://www.eqzip.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -23,10 +35,13 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
-import com.eqzip.eqcoin.util.EQCType;
+import com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape;
+import com.eqzip.eqcoin.serialization.EQCTypable;
+import com.eqzip.eqcoin.serialization.EQCType;
 import com.eqzip.eqcoin.util.Log;
-import com.eqzip.eqcoin.util.SerialNumber;
+import com.eqzip.eqcoin.util.ID;
 import com.eqzip.eqcoin.util.Util;
 
 /**
@@ -34,119 +49,67 @@ import com.eqzip.eqcoin.util.Util;
  * @date Sep 28, 2018
  * @email 10509759@qq.com
  */
-public class TransactionsHeader {
-	private byte version = 0;
-	private BigInteger height;
+public class TransactionsHeader implements EQCTypable {
+	private BigInteger version;
+	// Bin type 16 bytes use EQCCHA_MULTIPLE(final byte[] bytes, 1, true) generate
+	// it.
 	private byte[] signaturesHash = null;
-	
+	private final static int signaturesHashLen = 16;
+	/*
+	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
+	 * verified.
+	 * 
+	 * Due to signaturesHash is optional(When only have CoinBase transaction the signaturesHash is null).
+	 * Which is BIN7 type
+	 */
+	private final static byte VERIFICATION_COUNT = 2;
+
 	public TransactionsHeader() {
 		super();
+		version = BigInteger.ZERO;
 	}
-	
-	public TransactionsHeader(byte[] bytes) {
+
+	public TransactionsHeader(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		int type;
-		byte[] data;
-		int iLen = 0;
+		byte[] data = null;
 
 		// Parse version
-		version = (byte) is.read();
+		if ((data = EQCType.parseEQCBits(is)) != null) {
+			version = EQCType.eqcBitsToBigInteger(data);
+		}
 		
-		// Parse height
-		ByteBuffer buff = ByteBuffer.allocate(10);
-		while ((((type = is.read()) != -1) && ((byte) type & EQCType.BITS) != 0)) {
-			buff.put((byte) type);
-		}
-		buff.put((byte) type);
-		buff.flip();
-		height = Util.bitsToBigInteger(buff.array());
-
 		// Parse signaturesHash
-		type = is.read();
-		if (type == -1) {
-			throw new IndexOutOfBoundsException("During parse signaturesHash error haven't relevant data"); 
-		} else if (EQCType.isBin(type)) {
-			try {
-				// Get xxx raw data
-				iLen = EQCType.getBinLen(type);
-				data = new byte[iLen];
-				is.read(data);
-				// Get xxx raw data's value
-				iLen = EQCType.getBinDataLen(type, data);
-				// Read the content
-				data = new byte[iLen];
-				iLen = is.read(data);
-				if (iLen == data.length) {
-					signaturesHash = data;
-				}
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-
+		data = null;
+		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isBINX(data)) {
+			signaturesHash = data;
 		}
 	}
-	
-	public static boolean isValid(byte[] bytes) {
+
+	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		int type;
-		byte[] data;
+		byte[] data = null;
 		byte validCount = 0;
-		int iLen = 0;
 
 		// Parse version
-		byte version = (byte) is.read();
-		if(version != -1) {
-			++validCount;
-		}
-				
-		// Parse height
-		ByteBuffer buff = ByteBuffer.allocate(10);
-		while ((((type = is.read()) != -1) && (type & EQCType.BITS) != 0)) {
-			buff.put((byte) type);
-		}
-		if (type != -1) {
-			buff.put((byte) type);
+		if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
 			++validCount;
 		}
 
-		// Parse signaturesHash
-		type = is.read();
-		if (type == -1) {
-			throw new IndexOutOfBoundsException("During parse signaturesHash error haven't relevant data"); 
-		} else if (EQCType.isBin(type)) {
-			try {
-				// Get xxx raw data
-				iLen = EQCType.getBinLen(type);
-				data = new byte[iLen];
-				is.read(data);
-				// Get xxx raw data's value
-				iLen = EQCType.getBinDataLen(type, data);
-				// Read the content
-				data = new byte[iLen];
-				iLen = is.read(data);
-				if (iLen == data.length) {
-					++validCount;
-				}
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-
+		// Parse signaturesHash(optional can be null if haven't any Transaction except CoinBase this field will be null)
+		data = null;
+		if (((data = EQCType.parseBIN(is)) != null)) {
+			++validCount;
 		}
 
-		return validCount == 3;
-
+		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
 	}
 
+	@Override
 	public byte[] getBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(version);
-			os.write(Util.bigIntegerToBits(height));
-			if (signaturesHash != null) {
-				os.write(EQCType.bytesToBin(signaturesHash));
-			}
+			os.write(EQCType.bigIntegerToEQCBits(version));
+			os.write(EQCType.bytesToBIN(signaturesHash));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -154,44 +117,80 @@ public class TransactionsHeader {
 		}
 		return os.toByteArray();
 	}
-	
+
 	/**
 	 * @return the version
 	 */
-	public byte getVersion() {
+	public BigInteger getVersion() {
 		return version;
 	}
+
 	/**
 	 * @param version the version to set
 	 */
-	public void setVersion(byte version) {
+	public void setVersion(BigInteger version) {
 		this.version = version;
 	}
-	/**
-	 * @return the height
-	 */
-	public BigInteger getHeight() {
-		return height;
-	}
-	/**
-	 * @param height the height to set
-	 */
-	public void setHeight(BigInteger height) {
-		this.height = height;
-	}
+
 	/**
 	 * @return the signaturesHash
 	 */
 	public byte[] getSignaturesHash() {
 		return signaturesHash;
 	}
+
 	/**
 	 * @param signaturesHash the signaturesHash to set
 	 */
 	public void setSignaturesHash(byte[] signaturesHash) {
 		this.signaturesHash = signaturesHash;
 	}
+
+	@Override
+	public byte[] getBin() {
+		return EQCType.bytesToBIN(getBytes());
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return 
+		"{\n" +
+		toInnerJson() +
+		"\n}";
+	}
+
+	public String toInnerJson() {
+		return 
+				"\"TransactionsHeader\":" + 
+				"{\n" +
+					"\"version\":" + "\"" + Long.toHexString(version.longValue()) + "\"" + ",\n" +
+					"\"signaturesHash\":" + "\"" + Util.getHexString(signaturesHash)  + "\"" + "\n" +
+				"}";
+	}
 	
-	
-	
+	public int getSize() {
+		return getBytes().length;
+	}
+
+	@Override
+	public boolean isSanity(AddressShape... addressShape) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public byte[] getBytes(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getBin(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

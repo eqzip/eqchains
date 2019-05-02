@@ -52,12 +52,13 @@ import com.eqzip.eqcoin.util.Util;
  */
 public class EQCHeader implements EQCTypable {
 	/*
-	 * previous block hash |  target  | Root hash |     timestamp 	  |       nonce  
-   			 64 bytes	     4 bytes     64 bytes   lengthen(>=6bytes)	lengthen(<=4bytes)   
+	 * previous block hash |  target  | Root hash | 	 Height 	 |     timestamp 	 |       nonce  
+   			 64 bytes	     4 bytes     64 bytes  lengthen(>=1bytes) lengthen(>=6bytes)  lengthen(<=4bytes)   
 	 */
 	private byte[]	preHash;
 	private byte[]	target;
 	private byte[]	rootHash;
+	private ID height;
 	private ID timestamp;
 	private ID nonce;
 	// The EQCHeader's size is lengthen
@@ -65,7 +66,7 @@ public class EQCHeader implements EQCTypable {
 	/*
 	 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
 	 */
-	private final static byte VERIFICATION_COUNT = 5;
+	private final static byte VERIFICATION_COUNT = 6;
 	private final static int MIN_TIMESTAMP_LEN = 6;
 	private final static int MAX_NONCE_LEN = 4;
 	private final static int TARGET_LEN = 4;
@@ -89,25 +90,32 @@ public class EQCHeader implements EQCTypable {
 		target = new byte[TARGET_LEN];
 		rootHash = new byte[Util.HASH_LEN];
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		byte[] data = null;
 		try {
+			// Parse PreHash
 			is.read(preHash);
+			// Parse Target
 			is.read(target);
+			// Parse RootHash
 			is.read(rootHash);
-			byte[] data = null;
-			try {
-				data = EQCType.parseEQCBits(is);
-				timestamp = new ID(data);
-				data = EQCType.parseEQCBits(is);
-				nonce = new ID(data);
-			} catch (NoSuchFieldException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error("During parseEQCHeader error occur: " + e.getMessage());
+			// Parse Height
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				height = new ID(data);
 			}
-		} catch (IOException e) {
+			// Parse Timestamp
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				timestamp = new ID(data);
+			}
+			// Parse Nonce
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				nonce = new ID(data);
+			}
+		} catch (IOException | NoSuchFieldException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			Log.Error(e.getMessage());
+			Log.Error("During parseEQCHeader error occur: " + e.getMessage());
 		}
 	}
 	
@@ -120,39 +128,40 @@ public class EQCHeader implements EQCTypable {
 		byte[] preHash = new byte[Util.HASH_LEN];
 		byte[] target = new byte[TARGET_LEN];
 		byte[] rootHash = new byte[Util.HASH_LEN];
-		long timestamp;
-		int nonce;
 		int result = 0;
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		byte[] data = null;
 		try {
+			// Parse PreHash
 			result = is.read(preHash);
 			if(result != -1) {
 				++validCount;
 			}
+			// Parse Target
 			result = is.read(target);
 			if(result != -1) {
 				++validCount;
 			}
+			// Parse RootHash
 			result = is.read(rootHash);
 			if(result != -1) {
 				++validCount;
 			}
-			byte[] data = null;
-			try {
-				data = EQCType.parseEQCBits(is);
-				if(data != null) {
-					++validCount;
-				}
-				data = EQCType.parseEQCBits(is);
-				if(data != null) {
-					++validCount;
-				}
-			} catch (NoSuchFieldException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error("During parseEQCHeader error occur: " + e.getMessage());
+			// Parse Height
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				++validCount;
 			}
-		} catch (IOException e) {
+			// Parse Timestamp
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				++validCount;
+			}
+			// Parse Nonce
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				++validCount;
+			}
+		} catch (IOException | NoSuchFieldException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
@@ -174,6 +183,7 @@ public class EQCHeader implements EQCTypable {
 			os.write(preHash);
 			os.write(target);
 			os.write(rootHash);
+			os.write(height.getEQCBits());
 			os.write(timestamp.getEQCBits());
 			os.write(nonce.getEQCBits());
 		} catch (IOException e) {
@@ -266,7 +276,8 @@ public class EQCHeader implements EQCTypable {
 					"\"PreHash\":" + "\"" + Util.getHexString(preHash) + "\"" + ",\n" +
 					"\"Target\":" + "\"" + Util.getHexString(Util.targetBytesToBigInteger(target).toByteArray()) + "\"" + ",\n" +
 					"\"TargetBytes\":" + "\"" + Integer.toHexString(Util.bytesToInt(target)).toUpperCase() + "\"" + ",\n" +
-					"\"RootHash\":" + "\"" + Util.getHexString(rootHash) + "\"" + ",\n" +
+					"\"RootHash\":" + "\"" + Util.dumpBytes(rootHash, 16) + "\"" + ",\n" +
+					"\"Height\":" + "\"" + height + "\"" + ",\n" +
 					"\"Timestamp\":" + "\"" + Util.getGMTTime(timestamp.longValue()) + "\"" + ",\n" +
 					"\"Nonce\":" + "\"" + Integer.toHexString(nonce.intValue()).toUpperCase() + "\"" + "\n" +
 				"}";
@@ -287,7 +298,7 @@ public class EQCHeader implements EQCTypable {
 	 */
 	public byte[] getHash() {
 		if(hash == null) {
-			hash = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes());
+			hash = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND, false);
 		}
 		return hash;
 	}
@@ -304,7 +315,7 @@ public class EQCHeader implements EQCTypable {
 		if(addressShape.length != 0) {
 			return false;
 		}
-		if(preHash == null || target == null || rootHash == null || timestamp == null || nonce == null) {
+		if(preHash == null || target == null || rootHash == null || height == null || timestamp == null || nonce == null) {
 			return false;
 		}
 		if(preHash.length != Util.HASH_LEN) {
@@ -360,6 +371,10 @@ public class EQCHeader implements EQCTypable {
 			Log.Error("RootHash is invalid.");
 			return false;
 		}
+		if(height.getPreviousID().compareTo(Util.DB().getEQCBlock(accountsMerkleTree.getHeight(), true).getEqcHeader().getHeight()) != 0) {
+			Log.Error("Height should be the previous EQCBlock's next Height.");
+			return false;
+		}
 		if(timestamp.compareTo(Util.DB().getEQCBlock(accountsMerkleTree.getHeight(), true).getEqcHeader().getTimestamp()) <= 0) {
 			Log.Error("Timestamp should bigger than previous EQCBlock's timestamp.");
 			return false;
@@ -370,6 +385,19 @@ public class EQCHeader implements EQCTypable {
 		}
 		return true;
 	}
-	
+
+	/**
+	 * @return the height
+	 */
+	public ID getHeight() {
+		return height;
+	}
+
+	/**
+	 * @param height the height to set
+	 */
+	public void setHeight(ID height) {
+		this.height = height;
+	}
 	
 }

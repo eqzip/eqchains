@@ -36,19 +36,18 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Vector;
-
 import com.eqzip.eqcoin.util.Log;
 import com.eqzip.eqcoin.util.Util;
 
 /**
- * EQCType is an efficient binary serialization format for serialize and
- * deserialize the EQC block chain. EQCType is based on the key-value pair, and
+ * EQCType is an efficient binary serialization format for serializing and
+ * deserializing the EQC blockchain. EQCType is based on the key-value pair, and
  * the EQCBits itself is embedded in the key-value pair.
  * <p>
  * There are 3 categories and 11 kinds of EQCType:
  * <p>
- * 1. BINxx: BIN7, BIN8, BIN16, BIN24, BIN32.
- * 	
+ * 1. BINxx: BINX, BIN8, BIN16, BIN24, BIN32.
+ * 
  * BINxx stores a byte array whose length is up to (2^xx)-1 bytes. xx is the
  * maximum number of bits.
  * <p>
@@ -57,15 +56,16 @@ import com.eqzip.eqcoin.util.Util;
  * EQCBits is a series of consecutive bytes. Each byte has 7 significant digits,
  * the highest digit of which is a continuous label. If it is 1, it means that
  * the subsequent byte is still part of bytes. If it is 0, it means the current
- * byte is the last byte of bytes. The endian is little endian. 
- * | 1xxxxxxx | ... | 1xxxxxxx | 0xxxxxxx |
+ * byte is the last byte of bytes. The endian is little endian. | 1xxxxxxx | ...
+ * | 1xxxxxxx | 0xxxxxxx |
  * <p>
  * 3. ARRAY
  * 
- * ARRAYxx: BIN7-ARRAY, ARRAY8, ARRAY16, ARRAY24, ARRAY32.
+ * ARRAYxx: ARRAYX, ARRAY8, ARRAY16, ARRAY24, ARRAY32.
  * 
- *  ARRAY stores a byte array including xxx elements  whose length  up to (2^xx)-1 bytes. 
- *  xx is the maximum number of bits. The length of elements use EQCBits encoding.
+ * ARRAY stores a byte array including xxx elements whose length up to (2^xx)-1
+ * bytes. xx is the maximum number of bits. The length of elements use EQCBits
+ * encoding.
  * 
  * @author Xun Wang
  * @date 9-21-2018
@@ -74,66 +74,55 @@ import com.eqzip.eqcoin.util.Util;
 public class EQCType {
 
 	/**
-	 * BIN7 stores a byte array whose length is from 1 up to 126 bytes. 
-	 * Due to when the the end of the stream has been reached return -1 which equal to 255(11111111)
-	 *	so 127 can't be used.
-	 * | 1xxxxxxx | data |
-	 * | XXXXXXX | is a 7-bit unsigned integer which represents the length of data.
+	 * BINX stores a byte array whose length is from 9 up to 255 bytes. | xxxxxxxx |
+	 * data | | XXXXXXXX | is a 8-bit unsigned integer which represents the length
+	 * of data. The range is from 9 to 255 bytes.
 	 * 
-	 * BIN7-ARRAY stores a byte array including xxx elements  whose length from 1 up to 126 bytes.
-	 * Due to when the the end of the stream has been reached return -1 which equal to 255(11111111)
-	 *	so 127 can't be used.
-	 * The length of elements use EQCBits encoding.
-	 * | 1xxxxxxx | EQCBits | data | 
-	 * | XXXXXXX | is a 7-bit unsigned integer which represents the length of data
-	 * | EQCBits |  is a series of consecutive bytes which represents the length of elements which use EQCBits encoding.
+	 * ARRAYX stores a byte array including xxx elements whose length from 9 up to
+	 * 255 bytes. The length of the ARRAY elements uses EQCBits encoding. | xxxxxxxx
+	 * | EQCBits | data | | XXXXXXXX | is a 8-bit unsigned integer which represents
+	 * the length of data. The range is from 9 to 255 bytes. | EQCBits | is a series
+	 * of consecutive bytes which represents the length of ARRAY elements which use
+	 * EQCBits encoding.
 	 */
-	public final static byte MAX_BIN7_LEN = 126;
+	public final static byte MIN_BINX_LEN = 9;
+	public final static short MAX_BINX_LEN = 255;
 	public final static byte EOF = -1;
-	public final static byte BIN7 = (byte) 128;
-	/**
-	 * For any BIN or ARRAY EQCType in case which represents the Object is null just save a NULL(BIN7) in the bytes.
-	 */
-	public final static byte NULL = BIN7;
-	public final static byte BIN7_MASK = (byte) 128;
-	public final static byte BIN7_LEN_MASK = (byte) 127;
 
-//	/**
-//	 * BIN stores a byte array whose length  length is any length which use EQCBits encoding.
-//	 * | 0x1 | EQCBits | data | 
-//	 * | EQCBits | is a series of consecutive bytes which represents the length of data which use EQCBits encoding.
-//	 */
-//	public final static byte BIN = 0x1;
-//	public final static int MAX_BIN8_LEN = 255;
-	
 	/**
-	 * BIN8 stores a byte array whose length is up to (2^8)-1 bytes. 
-	 * | 0x1 | XXXXXXXX | data | 
-	 * | XXXXXXXX | is a 8-bit unsigned integer which represents the length of data.
+	 * For any BIN or ARRAY EQCType in case which represents the Object is null just
+	 * save a NULL(0) in the bytes.
+	 */
+	public final static byte NULL = 0;
+
+	/**
+	 * BIN8 stores a byte array whose length is from 1 to 8 bytes. | 0x1 | XXXXXXXX
+	 * | data | | XXXXXXXX | is a 8-bit unsigned integer which represents the length
+	 * of data. The range is from 1 to 8 bytes.
 	 */
 	public final static byte BIN8 = 0x1;
-	public final static int MAX_BIN8_LEN = 255;
+	public final static int MAX_BIN8_LEN = 8;
 
 	/**
-	 * BIN16 stores a byte array whose length is up to (2^16)-1 bytes. 
-	 * | 0x2 | XXXXXXXX | XXXXXXXX | data | 
-	 * | XXXXXXXX | XXXXXXXX | is a 16-bit unsigned integer which represents the length of data.
+	 * BIN16 stores a byte array whose length is up to (2^16)-1 bytes. | 0x2 |
+	 * XXXXXXXX | XXXXXXXX | data | | XXXXXXXX | XXXXXXXX | is a 16-bit unsigned
+	 * integer which represents the length of data.
 	 */
 	public final static byte BIN16 = 0x2;
 	public final static int MAX_BIN16_LEN = 65535;
 
 	/**
-	 * BIN24 stores a byte array whose length is up to (2^24)-1 bytes. 
-	 * | 0x3 | XXXXXXXX | XXXXXXXX | XXXXXXXX| data | 
-	 * | XXXXXXXX | XXXXXXXX | XXXXXXXX | is a 24-bit unsigned integer which represents the length of data.
+	 * BIN24 stores a byte array whose length is up to (2^24)-1 bytes. | 0x3 |
+	 * XXXXXXXX | XXXXXXXX | XXXXXXXX| data | | XXXXXXXX | XXXXXXXX | XXXXXXXX | is
+	 * a 24-bit unsigned integer which represents the length of data.
 	 */
 	public final static byte BIN24 = 0x3;
 	public final static int MAX_BIN24_LEN = 16777215;
 
 	/**
-	 * BIN32 stores a byte array whose length is up to (2^32)-1 bytes. 
-	 * | 0x4 | XXXXXXXX | XXXXXXXX | XXXXXXXX | data | 
-	 * | XXXXXXXX| XXXXXXXX| XXXXXXXX | XXXXXXXX | is a 32-bit unsigned integer which represents the length of data.
+	 * BIN32 stores a byte array whose length is up to (2^32)-1 bytes. | 0x4 |
+	 * XXXXXXXX | XXXXXXXX | XXXXXXXX | data | | XXXXXXXX| XXXXXXXX| XXXXXXXX |
+	 * XXXXXXXX | is a 32-bit unsigned integer which represents the length of data.
 	 */
 	public final static byte BIN32 = 0x4;
 	/*
@@ -142,37 +131,42 @@ public class EQCType {
 	public final static long MAX_BIN32_LEN = 4294967295l;
 
 	/**
-	 * ARRAY8 stores a byte array including xxx elements  whose length is up to (2^8)-1 bytes. 
-	 * | 0x5 | EQCBits |  XXXXXXXX | data | 
-	 * | EQCBits |  is a series of consecutive bytes which represents the length of elements which use EQCBits encoding.
-	 * | XXXXXXXX | is a 8-bit unsigned integer which represents the length of data.
+	 * ARRAY8 stores a byte array including xxx elements whose length is from 1 to 8
+	 * bytes. | 0x5 | EQCBits | XXXXXXXX | data | | EQCBits | is a series of
+	 * consecutive bytes which represents the length of ARRAY elements which use
+	 * EQCBits encoding. | XXXXXXXX | is a 8-bit unsigned integer which represents
+	 * the length of data. The range is from 1 to 8 bytes.
 	 */
 	public final static byte ARRAY8 = 0x5;
 	public final static int MAX_ARRAY8_LEN = MAX_BIN8_LEN;
-	
+
 	/**
-	 * ARRAY16 stores a byte array including xxx elements  whose length is up to (2^16)-1 bytes. 
-	 * | 0x6 | EQCBits |  XXXXXXXX | XXXXXXXX | data | 
-	 * | EQCBits |  is a series of consecutive bytes which represents the length of elements which use EQCBits encoding.
-	 * | XXXXXXXX | XXXXXXXX | is a 16-bit unsigned integer which represents the length of data.
+	 * ARRAY16 stores a byte array including xxx elements whose length is up to
+	 * (2^16)-1 bytes. | 0x6 | EQCBits | XXXXXXXX | XXXXXXXX | data | | EQCBits | is
+	 * a series of consecutive bytes which represents the length of ARRAY elements
+	 * which use EQCBits encoding. | XXXXXXXX | XXXXXXXX | is a 16-bit unsigned
+	 * integer which represents the length of data.
 	 */
 	public final static byte ARRAY16 = 0x6;
 	public final static int MAX_ARRAY16_LEN = MAX_BIN16_LEN;
-	
+
 	/**
-	 * ARRAY24 stores a byte array including xxx elements  whose length is up to (2^24)-1 bytes. 
-	 * | 0x7 | EQCBits |  XXXXXXXX | XXXXXXXX | XXXXXXXX | data | 
-	 * | EQCBits |  is a series of consecutive bytes which represents the length of elements which use EQCBits encoding.
-	 * | XXXXXXXX | XXXXXXXX | XXXXXXXX | is a 24-bit unsigned integer which represents the length of data.
+	 * ARRAY24 stores a byte array including xxx elements whose length is up to
+	 * (2^24)-1 bytes. | 0x7 | EQCBits | XXXXXXXX | XXXXXXXX | XXXXXXXX | data | |
+	 * EQCBits | is a series of consecutive bytes which represents the length of
+	 * ARRAY elements which use EQCBits encoding. | XXXXXXXX | XXXXXXXX | XXXXXXXX |
+	 * is a 24-bit unsigned integer which represents the length of data.
 	 */
 	public final static byte ARRAY24 = 0x7;
 	public final static int MAX_ARRAY24_LEN = MAX_BIN24_LEN;
-	
+
 	/**
-	 * ARRAY32 stores a byte array including xxx elements  whose length is up to (2^32)-1 bytes. 
-	 * | 0x8 | EQCBits |  XXXXXXXX | XXXXXXXX| XXXXXXXX| XXXXXXXX | data | 
-	 * | EQCBits |  is a series of consecutive bytes which represents the length of elements which use EQCBits encoding.
-	 * | XXXXXXXX| XXXXXXXX| XXXXXXXX | XXXXXXXX | is a 32-bit unsigned integer which represents the length of data.
+	 * ARRAY32 stores a byte array including xxx elements whose length is up to
+	 * (2^32)-1 bytes. | 0x8 | EQCBits | XXXXXXXX | XXXXXXXX| XXXXXXXX| XXXXXXXX |
+	 * data | | EQCBits | is a series of consecutive bytes which represents the
+	 * length of ARRAY elements which use EQCBits encoding. | XXXXXXXX| XXXXXXXX|
+	 * XXXXXXXX | XXXXXXXX | is a 32-bit unsigned integer which represents the
+	 * length of data.
 	 */
 	public final static byte ARRAY32 = 0x8;
 	public final static long MAX_ARRAY32_LEN = MAX_BIN32_LEN;
@@ -181,37 +175,34 @@ public class EQCType {
 	 * EQCBits is a series of consecutive bytes. Each byte has 7 significant digits,
 	 * the highest digit of which is a continuous label. If it is 1, it means that
 	 * the subsequent byte is still part of bytes. If it is 0, it means the current
-	 * byte is the last byte of bytes. The endian is little endian. 
-	 * | 1xxxxxxx | ... | 1xxxxxxx | 0xxxxxxx |
+	 * byte is the last byte of bytes. The endian is little endian. | 1xxxxxxx | ...
+	 * | 1xxxxxxx | 0xxxxxxx |
 	 */
 	public final static byte EQCBITS = (byte) 128;
-	public final static byte EQCBITS_BUFFER_LEN = 10;
-	/**
-	 * 
-	 */
-	public final static byte EQCBITS_NULL = 0;
+	public final static byte EQCBITS_BUFFER_LEN = 11;
 
 	/**
-	 * Convert String to BIN7 using StandardCharsets.US_ASCII charset
+	 * Convert String to BINX using StandardCharsets.US_ASCII charset
 	 * 
-	 * @param foo The String which will be convert to BIN7
-	 * @return String's bytes in BIN7 format
+	 * @param foo The String which will be convert to BINX
+	 * @return String's bytes in BINX format
 	 */
-	public static byte[] stringToBIN7(final String foo) {
-		return bytesToBIN7(foo.getBytes(StandardCharsets.US_ASCII));
+	public static byte[] stringToBINX(final String foo) {
+		return bytesToBINX(foo.getBytes(StandardCharsets.US_ASCII));
 	}
 
-	public static byte[] bytesToBIN7(final byte[] bytes) {
+	public static byte[] bytesToBINX(final byte[] bytes) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			if (bytes == null) {
 				os.write(NULL);
 			} else {
-				if (bytes.length > MAX_BIN7_LEN) {
-					throw new IllegalArgumentException("Byte array's length shouldn't exceed 127.");
+				if (bytes.length < MIN_BINX_LEN || bytes.length > MAX_BINX_LEN) {
+					throw new IllegalArgumentException(
+							"Byte array's length shouldn't less than 9 or exceed 255. Len: " + bytes.length);
 				}
 //				os.write((byte) (BIN7 | (bytes.length & 0xFF)));
-				os.write(0xFF & (BIN7 | (bytes.length & 0xFF)));
+				os.write(bytes.length & 0xFF);
 //				Log.info("bytesToBIN7's len: " +((byte) (BIN7 | (bytes.length & 0xFF))) );
 //				Log.info(Util.dumpBytesLittleEndianBinary(new byte[] { (byte) (BIN7 | (bytes.length & 0xFF)) }));
 				os.write(bytes);
@@ -234,38 +225,40 @@ public class EQCType {
 	public static byte[] stringToBIN(final String foo) {
 		return bytesToBIN(foo.getBytes(StandardCharsets.US_ASCII));
 	}
-	
+
 	public static boolean isEQCBits(final int type) {
-		return (( (byte) type & EQCBITS) == EQCBITS);
+		return (((byte) type & EQCBITS) == EQCBITS);
 	}
 
-	public static boolean isBIN7(final int type) {
-		return (((byte) type != EOF) && (( (byte) type & BIN7_MASK) == BIN7));
+	public static boolean isBINX(final int type) {
+		return type >= MIN_BINX_LEN && type <= MAX_BINX_LEN;
 	}
-	
-	public static boolean isBIN7(final byte[] bytes) {
-		return (bytes.length == 1) && (bytes[0] == BIN7);
+
+	public static boolean isBINX(final byte[] bytes) {
+		return (bytes.length == 1) && (bytes[0] >= MIN_BINX_LEN);
 	}
-	
+
 	/**
-	 * In EQCType serialization when BIN or ARRAY EQCType represent's Object is null will save a BIN7
+	 * In EQCType serialization when BIN or ARRAY EQCType represent's Object is null
+	 * will save a NULL
+	 * 
 	 * @param bytes
 	 * @return boolean If current Object is null
 	 */
 	public static boolean isNULL(final byte[] bytes) {
-		return (bytes != null) && (bytes.length == 1) && (bytes[0] == BIN7);
+		return (bytes != null) && (bytes.length == 1) && (bytes[0] == NULL);
 	}
 
 	public static boolean isBIN(final int type) {
 		byte foo = (byte) type;
-		return isBIN7(type) || ((foo == BIN16) || (foo == BIN24) || (foo == BIN32) || (foo == BIN8));
+		return isBINX(type) || ((foo == BIN16) || (foo == BIN24) || (foo == BIN32) || (foo == BIN8));
 	}
 
 	public static boolean isARRAY(final int type) {
 		byte foo = (byte) type;
-		return isBIN7(type) || ((foo == ARRAY16) || (foo == ARRAY24) || (foo == ARRAY32) || (foo == ARRAY8));
+		return isBINX(type) || ((foo == ARRAY16) || (foo == ARRAY24) || (foo == ARRAY32) || (foo == ARRAY8));
 	}
-	
+
 	public static int getBINTypeLen(final int type) {
 		byte foo = (byte) type;
 		int len = 0;
@@ -285,17 +278,17 @@ public class EQCType {
 		byte foo = (byte) type;
 		int len = 0;
 		if (foo == BIN16) {
-			len =  Util.bytesToInt(bytes);
+			len = Util.bytesToInt(bytes);
 		} else if (foo == BIN24) {
 			len = Util.bytesToInt(bytes);
 		} else if (foo == BIN32) {
 			len = Util.bytesToInt(bytes);
 		} else if (foo == BIN8) {
-			len =  Util.bytesToInt(bytes);
+			len = Util.bytesToInt(bytes);
 		}
 		return len;
 	}
-	
+
 	public static int getARRAYTypeLen(final int type) {
 		byte foo = (byte) type;
 		int len = 0;
@@ -315,52 +308,55 @@ public class EQCType {
 		byte foo = (byte) type;
 		int len = 0;
 		if (foo == ARRAY16) {
-			len =  Util.bytesToInt(bytes);
+			len = Util.bytesToInt(bytes);
 		} else if (foo == ARRAY24) {
 			len = Util.bytesToInt(bytes);
 		} else if (foo == ARRAY32) {
 			len = Util.bytesToInt(bytes);
 		} else if (foo == ARRAY8) {
-			len =  Util.bytesToInt(bytes);
+			len = Util.bytesToInt(bytes);
 		}
 		return len;
 	}
 
-	public static int parseBIN7Len(final int type) {
-		return type & BIN7_LEN_MASK;
-	}
-	
+	/**
+	 * Convert element's bytes to ARRAY in this ARRAY include the relevant
+	 * element's bin this function will convert the element's bytes to bin in it
+	 * @param vector
+	 * @return
+	 */
 	public static byte[] bytesArrayToARRAY(Vector<byte[]> vector) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		byte[] bytes = null;
 		try {
-			// Stores a NULL placeholder for parsing data when there is corresponding Object is null.
-			if (vector.size() == 0) {
+			// Stores a NULL placeholder for parsing data when there is corresponding Object
+			// is null.
+			if ((vector == null) || vector.size() == 0) {
 				os.write(NULL);
 			} else {
 				bytes = bytesArrayToBins(vector);
-				if (bytes.length <= MAX_BIN7_LEN) {
-					os.write((byte) (BIN7 | (bytes.length & 0xFF)));
-					os.write(EQCType.longToEQCBits(vector.size()));
-					os.write(bytes);
-				} else  if (bytes.length <= MAX_BIN8_LEN) {
+				if (bytes.length <= MAX_BIN8_LEN) {
 					os.write(ARRAY8);
-					os.write(EQCType.longToEQCBits(vector.size()));
+					os.write(longToEQCBits(vector.size()));
 					os.write(Util.intToByte(bytes.length));
+					os.write(bytes);
+				} else if (bytes.length <= MAX_BINX_LEN) {
+					os.write(bytes.length & 0xFF);
+					os.write(longToEQCBits(vector.size()));
 					os.write(bytes);
 				} else if (bytes.length <= MAX_BIN16_LEN) {
 					os.write(ARRAY16);
-					os.write(EQCType.longToEQCBits(vector.size()));
+					os.write(longToEQCBits(vector.size()));
 					os.write(Util.intTo2Bytes(bytes.length));
 					os.write(bytes);
-				}  else if (bytes.length <= MAX_BIN24_LEN) {
+				} else if (bytes.length <= MAX_BIN24_LEN) {
 					os.write(ARRAY24);
-					os.write(EQCType.longToEQCBits(vector.size()));
+					os.write(longToEQCBits(vector.size()));
 					os.write(Util.intTo3Bytes(bytes.length));
 					os.write(bytes);
 				} else if (bytes.length <= MAX_BIN32_LEN) {
 					os.write(ARRAY32);
-					os.write(EQCType.longToEQCBits(vector.size()));
+					os.write(longToEQCBits(vector.size()));
 					os.write(Util.intToBytes(bytes.length));
 					os.write(bytes);
 				}
@@ -372,10 +368,10 @@ public class EQCType {
 		}
 		return os.toByteArray();
 	}
-	
+
 	public static byte[] bytesArrayToBins(Vector<byte[]> vec) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		for(byte[] bytes : vec) {
+		for (byte[] bytes : vec) {
 			try {
 				os.write(bytesToBIN(bytes));
 			} catch (IOException e) {
@@ -386,24 +382,25 @@ public class EQCType {
 		}
 		return os.toByteArray();
 	}
-	
+
 	public static byte[] bytesToBIN(byte[] bytes) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			// Stores a NULL. placeholder for parsing data when there is no corresponding data item.
+			// Stores a NULL. placeholder for parsing data when there is no corresponding
+			// data item.
 			if (bytes == null) {
 				os.write(NULL);
-			} else if (bytes.length <= MAX_BIN7_LEN) {
-				os.write(bytesToBIN7(bytes));
-			} else  if (bytes.length <= MAX_BIN8_LEN) {
+			} else if (bytes.length <= MAX_BIN8_LEN) {
 				os.write(BIN8);
 				os.write(Util.intToByte(bytes.length));
 				os.write(bytes);
+			} else if (bytes.length <= MAX_BINX_LEN) {
+				os.write(bytesToBINX(bytes));
 			} else if (bytes.length <= MAX_BIN16_LEN) {
 				os.write(BIN16);
 				os.write(Util.intTo2Bytes(bytes.length));
 				os.write(bytes);
-			}  else if (bytes.length <= MAX_BIN24_LEN) {
+			} else if (bytes.length <= MAX_BIN24_LEN) {
 				os.write(BIN24);
 				os.write(Util.intTo3Bytes(bytes.length));
 				os.write(bytes);
@@ -426,46 +423,41 @@ public class EQCType {
 		byte[] bytes = null;
 		byte[] len = null;
 		int iLen = 0;
-		
+
 		// Parse type
 		type = is.read();
 //		Log.info(Util.dumpBytesBigEndianBinary(new byte[] {(byte) type}));
-			if (isBIN7(type)) {
-				if (!isNull(type)) {
-//					Log.info("Bin7 len: " + EQCType.parseBIN7Len(type));
-					data = new byte[EQCType.parseBIN7Len(type)];
-					iLen = is.read(data);
-					if (iLen != data.length) {
-						throw new NoSuchFieldException(
-								"parseBIN7 Get BIN data's len  error occur record len != real len.");
-					}
-					bytes = data;
-				} else {
-					bytes = new byte[] { NULL };
-				}
-			} else if (isBIN(type)) {
-				// Get BIN type len
-				iLen = EQCType.getBINTypeLen(type);
-				data = new byte[iLen];
-				iLen = is.read(data);
-				if(iLen != data.length) {
-					throw new NoSuchFieldException(
-							"parseBIN Get BIN type len error occur record len != real len.");
-				}
-				// Get BIN data's len
-				iLen = EQCType.getBINDataLen(type, data);
-				// Read the content
-				data = new byte[iLen];
-				iLen = is.read(data);
-				if (iLen != data.length) {
-					throw new NoSuchFieldException(
-							"parseBIN Get BIN data's len error occur record len != real len.");
-				}
-				bytes = data;
+		if (isNULL(type)) {
+			bytes = new byte[] { NULL };
+		} else if (isBINX(type)) {
+//					Log.info("Bin7 len: " + type);
+			data = new byte[type];
+			iLen = is.read(data);
+			if (iLen != data.length) {
+				throw new NoSuchFieldException("parseBINX Get BIN data's len  error occur record len != real len.");
 			}
+			bytes = data;
+		} else if (isBIN(type)) {
+			// Get BIN type len
+			iLen = getBINTypeLen(type);
+			data = new byte[iLen];
+			iLen = is.read(data);
+			if (iLen != data.length) {
+				throw new NoSuchFieldException("parseBIN Get BIN type len error occur record len != real len.");
+			}
+			// Get BIN data's len
+			iLen = getBINDataLen(type, data);
+			// Read the content
+			data = new byte[iLen];
+			iLen = is.read(data);
+			if (iLen != data.length) {
+				throw new NoSuchFieldException("parseBIN Get BIN data's len error occur record len != real len.");
+			}
+			bytes = data;
+		}
 		return bytes;
 	}
-	
+
 	public static ARRAY parseARRAY(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		ARRAY array = null;
@@ -483,25 +475,24 @@ public class EQCType {
 		ARRAY array = new ARRAY();
 		// Parse type
 		type = is.read();
-		if (isBIN7(type)) {
-			if (!isNull(type)) {
-				// Get element's length
-				elementLen = parseEQCBits(is);
-				if (elementLen == null) {
-					throw new NoSuchFieldException(
-							"parseARRAY Get element's length error occur record len != real len.");
-				}
-				//  Get BIN data's len
-				data = new byte[EQCType.parseBIN7Len(type)];
-				iLen = is.read(data);
-				if (iLen != data.length) {
-					throw new NoSuchFieldException(
-							"parseARRAY Get BIN data's len error occur  record len != real len.");
-				}
-				array.length = EQCType.eqcBitsToLong(elementLen);
-				array.elements = parseVector(data);
-			} else {
-				array = null;
+		if(isNULL(type)) {
+			array = null;
+		} else if (isBINX(type)) {
+			// Get element's length
+			elementLen = parseEQCBits(is);
+			if (elementLen == null) {
+				throw new NoSuchFieldException("parseARRAY Get element's length error occur record len != real len.");
+			}
+			// Get BIN data's len
+			data = new byte[type];
+			iLen = is.read(data);
+			if (iLen != data.length) {
+				throw new NoSuchFieldException("parseARRAY Get BIN data's len error occur record len != real len.");
+			}
+			array.length = eqcBitsToLong(elementLen);
+			array.elements = parseVector(data);
+			if (array.length != array.elements.size()) {
+				throw new IllegalStateException("parseARRAY error occur array.length != array.elements.size().");
 			}
 		} else if (isARRAY(type)) {
 			// Get element's length
@@ -510,75 +501,52 @@ public class EQCType {
 				throw new NoSuchFieldException("parseARRAY Parse element's length error occur record len is null.");
 			}
 			// Get ARRAY type len
-			iLen = EQCType.getARRAYTypeLen(type);
+			iLen = getARRAYTypeLen(type);
 			data = new byte[iLen];
 			iLen = is.read(data);
-			if(iLen != data.length) {
-				throw new NoSuchFieldException(
-						"parseARRAY Get BIN type len error occur record len != real len.");
+			if (iLen != data.length) {
+				throw new NoSuchFieldException("parseARRAY Get BIN type len error occur record len != real len.");
 			}
 			// Get ARRAY data's len
-			iLen = EQCType.getARRAYDataLen(type, data);
+			iLen = getARRAYDataLen(type, data);
 			// Read the content
 			data = new byte[iLen];
 			iLen = is.read(data);
 			if (iLen != data.length) {
-				throw new NoSuchFieldException(
-						"parseARRAY Get BIN data's len error occur record len != real len.");
+				throw new NoSuchFieldException("parseARRAY Get BIN data's len error occur record len != real len.");
 			}
 			bytes = data;
-			
-			array.length = EQCType.eqcBitsToLong(elementLen);
+			array.length = eqcBitsToLong(elementLen);
 			array.elements = parseVector(data);
+			if (array.length != array.elements.size()) {
+				throw new IllegalStateException("parseARRAY error occur array.length != array.elements.size().");
+			}
 		}
 		return array;
 	}
 
-	public static byte[] parseEQCBits(ByteArrayInputStream is) throws IOException, NoSuchFieldException  {
+	public static byte[] parseEQCBits(ByteArrayInputStream is) throws IOException, NoSuchFieldException {
 		int type;
 		byte[] bytes = null;
 		// Parse EQCBits
 		ByteBuffer buff = ByteBuffer.allocate(EQCBITS_BUFFER_LEN);
-		while ((((type = is.read()) != -1) && ((byte) type & EQCType.EQCBITS) != 0)) {
+		while ((((type = is.read()) != EOF) && ((byte) type & EQCBITS) != 0)) {
 			buff.put((byte) type);
 		}
-		if (type != -1) {
+		if (type != EOF) {
 			buff.put((byte) type);
 			buff.flip();
 			bytes = buff.array();
-		} 
-		// When parse Transaction's TxOut after the last TxOut the end of the stream has been reached so just return null.
-//		else {
-//			throw new NoSuchFieldException(
-//					"parseEQCBits error occur  no byte is available because the end of the stream has been reached.");
-//		}
-		return bytes;
-	}
-
-	public static long parseLong(ByteArrayInputStream is) {
-		byte[] data = null;
-		int iLen = 0;
-		data = new byte[8];
-		long longValue = -1;
-		try {
-			iLen = is.read(data);
-			if (iLen == data.length) {
-				longValue = Util.bytesToLong(data);
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
 		}
-		return longValue;
+		return bytes;
 	}
 
 	public static boolean isInputStreamEnd(ByteArrayInputStream is) {
 		return is.available() == 0;
 	}
-	
-	public static boolean isNull(ByteArrayInputStream is) {
-		boolean boolIsNull = false;
+
+	public static boolean isNULL(ByteArrayInputStream is) {
+		boolean boolisNULL = false;
 		int type;
 		byte[] data = null;
 		byte[] bytes = null;
@@ -586,72 +554,62 @@ public class EQCType {
 		try {
 			// Parse type
 			type = is.read();
-			boolIsNull = isNull(type);
+			boolisNULL = isNULL(type);
 //			if (isBIN7(type)) {
 //				// Check if current data is null
-//				if (EQCType.parseBIN7Len(type) == 0) {
-//					boolIsNull = true;
+//				if (parseBIN7Len(type) == 0) {
+//					boolisNULL = true;
 //				}
 //			} 
-		}catch (Exception e) {
+		} catch (Exception e) {
 			Log.Error(e.getMessage());
 		}
-		return boolIsNull;
+		return boolisNULL;
 	}
-		
-	public static boolean isNull(int type) {
-		boolean boolIsNull = false;
-		try {
-			if (isBIN7(type)) {
-				// Check if current data is null
-				if (EQCType.parseBIN7Len(type) == 0) {
-					boolIsNull = true;
-				}
-			} 
-		}catch (Exception e) {
-			Log.Error(e.getMessage());
-		}
-		return boolIsNull;
+
+	public static boolean isNULL(int type) {
+		return type == NULL;
 	}
-	
+
 	public static class ARRAY {
 		/**
-		 * Due to the unsigned integer in java doesn't support very good and Vector&Array's size is java is integer type.
-		 * But in EQCType Array's size type is unsigned integer So here use long to present unsigned integer.
+		 * Due to the unsigned integer in java doesn't support very good and
+		 * Vector&Array's size is java is integer type. But in EQCType Array's size type
+		 * is unsigned integer So here use long to present unsigned integer.
 		 */
 		public long length;
 		public Vector<byte[]> elements;
-		
+
 		public ARRAY() {
 			length = 0;
 			elements = new Vector<byte[]>();
 		}
-		
+
 		public boolean isNULL() {
 			return ((length == 0) && (elements.size() == 0));
 		}
-		
+
 	}
-	
-	public static Vector<byte[]> parseVector(byte[] bytes) throws NoSuchFieldException, IOException{
-		if(bytes == null) {
+
+	public static Vector<byte[]> parseVector(byte[] bytes) throws NoSuchFieldException, IOException {
+		if (bytes == null) {
 			return null;
 		}
 		Vector<byte[]> vector = new Vector<>();
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		byte[] data = null;
-		while((data=parseBIN(is)) != null) {
+		while ((data = parseBIN(is)) != null) {
 			vector.add(data);
 		}
 		return vector;
 	}
-	
+
 	public static int getEQCTypeOverhead(int rawdataLength) {
 		int overHead = 0;
-		if (rawdataLength <= MAX_BIN7_LEN) {
-			overHead = 1;
-		} else if (rawdataLength <= MAX_BIN8_LEN) {
+		if (rawdataLength <= MAX_BIN8_LEN) {
 			overHead = 2;
+		} else if (rawdataLength >= MIN_BINX_LEN && rawdataLength <= MAX_BINX_LEN) {
+			overHead = 1;
 		} else if (rawdataLength <= MAX_BIN16_LEN) {
 			overHead = 3;
 		} else if (rawdataLength <= MAX_BIN24_LEN) {
@@ -662,13 +620,20 @@ public class EQCType {
 		return overHead;
 	}
 
+	public static byte[] intToEQCBits(final int value) {
+		return bigIntegerToEQCBits(BigInteger.valueOf(value));
+	}
+
+	public static int eqcBitsToInt(final byte[] bytes) {
+		return eqcBitsToBigInteger(bytes).intValue();
+	}
+
 	public static byte[] longToEQCBits(final long value) {
-	//		return bigIntegerToEQCBits(new BigInteger(1, longToBytes(value)));
-			return EQCType.bigIntegerToEQCBits(BigInteger.valueOf(value));
-		}
+		return bigIntegerToEQCBits(BigInteger.valueOf(value));
+	}
 
 	public static long eqcBitsToLong(final byte[] bytes) {
-		return EQCType.eqcBitsToBigInteger(bytes).longValue();
+		return eqcBitsToBigInteger(bytes).longValue();
 	}
 
 	/**
@@ -684,8 +649,9 @@ public class EQCType {
 	 * @return byte[] the original number's EQCBits
 	 */
 	public static byte[] bigIntegerToEQCBits(final BigInteger value) {
+		String strFoo = null;
 		// Get the original binary sequence with the high digits on the left.
-		String strFoo = value.toString(2);
+		strFoo = Util.UnsignedBiginteger(value).toString(2);
 		StringBuilder sb = new StringBuilder();
 		sb.append(strFoo);
 		int len = strFoo.length();
@@ -695,7 +661,7 @@ public class EQCType {
 				sb.insert(len - i, '1');
 			}
 		}
-		return Util.reverseBytes(new BigInteger(sb.toString(), 2).toByteArray());
+		return Util.reverseBytes(Util.UnsignedBiginteger(new BigInteger(sb.toString(), 2)).toByteArray());
 	}
 
 	public static BigInteger eqcBitsToBigInteger(final byte[] bytes) {
@@ -708,7 +674,15 @@ public class EQCType {
 				sb.deleteCharAt(len - i);
 			}
 		}
-		return new BigInteger(sb.toString(), 2);
+		return Util.UnsignedBiginteger(new BigInteger(sb.toString(), 2));
+	}
+
+	public static byte[] stringToASCIIBytes(String foo) {
+		return foo.getBytes(StandardCharsets.US_ASCII);
+	}
+
+	public static String bytesToASCIISting(byte[] bytes) {
+		return new String(bytes, StandardCharsets.US_ASCII);
 	}
 
 }

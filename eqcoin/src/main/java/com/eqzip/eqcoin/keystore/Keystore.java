@@ -1,6 +1,18 @@
 /**
- * EQCoin core - EQZIP's EQCoin core library
- * @copyright 2018 EQZIP Inc.  All rights reserved...
+ * EQCoin core - EQCOIN Foundation's EQCoin core library
+ * @copyright 2018-present EQCOIN Foundation All rights reserved...
+ * Copyright of all works released by EQCOIN Foundation or jointly released by
+ * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQCOIN Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
  * https://www.eqzip.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -17,6 +29,7 @@
  */
 package com.eqzip.eqcoin.keystore;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,6 +38,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
@@ -33,12 +47,17 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Vector;
-import com.eqzip.eqcoin.util.EQCType;
+
+import com.eqzip.eqcoin.crypto.EQCPublicKey;
+import com.eqzip.eqcoin.serialization.EQCType;
 import com.eqzip.eqcoin.util.Log;
 import com.eqzip.eqcoin.util.Util;
+import com.eqzip.eqcoin.util.Util.AddressTool.AddressType;
 
 /**
  * @author Xun Wang
@@ -50,13 +69,15 @@ public class Keystore {
 	public static final int P521 = 2;
 	public final static String SECP256R1 = "secp256r1";
 	public final static String SECP521R1 = "secp521r1";
-	private Vector<Account> accounts;
-	private final String KEYSTORE_PATH = Util.PATH + "/EQCoin.keystore";
-	private final String KEYSTORE_PATH_BAK = Util.PATH + "/EQCoin.keystore.bak";
+	private Vector<UserAccount> accounts;
 	private static Keystore instance;
 
+	public enum ECCTYPE{
+		P256, P521
+	}
+	
 	private Keystore() {
-		accounts = loadAccounts(KEYSTORE_PATH);
+		accounts = loadUserAccounts(Util.KEYSTORE_PATH);
 	}
 
 	public static Keystore getInstance() {
@@ -70,23 +91,23 @@ public class Keystore {
 		return instance;
 	}
 
-	public synchronized Account createAccount(String userName, String password, int type) {
-		Account account = new Account();
+	public synchronized UserAccount createUserAccount(String userName, String password, ECCTYPE type) {
+		UserAccount account = new UserAccount();
 		KeyPairGenerator kpg;
-		byte addressType = AddressTool.V1;
+		AddressType addressType = AddressType.T1;
 		
 		try {
 			kpg = KeyPairGenerator.getInstance("EC", "SunEC");
 			ECGenParameterSpec ecsp = null;
-			if(type == P256) {
+			if(type == ECCTYPE.P256) {
 				ecsp = new ECGenParameterSpec("secp256r1");
-				addressType = AddressTool.V1;
+				addressType = AddressType.T1;
 			}
-			else if(type == P521) {
+			else if(type == ECCTYPE.P521) {
 				ecsp = new ECGenParameterSpec("secp521r1");
-				addressType = AddressTool.V2;
+				addressType = AddressType.T2;
 			}
-			kpg.initialize(ecsp);
+			kpg.initialize(ecsp, SecureRandom.getInstanceStrong());
 			KeyPair kp = kpg.genKeyPair();
 			PrivateKey privKey = kp.getPrivate();
 			PublicKey pubKey = kp.getPublic();
@@ -94,9 +115,10 @@ public class Keystore {
 			eqcPublicKey.setECPoint((ECPublicKey) pubKey);
 			
 			account.setUserName(userName);
-			account.setPwdHash(Util.EQCCHA_MULTIPLE(password.getBytes(), Util.HUNDRED, true));
-			account.setPrivateKey(Util.AESEncrypt(privKey.getEncoded(), password));
-			account.setAddress(AddressTool.generateAddress(Util.EQCCHA_MULTIPLE(eqcPublicKey.getCompressedPublicKeyEncoded(), Util.HUNDRED, true), addressType));
+			account.setPwdHash(Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(password.getBytes(), Util.HUNDREDPULS, true));
+			account.setPrivateKey(Util.AESEncrypt(((ECPrivateKey)privKey).getS().toByteArray(), password));
+			account.setPublicKey(Util.AESEncrypt(eqcPublicKey.getCompressedPublicKeyEncoded(), password));
+			account.setReadableAddress(Util.AddressTool.generateAddress(eqcPublicKey.getCompressedPublicKeyEncoded(), addressType));
 			account.setBalance(0);
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
 			// TODO Auto-generated catch block
@@ -104,15 +126,15 @@ public class Keystore {
 			Log.Error(e.getMessage());
 		}
 
-		if (account != null && !isAccountExist(account)) {
+		if (account != null && !isUserAccountExist(account)) {
 			accounts.add(account);
-			saveAccounts(accounts);
+			saveUserAccounts(accounts);
 		}
 		return account;
 	}
 
-	public Vector<Account> loadAccounts(String path) {
-		Vector<Account> accounts = new Vector<Account>();
+	public Vector<UserAccount> loadUserAccounts(String path) {
+		Vector<UserAccount> accounts = new Vector<UserAccount>();
 		File file = new File(path);
 		if (file.exists()) {
 			if (file.length() == 0) {
@@ -123,32 +145,42 @@ public class Keystore {
 			InputStream is = null;
 			try {
 				is = new FileInputStream(file);
-				int value = 0;
-				while ((value = is.read()) != -1) {
-					// Load accounts from EQCoin.keystore
-					if (EQCType.isBin(value)) {
-						byte[] len = new byte[EQCType.getBinLen(value)];
-						is.read(len);
-						int il = EQCType.getBinDataLen(value, len);
-						Log.info("data len：" + il);
-						byte[] acc = new byte[(int) il];
-						is.read(acc);
-						if (!Account.isValid(acc)) {
-							Log.info("Error not valid account.");
-						} else {
-							accounts.add(new Account(acc));
-						}
+				ByteArrayInputStream bis = new ByteArrayInputStream(is.readAllBytes());
+				byte[] bytes = null;
+				while((bytes = EQCType.parseBIN(bis)) != null) {
+					if (!UserAccount.isValid(bytes)) {
+						Log.Error("not valid account.");
+					} else {
+						accounts.add(new UserAccount(bytes));
 					}
+					bytes = null;
 				}
+//				int value = 0;
+//				while ((value = is.read()) != -1) {
+//					// Load accounts from EQCoin.keystore
+//					if (EQCType.isBin(value)) {
+//						byte[] len = new byte[EQCType.getBinLen(value)];
+//						is.read(len);
+//						int il = EQCType.getBinDataLen(value, len);
+//						Log.info("data len：" + il);
+//						byte[] acc = new byte[(int) il];
+//						is.read(acc);
+//						if (!UserAccount.isValid(acc)) {
+//							Log.info("Error not valid account.");
+//						} else {
+//							accounts.add(new UserAccount(acc));
+//						}
+//					}
+//				}
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				Log.info("EQCoin.keystore not found: " + e.getMessage());
-			} catch (IOException e) {
+			} catch (IOException | NoSuchFieldException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				Log.info("Load accounts failed: " + e.getMessage());
-			} finally {
+			}  finally {
 				if (is != null) {
 					try {
 						is.close();
@@ -188,14 +220,15 @@ public class Keystore {
 		return bool;
 	}
 
-	public boolean saveAccounts(final Vector<Account> accounts) {
+	public boolean saveUserAccounts(final Vector<UserAccount> accounts) {
 		boolean bool = true;
 		try {
 //			if (!createKeystore(KEYSTORE_PATH)) {
 //				Log.info("Error, keystore create failed.");
 //			}
-			File file = new File(KEYSTORE_PATH);
-			File fileBak = new File(KEYSTORE_PATH_BAK);
+//			Log.info(Util.KEYSTORE_PATH);
+			File file = new File(Util.KEYSTORE_PATH);
+			File fileBak = new File(Util.KEYSTORE_PATH_BAK);
 			// Backup old key store file to EQCoin.keystore.bak
 			if (file.exists() && file.length() > 0) {
 				if (fileBak.exists()) {
@@ -206,8 +239,8 @@ public class Keystore {
 
 			// Get all accounts
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			for (Account acc : accounts) {
-				bos.write(EQCType.bytesToBin(acc.getBytes()));
+			for (UserAccount acc : accounts) {
+				bos.write(acc.getBin());
 			}
 
 			// Save all accounts to EQCoin.keystore
@@ -231,9 +264,9 @@ public class Keystore {
 		return bool;
 	}
 
-	public boolean isAccountExist(Account account) {
+	public boolean isUserAccountExist(UserAccount account) {
 		boolean bool = false;
-		for (Account acc : accounts) {
+		for (UserAccount acc : accounts) {
 			if (acc.equals(account)) {
 				bool = true;
 				Log.info(account.toString() + " exist.");
@@ -241,6 +274,13 @@ public class Keystore {
 			}
 		}
 		return bool;
+	}
+
+	/**
+	 * @return the accounts
+	 */
+	public Vector<UserAccount> getUserAccounts() {
+		return accounts;
 	}
 
 }

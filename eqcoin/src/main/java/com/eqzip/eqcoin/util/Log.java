@@ -1,6 +1,18 @@
 /**
- * EQCoin core - EQZIP's EQCoin core library
- * @copyright 2018 EQZIP Inc.  All rights reserved...
+ * EQCoin core - EQCOIN Foundation's EQCoin core library
+ * @copyright 2018-present EQCOIN Foundation All rights reserved...
+ * Copyright of all works released by EQCOIN Foundation or jointly released by
+ * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQCOIN Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
  * https://www.eqzip.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -28,8 +40,6 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-import com.eqzip.eqcoin.util.Util.Os;
-
 /**
  * @author Xun Wang
  * @date 9-11-2018
@@ -52,7 +62,7 @@ public final class Log {
 					log.setLevel(Level.ALL);
 					log.setUseParentHandlers(false);
 					try {
-						fileHandler = new FileHandler(Util.PATH + "/log.txt", true);
+						fileHandler = new FileHandler(Util.LOG_PATH, true);
 						fileHandler.setFormatter(new EQCFormatter());
 						log.addHandler(fileHandler);
 						consoleHandler = new ConsoleHandler();
@@ -75,16 +85,32 @@ public final class Log {
 			instance();
 			log.info(info);
 			// flush buffer immediately otherwise the log data in the buffer maybe missing
-			fileHandler.flush();
+			if(fileHandler != null) {
+				fileHandler.flush();
+			}
 		}
 	}
 	
 	public static void Error(String error) {
-		info("[ERROR] " + error);
+		if (DEBUG) {
+			instance();
+			log.info("[ERROR]" + error);
+			// flush buffer immediately otherwise the log data in the buffer maybe missing
+			if(fileHandler != null) {
+				fileHandler.flush();
+			}
+		}
 	}
 	
 	public static void Warn(String warn) {
-		info("[WARN] " + warn);
+		if (DEBUG) {
+			instance();
+			log.info("[WARN]" + warn);
+			// flush buffer immediately otherwise the log data in the buffer maybe missing
+			if(fileHandler != null) {
+				fileHandler.flush();
+			}
+		}
 	}
 	
 	public static String getStringDate(long timestamp) {
@@ -99,7 +125,7 @@ public final class Log {
 		public String format(LogRecord record) {
 			return getStringDate(record.getMillis()) + "[" + Thread.currentThread().getStackTrace()[9].getClassName() + "."
 					+ Thread.currentThread().getStackTrace()[9].getMethodName() + " "
-					+ Thread.currentThread().getStackTrace()[9].getLineNumber() + "] " + record.getMessage() + "\r\n";
+					+ Thread.currentThread().getStackTrace()[9].getLineNumber() + "]" + record.getMessage() + "\r\n";
 		}
 	}
 
