@@ -3,13 +3,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.eqzip</groupId>
-	<artifactId>eqcoin</artifactId>
+	<groupId>com.eqchains</groupId>
+	<artifactId>singularity</artifactId>
 	<version>0.0.1</version>
 	<packaging>jar</packaging>
 
-	<name>eqcoin</name>
-	<url>http://www.eqzip.com</url>
+	<name>eqchains</name>
+	<url>http://www.eqchains.com</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -113,7 +113,7 @@
 								<transformer
 									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 									<manifestEntries>
-										<Main-Class>com.eqzip.eqcoin.App</Main-Class>
+										<Main-Class>com.eqchains.App</Main-Class>
 									</manifestEntries>
 								</transformer>
 							</transformers>

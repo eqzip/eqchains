@@ -71,7 +71,7 @@ public class App {
 		Thread.currentThread().setPriority(10);
 //		EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.valueOf(0)));
 //		EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.valueOf(0)));
-//		MinerService.getInstance().start();
+		MinerService.getInstance().start();
 //		Test.testTransaction1();
 //		EQCBlockChainRocksDB.getInstance().dumpEQCBlock();
 //		EQCBlockChainRocksDB.getInstance().dumpAccount();
@@ -121,7 +121,7 @@ public class App {
 //		Log.info("l: " + length);
 //		for(int i=17; i<27; ++i)
 //		Log.info(i+  " : " + Util.fibonacci(10000000+i));
-		Test.testHashTime();
+//		Test.testHashTime();
 //		Log.info(Keystore.getInstance().getUserAccounts().get(1).getAddress() + " Len: " + Keystore.getInstance().getUserAccounts().get(1).getAddress().length());
 //		Log.info(EQCType.bytesToASCIISting(EQCType.stringToASCIIBytes(Keystore.getInstance().getUserAccounts().get(1).getAddress())));
 //		Log.info(Util.dumpBytes(EQCType.stringToASCIIBytes(Keystore.getInstance().getUserAccounts().get(1).getAddress()), 16) + " Len: " + EQCType.stringToASCIIBytes(Keystore.getInstance().getUserAccounts().get(1).getAddress()).length);
