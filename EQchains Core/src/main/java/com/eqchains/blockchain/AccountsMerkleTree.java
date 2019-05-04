@@ -1,8 +1,19 @@
 /**
- * EQCoin core - EQCOIN Foundation's EQCoin core library
- * @copyright 2018-2019 EQCOIN Foundation Inc.  All rights reserved...
- * CC BY-NC-ND(https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en)
- * https://www.EQCOIN Foundation.com
+ * EQchains core - EQchains Foundation's EQchains core library
+ * @copyright 2018-present EQchains Foundation All rights reserved...
+ * Copyright of all works released by EQchains Foundation or jointly released by
+ * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQchains Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
+ * https://www.eqchains.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
