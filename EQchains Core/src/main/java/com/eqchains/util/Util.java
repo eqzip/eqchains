@@ -38,7 +38,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URISyntaxException;
@@ -46,6 +49,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
@@ -77,6 +82,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.StandardConstants;
 
 import org.apache.commons.collections.functors.SwitchClosure;
 import org.apache.commons.net.ntp.NTPUDPClient;
@@ -168,7 +174,11 @@ public final class Util {
 
 	public final static int SIXTEEN = 16;
 
+	public final static int HUNDRED = 100;
+	
 	public final static int HUNDREDPULS = 101;
+	
+	public final static int F01 = 401;
 	
 	public final static int THOUSANDPLUS = 1001;
 
@@ -262,17 +272,31 @@ public final class Util {
 	
 	public static final byte[] NULL_HASH = UnsignedBiginteger(new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16)).toByteArray();
 	
+//	public static ID [] FIBONACCI = {
+//			new ID(1597),
+//			new ID(2584),
+//			new ID(4181),
+//			new ID(6765),
+//			new ID(10946),
+//			new ID(17711),
+//			new ID(28657),
+//			new ID(46368),
+//			new ID(75025),
+//			new ID(121393)
+//	};
+	
 	public static ID [] FIBONACCI = {
-			new ID(1597),
-			new ID(2584),
-			new ID(4181),
-			new ID(6765),
-			new ID(10946),
-			new ID(17711),
-			new ID(28657),
-			new ID(46368),
-			new ID(75025),
-			new ID(121393)
+			new ID(1597), // 17
+			new ID(5702887), // 34
+			new ID(new BigInteger("1134903170")), // 45
+			new ID(new BigInteger("1548008755920")), // 60
+			new ID(new BigInteger("5527939700884757")), // 77
+			new ID(new BigInteger("1779979416004714189")), // 89
+			new ID(new BigInteger("1500520536206896083277")), // 103
+			new ID(new BigInteger("3311648143516982017180081")), // 119
+			new ID(new BigInteger("1066340417491710595814572169")), // 131
+			new ID(new BigInteger("3807901929474025356630904134051")), // 148
+			new ID(new BigInteger("1206484255615496768210420703829205488386909032955899056732883572731058504300529011053")) // 404
 	};
 	
 	public enum STATUS {
@@ -359,16 +383,158 @@ public final class Util {
 		return bytes;
 	}
 
+//	public static byte[] multipleExtend(final byte[] data, final int multiple) {
+//		byte[] result = null;
+//		MathContext mathContext = new MathContext(512, RoundingMode.HALF_EVEN);
+//		BigInteger begin = new BigInteger(1, data);
+//		BigDecimal multipleBigDecimal = new BigDecimal(BigInteger.valueOf(multiple));
+//		BigDecimal beginBigDecimal = new BigDecimal(begin);
+//		BigDecimal endBigDecimalMultiply = beginBigDecimal.multiply(beginBigDecimal).multiply(new BigDecimal(FIBONACCI[9]));
+//		BigDecimal endBigDecimalDivide = beginBigDecimal.divide(beginBigDecimal.divide(multipleBigDecimal, mathContext).multiply(new BigDecimal(FIBONACCI[0])), mathContext);
+//		int halfBufferLen = multiple / 2 + 1;
+//		int bufferLen = endBigDecimalMultiply.toPlainString().getBytes(StandardCharsets.US_ASCII).length * 3 * multiple;// + 
+//				//endBigDecimalDivide.toPlainString().getBytes(StandardCharsets.US_ASCII).length * halfBufferLen;
+//		ByteBuffer byteBuffer = ByteBuffer.allocate(bufferLen);
+//		for (int i = 1; i <= multiple; ++i) {
+//			if(i%2 == 1) {
+////				Log.info(i + " : " + beginBigDecimal.multiply(beginBigDecimal.multiply(new BigDecimal(BigInteger.valueOf(i)).divide(multipleBigDecimal, new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).multiply(new BigDecimal(FIBONACCI[(i-1)%10])))).toPlainString());
+//				String[] number = beginBigDecimal.multiply(beginBigDecimal.multiply(new BigDecimal(BigInteger.valueOf(i)).divide(multipleBigDecimal, new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).multiply(new BigDecimal(FIBONACCI[(i-1)%10])))).toPlainString().split("\\.");
+////				Log.info(beginBigDecimal.multiply(beginBigDecimal.multiply(new BigDecimal(BigInteger.valueOf(i)).divide(multipleBigDecimal, new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).multiply(new BigDecimal(FIBONACCI[(i-1)%10])))).toPlainString());
+////				Log.info("Len: " + number.length);
+//				if (number.length == 2) {
+//					byte[] number1 = new BigInteger(number[0]).toByteArray();
+//					byte[] number2 = new BigInteger(number[1]).toByteArray();
+//					byte[] number3 = new byte[number1.length + number2.length];
+//					System.arraycopy(number1, 0, number3, 0, number1.length);
+//					System.arraycopy(number2, 0, number3, number1.length, number2.length);
+////					Log.info(Util.dumpBytes(number3, 16));
+//					byteBuffer.put(number3);
+//				}
+//				else {
+//					byte[] number1 = new BigInteger(number[0]).toByteArray();
+//					byteBuffer.put(number1);
+//				}
+////				byteBuffer.put(beginBigDecimal.multiply(beginBigDecimal.multiply(new BigDecimal(BigInteger.valueOf(i)).divide(multipleBigDecimal, new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).multiply(new BigDecimal(FIBONACCI[(i-1)%10])))).toPlainString().getBytes(StandardCharsets.US_ASCII));
+//			}
+//			else {
+////				Log.info(i + " : " + beginBigDecimal.divide(beginBigDecimal.multiply(new BigDecimal(BigInteger.valueOf(i))).divide(multipleBigDecimal, new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).multiply(new BigDecimal(FIBONACCI[(i-1)%10])), new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).toPlainString());
+//				String[] number = beginBigDecimal.divide(beginBigDecimal.multiply(new BigDecimal(BigInteger.valueOf(i))).divide(multipleBigDecimal, new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).multiply(new BigDecimal(FIBONACCI[(i-1)%10])), new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).toPlainString().split("\\.");
+//				byte[] number2 = new BigInteger(number[1]).toByteArray();
+////				Log.info(Util.dumpBytes(number2, 16));
+//				byteBuffer.put(number2);
+////				byteBuffer.put(beginBigDecimal.divide(beginBigDecimal.multiply(new BigDecimal(BigInteger.valueOf(i))).divide(multipleBigDecimal, new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).multiply(new BigDecimal(FIBONACCI[(i-1)%10])), new MathContext(F01+i%HUNDRED, RoundingMode.HALF_EVEN)).toPlainString().getBytes(StandardCharsets.US_ASCII));
+//			}
+//		}
+//		byteBuffer.flip();
+//		if(byteBuffer.remaining() == bufferLen) {
+////			Log.info("multipleExtend equal: " + bufferLen);
+//			result = byteBuffer.array();
+//		}
+//		else {
+////			Log.info("multipleExtend not equal");
+//			result = new byte[byteBuffer.remaining()];
+//			byteBuffer.get(result);
+////			Log.info(Util.dumpBytes(Util.CRC32C(result), 16));
+////			Log.info("Len: " + result.length);
+//		}
+////		Log.info("Len: " + result.length);
+//		return result;
+//	}
+	
+//	public static byte[] multipleExtend(final byte[] data, final int multiple) {
+//		byte[] result = null;
+//		BigInteger begin = new BigInteger(1, data);
+//		BigInteger divisor = begin.divide(BigInteger.valueOf(multiple));
+//		BigInteger end = begin.multiply(BigInteger.valueOf(multiple).multiply(FIBONACCI[9]).multiply(divisor));
+//		
+//		int bufferLen = end.toByteArray().length * multiple;
+//		ByteBuffer byteBuffer = ByteBuffer.allocate(bufferLen);
+//		for (int i = 1; i <= multiple; ++i) {
+//			byteBuffer.put(begin.add(begin.divide(BigInteger.valueOf(i)).multiply(FIBONACCI[i%10]).subtract(FIBONACCI[i%10])).toByteArray());
+//		}
+//		byteBuffer.flip();
+//		if(byteBuffer.remaining() == bufferLen) {
+////			Log.info("multipleExtend equal: " + bufferLen);
+//			result = byteBuffer.array();
+//		}
+//		else {
+////			Log.info("multipleExtend not equal");
+//			result = new byte[byteBuffer.remaining()];
+//			byteBuffer.get(result);
+////			Log.info(Util.dumpBytes(Util.CRC32C(result), 16));
+////			Log.info("Len: " + result.length);
+//		}
+//		
+//		
+////		for (int i = 0; i < multiple; ++i) {
+////			for (int j = 0; j < data.length; ++j) {
+////				result[j + data.length * i] = data[j];
+////			}
+////		}
+//		return result;
+//	}
+	
 	public static byte[] multipleExtend(final byte[] data, final int multiple) {
 		byte[] result = null;
-		BigInteger begin = new BigInteger(1, data);
-		BigInteger divisor = begin.divide(BigInteger.valueOf(multiple));
-		BigInteger end = begin.multiply(BigInteger.valueOf(multiple).multiply(FIBONACCI[9]).multiply(divisor));
 		
-		int bufferLen = end.toByteArray().length * multiple;
+		BigInteger begin = new BigInteger(1, data);
+		MathContext mc = new MathContext(141, RoundingMode.HALF_EVEN);
+//		Log.info("data Len: " + data.length);
+//		BigDecimal begin0 = null;
+//		BigInteger begin1 = null;
+//		BigInteger begin2 = null;
+//		int nLen = 0;
+//		if(data.length <=32) {
+//			begin0 = new BigDecimal(begin).divide(new BigDecimal(FIBONACCI[2]), mc);
+//		}
+//		else {
+//			begin0 = new BigDecimal(begin).divide(new BigDecimal(FIBONACCI[10]), mc);
+//		}
+////		Log.info(b.toPlainString());
+//		String[] abcd = begin0.toPlainString().split("\\.");
+//		if(abcd.length == 2) {
+//			begin1 = new BigInteger(abcd[0]);
+//			begin2 = new BigInteger(abcd[1]);
+//			nLen = begin.toByteArray().length + begin1.toByteArray().length + begin2.toByteArray().length;
+//		}
+//		else {
+//			begin1 = new BigInteger(abcd[0]);
+//			nLen = begin.toByteArray().length + begin1.toByteArray().length;
+//		}
+		
+		int bufferLen = 1024 * 2 * multiple; 
+//		Log.info("bfl: " + bufferLen);
 		ByteBuffer byteBuffer = ByteBuffer.allocate(bufferLen);
-		for (int i = 0; i < multiple; ++i) {
-			byteBuffer.put(begin.multiply(BigInteger.valueOf(i).multiply(divisor).multiply(FIBONACCI[i%10])).toByteArray());
+		for (int i = 1; i <= multiple; ++i) {
+			BigInteger a = begin.divide(BigInteger.valueOf(i));
+//			Log.info("Begin: " + a.toString());
+			BigDecimal b = null;
+			if(data.length <=32) {
+				b = new BigDecimal(a).divide(new BigDecimal(FIBONACCI[2]), mc);
+			}
+			else {
+				b = new BigDecimal(a).divide(new BigDecimal(FIBONACCI[10]), mc);
+			}
+//			Log.info(b.toPlainString());
+			String[] abc = b.toPlainString().split("\\.");
+			if(abc.length == 2) {
+				BigInteger c = new BigInteger(abc[0]);
+				BigInteger d = new BigInteger(abc[1]);
+//				Log.info(" " + begin.add(a).add(d.multiply(e)).subtract(FIBONACCI[i%10]).toString());
+				byteBuffer.put(begin.add(a).toByteArray());
+//				Log.info("L0: " + begin.add(a).toByteArray().length);
+				byteBuffer.put(c.toByteArray());
+//				Log.info("L1: " + c.toByteArray().length);
+				byteBuffer.put(d.toByteArray());
+//				Log.info("L2: " + d.toByteArray().length);
+//				Log.info("2");
+			}
+			else {
+//				Log.info("1");
+				BigInteger c = new BigInteger(abc[0]);
+				byteBuffer.put(begin.add(a).toByteArray());
+				byteBuffer.put(c.toByteArray());
+			}
 		}
 		byteBuffer.flip();
 		if(byteBuffer.remaining() == bufferLen) {
@@ -382,13 +548,9 @@ public final class Util {
 //			Log.info(Util.dumpBytes(Util.CRC32C(result), 16));
 //			Log.info("Len: " + result.length);
 		}
-		
-		
-//		for (int i = 0; i < multiple; ++i) {
-//			for (int j = 0; j < data.length; ++j) {
-//				result[j + data.length * i] = data[j];
-//			}
-//		}
+//		Log.info("multipleExtend equal: " + bufferLen);
+//		Log.info("Lenresult: " + result.length);
+			
 		return result;
 	}
 
@@ -628,11 +790,17 @@ public final class Util {
 	 * @return Hash value processed by EQCCHA
 	 */
 	public static byte[] EQCCHA_MULTIPLE(final byte[] bytes, int multiple, boolean isCompress) {
+		return EQCCHA_MULTIPLE_DUAL(bytes, multiple, true, isCompress);
+	}
+	
+	public static byte[] EQCCHA_MULTIPLE_DUAL(final byte[] bytes, int multiple, boolean isDual ,boolean isCompress) {
 		byte[] hash = null;
 //		Log.info("Len: " + bytes.length);
 		try {
-			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(bytes, multiple));		
-			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
+			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(bytes, multiple));
+			if(isDual) {
+				hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
+			}
 			// Due to this is an address or signature so here use SHA3-256 reduce the size of it
 			if (isCompress) {
 				hash = SHA3_256(multipleExtend(hash, multiple));
@@ -678,8 +846,8 @@ public final class Util {
 		BigInteger begin = new BigInteger(1, bytes);
 		BigInteger divisor = begin.divide(BigInteger.valueOf(multiple));
 		MerkleTree merkleTree = null;
-		for(int i=0; i<10; ++i) {
-			ten.add(EQCCHA_MULTIPLE(begin.multiply(BigInteger.valueOf(i).multiply(divisor).multiply(FIBONACCI[i])).toByteArray(), multiple, false));
+		for(int i=1; i<=10; ++i) {
+			ten.add(EQCCHA_MULTIPLE_DUAL(begin.multiply(BigInteger.valueOf(i).multiply(divisor).multiply(FIBONACCI[i-1])).toByteArray(), multiple, false, false));
 //			Log.info("i: " + i + " len: " + ten.get(i).length);
 		}
 		merkleTree = new MerkleTree(ten);
@@ -977,7 +1145,7 @@ public final class Util {
 		 * @return EQC address
 		 */
 		public static String generateAddress(byte[] publicKey, AddressType type) {
-			byte[] publickey_hash = EQCCHA_MULTIPLE_FIBONACCI_MERKEL(publicKey, HUNDREDPULS, true);
+			byte[] publickey_hash = EQCCHA_MULTIPLE(publicKey, HUNDREDPULS, true);
 			return _generateAddress(publickey_hash, type);
 		}
 		

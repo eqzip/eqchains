@@ -39,6 +39,7 @@ import java.util.Arrays;
 import javax.print.attribute.standard.RequestingUserName;
 
 import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -352,7 +353,9 @@ public class EQCHeader implements EQCTypable {
 		if (!Arrays.equals(target, Util.cypherTarget(accountsMerkleTree.getHeight().getNextID()))) {
 			return false;
 		}
-		if (new BigInteger(1, getHash()).compareTo(Util.targetBytesToBigInteger(target)) > 0) {
+		// getHash()
+		if (new BigInteger(1, EQCBlockChainRocksDB.getInstance().getEQCBlock(accountsMerkleTree.getHeight().getNextID(), true).getEqcHeader().getPreHash()).compareTo(Util.targetBytesToBigInteger(target)) > 0) {
+			Log.info("falied");
 			return false;
 		}
 		return true;

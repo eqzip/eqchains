@@ -141,16 +141,16 @@ public class Test {
 	public static void testHashTime() {
 		EQCHeader header = new EQCHeader();
 		header.setNonce(ID.ONE);
-		header.setPreHash(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.HUNDRED_THOUSAND, false));
+		header.setPreHash(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.ONE, false));
 		header.setTarget(Util.getDefaultTargetBytes());
 		header.setRootHash(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.ONE, false));
 		header.setHeight(ID.ZERO);
 		header.setTimestamp(new ID(System.currentTimeMillis()));
 		Log.info(header.toString());
 		long c0 = System.currentTimeMillis();
-		int n = 10;
+		int n = 100;
 		for (int i = 0; i < n; ++i) {
-			Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(header.getBytes(), Util.HUNDREDPULS, false);
+			Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(header.getBytes(), Util.HUNDRED_THOUSAND, false);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
 		}
 		long c1 = System.currentTimeMillis();
@@ -165,14 +165,27 @@ public class Test {
 //		header.setRootHash(Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE, true));
 //		header.setTimestamp(new ID(System.currentTimeMillis()));
 //		Log.info(header.toString());
+		byte[] asd = Util.getSecureRandomBytes();
 		long c0 = System.currentTimeMillis();
-		int n = 100;
+		int n = 1;
 		for (int i = 0; i < n; ++i) {
-			Util.multipleExtend(Util.getSecureRandomBytes(), Util.MILLIAN);
+			Util.multipleExtend(asd, Util.HUNDREDPULS);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
 		}
 		long c1 = System.currentTimeMillis();
-		Log.info("total time: " + (c1-c0) + "average time:" + (double)(c1-c0)/n);
+		Log.info("total time: " + (c1-c0) + " average time:" + (double)(c1-c0)/n);
+	}
+	
+	public static void testEQCCHA_MULTIPLETime() {
+		long c0 = System.currentTimeMillis();
+		byte[] asd = Util.getSecureRandomBytes();
+		int n = 100;
+		for (int i = 0; i < n; ++i) {
+			Util.EQCCHA_MULTIPLE(asd, Util.HUNDREDPULS, false);
+//			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
+		}
+		long c1 = System.currentTimeMillis();
+		Log.info("total time: " + (c1-c0) + " average time:" + (double)(c1-c0)/n);
 	}
 
 	public static void testECPubKeySignature(ECCTYPE type, String text) {
@@ -1479,15 +1492,15 @@ public class Test {
 		}
 		transaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(userAccount.getAddressAI()).getAddressCreateHeight()), publickey);
 		EQCBlockChainH2.getInstance().addTransactionInPool(transaction);
-//		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-//		publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
-//		transaction.getTxIn().getAddress().setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
-//		if(transaction.verify(accountsMerkleTree)){
-//			Log.info("passed");
-//		}
-//		else {
-//			Log.info("failed");
-//		}
+		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+		publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
+		transaction.getTxIn().getAddress().setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
+		if(transaction.verify(accountsMerkleTree)){
+			Log.info("passed");
+		}
+		else {
+			Log.info("failed");
+		}
 	}
 	
 	public static void testTransaction1() {
@@ -1626,12 +1639,36 @@ public class Test {
 		Log.info("total time: " + (c1-c0) + " average time:" + (double)(c1-c0)/n);
 	}
 	
+	public static void testVerrifyAddressTime() {
+		byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
+		Log.info("Publickey Len: " + publickey.length);
+		long c0 = System.currentTimeMillis();
+		int n = 100;
+		for (int i = 0; i < n; ++i) {
+			Util.AddressTool.verifyAddressPublickey(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress(), publickey);
+		}
+		long c1 = System.currentTimeMillis();
+		Log.info("total time: " + (c1-c0) + " average time:" + (double)(c1-c0)/n);
+	}
+	
 	public static void testAddressCRC32C() {
 		Log.info(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
 		if(AddressTool.verifyAddressCRC32C(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress())) {
 			Log.info("Passed");
 		}
 		
+	}
+	
+	public static void testBufferLen() {
+		byte[] bytes = new byte[64];
+		for(int i=0; i<bytes.length; ++i) {
+			bytes[i] = (byte) 0xff;
+		}
+		for(int i=1; i<=bytes.length; ++i) {
+			byte[] bytes1 = new byte[i];
+			System.arraycopy(bytes, 0, bytes1, 0, i);
+			Util.multipleExtend(bytes1, 1);
+		}
 	}
 	
 }

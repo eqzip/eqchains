@@ -182,7 +182,7 @@ public class AccountsMerkleTree {
 	}
 
 	public void buildAccountsMerkleTree() {
-		byte[] accountHash = null;
+		Account account = null;
 		Vector<byte[]> accountsHash = new Vector<>();
 		long remainder = totalAccountNumbers.longValue();
 		int begin = 0, end = 0;
@@ -197,16 +197,14 @@ public class AccountsMerkleTree {
 				end = (int) remainder + Util.INIT_ADDRESS_SERIAL_NUMBER;
 			}
 			for (int j = begin; j < end; ++j) {
-				accountHash = filter.getAccountHash(new ID(j));
-				// If accountHash == null which means error occur
-				if (accountHash == null) {
-					throw new IllegalStateException("Account Hash shouldn't be null");
+				account = filter.getAccount(new ID(j), false);
+				// If account == null which means error occur
+				if (account == null) {
+					throw new IllegalStateException("Account shouldn't be null");
 				}
-				Account account = filter.getAccount(new ID(j), false);
 				Log.info(account.toString());
 				Log.info(Util.dumpBytes(account.getHash(), 16));
-				Log.info(Util.dumpBytes(accountHash, 16));
-				accountsHash.add(accountHash);
+				accountsHash.add(account.getHash());
 			}
 			MerkleTree merkleTree = new MerkleTree(accountsHash);
 			merkleTree.generateRoot();
@@ -246,6 +244,10 @@ public class AccountsMerkleTree {
 		return isSucc;
 	}
 	
+	public boolean close() {
+		return filter.close();
+	}
+	
 	public static class Filter {
 		private byte[] columnFamilyName = null;
 //		private ColumnFamilyHandle columnFamilyHandle;
@@ -260,7 +262,7 @@ public class AccountsMerkleTree {
 			columnFamilyHandles  = new Vector();
 			columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(columnFamilyName));
 			columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_AI)));
-			columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_HASH)));
+//			columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_HASH)));
 			
 			MutableColumnFamilyOptions mutableColumnFamilyOptions = MutableColumnFamilyOptions.builder().setCompressionType(CompressionType.NO_COMPRESSION).build();
 			try {
@@ -330,7 +332,7 @@ public class AccountsMerkleTree {
 				WriteBatch writeBatch = new WriteBatch();
 				writeBatch.put(columnFamilyHandles.get(0), account.getIDEQCBits(), account.getBytes());
 				writeBatch.put(columnFamilyHandles.get(1), account.getAddress().getAddressAI(), account.getIDEQCBits());
-				writeBatch.put(columnFamilyHandles.get(2), account.getIDEQCBits(), account.getHash());
+//				writeBatch.put(columnFamilyHandles.get(2), account.getIDEQCBits(), account.getHash());
 				EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
 			} catch (RocksDBException e) {
 				isSucc = false;
@@ -369,6 +371,7 @@ public class AccountsMerkleTree {
 			return account;
 		}
 		
+		@Deprecated
 		public byte[] getAccountHash(ID id) {
 			byte[] bytes = null;
 			try {

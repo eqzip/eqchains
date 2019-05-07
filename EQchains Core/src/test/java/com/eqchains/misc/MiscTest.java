@@ -27,16 +27,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains;
+package com.eqchains.misc;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.eqchains.blockchain.Account;
+import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.AccountsMerkleTree.Filter;
+import com.eqchains.blockchain.EQCBlock;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
@@ -82,6 +87,7 @@ public class MiscTest {
 		   byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
 		   String address = AddressTool.generateAddress(publickey, AddressType.T1);
 		   Log.info(address);
+		   assertTrue(AddressTool.verifyAddressPublickey(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress(), publickey));
 		   assertTrue(AddressTool.verifyAddressPublickey(address, publickey));
 	   }
 	   
@@ -119,5 +125,34 @@ public class MiscTest {
 	   void snapshot() {
 		   Account account = EQCBlockChainH2.getInstance().getAccountSnapshot(ID.TWO.getNextID(), ID.ONE);
 		   assertEquals(account.getBalanceUpdateHeight(), ID.ONE);
+	   }
+	   
+	   @Test
+	   void verifyAccountsMerkelTreeRoot() {
+		   ID id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
+		   for(int i=0; i<id.intValue(); ++i) {
+		   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+			accountsMerkleTree.buildAccountsMerkleTree();
+			accountsMerkleTree.generateRoot();
+			Log.info(Util.dumpBytes(accountsMerkleTree.getRoot(), 16));
+			EQCBlock eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+			accountsMerkleTree.close();
+			assertArrayEquals(accountsMerkleTree.getRoot(), eqcBlock.getRoot().getAccountsMerkelTreeRoot());
+		   }
+	   }
+	   
+	   @Test
+	   void verifyBlock() {
+		   ID id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
+		   for(int i=1; i<id.intValue(); ++i) {
+		   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+			EQCBlock eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+			try {
+				assertTrue(eqcBlock.verify(accountsMerkleTree));
+			} catch (NoSuchFieldException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		   }
 	   }
 }

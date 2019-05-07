@@ -491,9 +491,9 @@ public class EQCBlock implements EQCTypable {
 			return false;
 		}
 
-		// Check if AddressList is valid
+		// Check if AccountList is valid
 		if (!transactions.isAccountListValid(accountsMerkleTree)) {
-			Log.Error("EQCHeader AddressList is invalid");
+			Log.Error("EQCHeader AccountList is invalid");
 			return false;
 		}
 
@@ -537,27 +537,28 @@ public class EQCBlock implements EQCTypable {
 				}
 			}
 
-			// Check checkpoint
-			if (eqcHeader.getHeight().mod(Util.EUROPA).equals(BigInteger.ZERO)) {
-				if ((i == 1) && !transaction.getTxIn().getAddress().getID().equals(ID.TWO)) {
-					return false;
-				} else if (!(transaction instanceof OperationTransaction)) {
-					return false;
-				} else {
-					OperationTransaction operationTransaction = (OperationTransaction) transaction;
-					if (!(operationTransaction.getOperation() instanceof UpdateAddressOperation)) {
-						return false;
-					} else {
-						if (!operationTransaction.isValid(accountsMerkleTree, null)) {
-							return false;
-						} else {
-							operationTransaction.execute(accountsMerkleTree,
-									operationTransaction.getTxIn().getAddress().getID());
-							continue;
-						}
-					}
-				}
-			}
+			// New Way doesn't need this now change to new method
+//			// Check checkpoint
+//			if (eqcHeader.getHeight().mod(Util.EUROPA).equals(BigInteger.ZERO)) {
+//				if ((i == 1) && !transaction.getTxIn().getAddress().getID().equals(ID.TWO)) {
+//					return false;
+//				} else if (!(transaction instanceof OperationTransaction)) {
+//					return false;
+//				} else {
+//					OperationTransaction operationTransaction = (OperationTransaction) transaction;
+//					if (!(operationTransaction.getOperation() instanceof UpdateAddressOperation)) {
+//						return false;
+//					} else {
+//						if (!operationTransaction.isValid(accountsMerkleTree, null)) {
+//							return false;
+//						} else {
+//							operationTransaction.execute(accountsMerkleTree,
+//									operationTransaction.getTxIn().getAddress().getID());
+//							continue;
+//						}
+//					}
+//				}
+//			}
 
 			if (!transaction.isValid(accountsMerkleTree, null)) {
 				Log.info("Transaction is invalid: " + transaction);
@@ -617,15 +618,17 @@ public class EQCBlock implements EQCTypable {
 			return false;
 		}
 		
-		// Merge AccountsMerkleTree relevant Account's status
-		if(!accountsMerkleTree.merge()) {
-			Log.Error("Merge AccountsMerkleTree relevant Account's status error occur");
-			return false;
-		}
+		// Merge shouldn't be done at here
+//		// Merge AccountsMerkleTree relevant Account's status
+//		if(!accountsMerkleTree.merge()) {
+//			Log.Error("Merge AccountsMerkleTree relevant Account's status error occur");
+//			return false;
+//		}
 
 		return true;
 	}
 
+	@Deprecated
 	public static boolean verify(EQCBlock eqcBlock, AccountsMerkleTree accountsMerkleTree) {
 		// Check if EQCHeader is valid
 		BigInteger target = Util.targetBytesToBigInteger(Util.cypherTarget(eqcBlock.getHeight()));
