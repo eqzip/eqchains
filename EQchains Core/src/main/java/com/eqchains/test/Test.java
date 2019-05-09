@@ -29,6 +29,8 @@
  */
 package com.eqchains.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -53,6 +55,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Vector;
+
+import org.mortbay.io.ByteArrayEndPoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -148,7 +152,7 @@ public class Test {
 		header.setTimestamp(new ID(System.currentTimeMillis()));
 		Log.info(header.toString());
 		long c0 = System.currentTimeMillis();
-		int n = 100;
+		int n = 10;
 		for (int i = 0; i < n; ++i) {
 			Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(header.getBytes(), Util.HUNDRED_THOUSAND, false);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
@@ -166,10 +170,12 @@ public class Test {
 //		header.setTimestamp(new ID(System.currentTimeMillis()));
 //		Log.info(header.toString());
 		byte[] asd = Util.getSecureRandomBytes();
+		byte[] asdf = new byte[64];
+		System.arraycopy(asd, 0, asdf, 0, asdf.length);
 		long c0 = System.currentTimeMillis();
-		int n = 1;
+		int n = 10000;
 		for (int i = 0; i < n; ++i) {
-			Util.multipleExtend(asd, Util.HUNDREDPULS);
+			Util.multipleExtend(asdf, Util.HUNDREDPULS);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
 		}
 		long c1 = System.currentTimeMillis();
@@ -1670,5 +1676,19 @@ public class Test {
 			Util.multipleExtend(bytes1, 1);
 		}
 	}
+	
+	public static void testVerifyBlock() {
+		   ID id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
+		   for(int i=1; i<id.intValue(); ++i) {
+		   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+			EQCBlock eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+			try {
+				assertTrue(eqcBlock.verify(accountsMerkleTree));
+			} catch (NoSuchFieldException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		   }
+	   }
 	
 }

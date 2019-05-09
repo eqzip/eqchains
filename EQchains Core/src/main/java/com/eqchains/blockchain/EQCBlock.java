@@ -412,7 +412,8 @@ public class EQCBlock implements EQCTypable {
 		}
 
 		// Check if CoinBase isValid and update CoinBase's Account
-		if(!transactions.getCoinbaseTransaction().isCoinbaseValid(accountsMerkleTree, transactions.getTxFee())) {
+		transactions.getCoinbaseTransaction().setTxFee(transactions.getTxFee());
+		if(!transactions.getCoinbaseTransaction().isValid(accountsMerkleTree, AddressShape.READABLE)) {
 			throw new IllegalStateException("CoinbaseTransaction is invalid: " + transactions.getCoinbaseTransaction());
 		}
 		else {
@@ -492,7 +493,13 @@ public class EQCBlock implements EQCTypable {
 		}
 
 		// Check if AccountList is valid
-		if (!transactions.isAccountListValid(accountsMerkleTree)) {
+		if(transactions.getNewAccountList().size() == 0) {
+			if(!root.getTotalAccountNumbers().equals(accountsMerkleTree.getEQCBlock(accountsMerkleTree.getHeight(), true).getRoot().getTotalAccountNumbers())) {
+				Log.Error("EQCHeader AccountList is invalid");
+				return false;
+			}
+		}
+		else if (!transactions.isAccountListValid(accountsMerkleTree)) {
 			Log.Error("EQCHeader AccountList is invalid");
 			return false;
 		}
@@ -502,32 +509,44 @@ public class EQCBlock implements EQCTypable {
 			Log.Error("EQCHeader PublickeyList is invalid");
 			return false;
 		}
-
+		
 		// Check if Signatures' size and Transaction size is valid
-		if (transactions.getNewTransactionList().size() != (signatures.getSignatureList().size() + 1)) {
+		if (signatures == null) {
+			if(transactions.getNewTransactionList().size() != 1) {
+				return false;
+			}
+		}
+		else if (transactions.getNewTransactionList().size() != (signatures.getSignatureList().size() + 1)) {
 			return false;
 		}
-
+		
 		// Check if every Transaction is valid
 		long totalTxFee = 0;
 		Vector<Transaction> transactionList = transactions.getNewTransactionList();
 		for (int i = 0; i < transactionList.size(); ++i) {
 			Transaction transaction = transactionList.get(i);
+			try {
+				transaction.prepareVerify(accountsMerkleTree, (signatures == null)?null:signatures.getSignatureList().get(i + 1));
+			}
+			catch (IllegalStateException e) {
+				Log.Error(e.getMessage());
+				return false;
+			}
+			
 			if ((i == 0) && (!transaction.isCoinBase())) {
 				return false;
 			} else {
 				CoinbaseTransaction coinbaseTransaction = (CoinbaseTransaction) transaction;
-				if (!coinbaseTransaction.isCoinbaseValid(accountsMerkleTree, transactions.getTxFee())) {
-					return false;
-				}
+				coinbaseTransaction.setTxFee(transactions.getTxFee());
+//				if (!coinbaseTransaction.isCoinbaseValid(accountsMerkleTree, transactions.getTxFee())) {
+//					return false;
+//				}
 			}
 
 			// Check only No.0 is Coinbase
 			if ((i > 0) && (transaction.isCoinBase())) {
 				return false;
 			}
-
-			transaction.prepareVerify(accountsMerkleTree, signatures.getSignatureList().get(i + 1));
 
 			// If is OperationTransaction check it's isMeetPreconditions
 			if (transaction instanceof OperationTransaction) {
@@ -560,7 +579,7 @@ public class EQCBlock implements EQCTypable {
 //				}
 //			}
 
-			if (!transaction.isValid(accountsMerkleTree, null)) {
+			if (!transaction.isValid(accountsMerkleTree, null)) { // here should be AddressShape.ReadableAddress
 				Log.info("Transaction is invalid: " + transaction);
 				return false;
 			} else {
@@ -582,24 +601,37 @@ public class EQCBlock implements EQCTypable {
 		// Verify Root
 		// Check total supply
 		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
-			Log.Error("Total supply is invalid!");
+			Log.Error("Total supply is invalid doesn't equal cypherTotalSupply.");
 			return false;
 		}
 		if(statistics.totalSupply != root.getTotalSupply()){
-			Log.Error("Total supply is invalid!");
+			Log.Error("Total supply is invalid doesn't equal root.");
+			return false;
+		}
+		
+		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(),
+				true);
+		// Check total Account numbers
+		if (!previousBlock.getRoot().getTotalAccountNumbers()
+				.add(BigInteger.valueOf(transactions.getNewAccountList().size()))
+				.equals(accountsMerkleTree.getTotalAccountNumbers())) {
+			Log.Error("Total Account numbers is invalid doesn't equal accountsMerkleTree.");
+			return false;
+		}
+		if(!root.getTotalAccountNumbers().equals(accountsMerkleTree.getTotalAccountNumbers())) {
+			Log.Error("Total Account numbers is invalid doesn't equal root.");
 			return false;
 		}
 		
 		// Check total Transaction numbers
-		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(), true);
-		if (!previousBlock.getRoot().getTotalAccountNumbers()
-				.add(BigInteger.valueOf(transactions.getNewAccountList().size()))
+		if (!previousBlock.getRoot().getTotalTransactionNumbers()
+				.add(BigInteger.valueOf(transactions.getNewTransactionList().size()))
 				.equals(statistics.totalTransactionNumbers)) {
-			Log.Error("Total Transaction numbers is invalid!");
+			Log.Error("Total Transaction numbers is invalid doesn't equal transactions.getNewTransactionList.");
 			return false;
 		}
-		if(!statistics.totalTransactionNumbers.equals(root.getTotalAccountNumbers())) {
-			Log.Error("Total Transaction numbers is invalid!");
+		if(!statistics.totalTransactionNumbers.equals(root.getTotalTransactionNumbers())) {
+			Log.Error("Total Transaction numbers is invalid doesn't equal root.getTotalTransactionNumbers.");
 			return false;
 		}
 		// Check AccountsMerkelTreeRoot
@@ -920,27 +952,27 @@ public class EQCBlock implements EQCTypable {
 		byte[] bytes = null;
 		transactionsMerkelTreeRootList.add(transactions.getNewTransactionListMerkelTreeRoot());
 		
-		if ((bytes = signatures.getSignaturesMerkelTreeRoot()) != null) {
+		if ((signatures != null) && (bytes = signatures.getSignaturesMerkelTreeRoot()) != null) {
 			transactionsMerkelTreeRootList.add(bytes);
 		}
-		else {
-			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
-		}
+//		else {
+//			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
+//		}
 		
 		if ((bytes = transactions.getNewAccountListMerkelTreeRoot()) != null) {
 			transactionsMerkelTreeRootList.add(bytes);
 		}
-		else {
-			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
-		}
+//		else {
+//			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
+//		}
 		
 		if ((bytes = transactions.getNewPublickeyListMerkelTreeRoot()) != null) {
 			transactionsMerkelTreeRootList.add(bytes);
 		}
-		else {
-			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
-		}
-		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getMerkleTreeRoot(transactionsMerkelTreeRootList), Util.THOUSANDPLUS,
+//		else {
+//			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
+//		}
+		return Util.EQCCHA_MULTIPLE(Util.getMerkleTreeRoot(transactionsMerkelTreeRootList), Util.HUNDREDPULS,
 				false);
 	}
 

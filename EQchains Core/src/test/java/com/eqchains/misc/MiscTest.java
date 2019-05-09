@@ -144,11 +144,13 @@ public class MiscTest {
 	   @Test
 	   void verifyBlock() {
 		   ID id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
-		   for(int i=1; i<id.intValue(); ++i) {
+		   for(int i=8; i<id.intValue(); ++i) {
+			   Log.info("i: " + i);
 		   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-			EQCBlock eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+		   EQCBlock eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
 			try {
 				assertTrue(eqcBlock.verify(accountsMerkleTree));
+				accountsMerkleTree.close();
 			} catch (NoSuchFieldException | IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

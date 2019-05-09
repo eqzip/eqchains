@@ -83,16 +83,19 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  */
 public class Singularity {
 	public static void main(String[] args) {
-		Thread.currentThread().setPriority(10);
+//		Thread.currentThread().setPriority(10);
 //		EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.valueOf(0)));
 //		EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.valueOf(0)));
-		MinerService.getInstance().start();
+//		MinerService.getInstance().start();
+//		Test.testVerifyBlock();
 //		Test.testTransaction();
 //		Test.testKeystore();
 //		EQCBlockChainRocksDB.getInstance().dumpEQCBlock();
 //		EQCBlockChainRocksDB.getInstance().dumpAccount();
 //		EQCBlockChainRocksDB.getInstance().dumpTable(TABLE.ACCOUNT);
 //		EQCBlockChainRocksDB.getInstance().dumpTable(TABLE.ACCOUNT_AI);
+//		Log.info("Tail Height in H2: " + EQCBlockChainH2.getInstance().getEQCBlockTailHeight());
+//		Log.info("Tail Height in RocksDB: " + EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight());
 //		Log.info(EQCBlockChainRocksDB.getInstance().getTableItemNumbers(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_AI)).toString());
 //		Configuration.getInstance().updateIsInitSingularityBlock(false);
 //		Util.init();

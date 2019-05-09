@@ -547,7 +547,7 @@ public class Transactions implements EQCTypable {
 	}
 	
 	public byte[] getHash() {
-		return  Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.ONE, false);
+		return  Util.EQCCHA_MULTIPLE(getBytes(), Util.ONE, false);
 	}
 
 	@Override
@@ -599,7 +599,7 @@ public class Transactions implements EQCTypable {
 				.equals(ID.ONE)) {
 			return false;
 		}else {
-			for(int i=0; i<newAccountList.size()-1; ++i) {
+			for(int i=0; i<newAccountList.size(); ++i) {
 				// Check if Address already exists
 				if(accountsMerkleTree.isAccountExists(newAccountList.get(i), true)) {
 					return false;
@@ -607,11 +607,20 @@ public class Transactions implements EQCTypable {
 				else {
 					// Save new Account in Filter
 					Account account = new Account();
+					account.setAddress(newAccountList.get(i));
+					account.setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+					account.setBalanceUpdateHeight(account.getAddressCreateHeight());
+					account.setNonce(ID.ZERO);
 					accountsMerkleTree.saveAccount(account);
+					Log.info("Numbers: " + accountsMerkleTree.getTotalAccountNumbers());
+					accountsMerkleTree.increaseTotalAccountNumbers();
+					Log.info("Numbers: " + accountsMerkleTree.getTotalAccountNumbers());
 				}
 				// Check if ID is valid
-				if(!newAccountList.get(i).getID().getNextID().equals(newAccountList.get(i+1))) {
-					return false;
+				if ((newAccountList.size() > 1) && ((i + 1) < newAccountList.size())) {
+					if (!newAccountList.get(i).getID().getNextID().equals(newAccountList.get(i + 1))) {
+						return false;
+					}
 				}
 			}
 		}

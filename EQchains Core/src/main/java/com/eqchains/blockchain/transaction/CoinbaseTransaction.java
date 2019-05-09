@@ -50,10 +50,13 @@ import com.eqchains.util.Util.AddressTool;
  * @email 10509759@qq.com
  */
 public class CoinbaseTransaction extends Transaction {
-
+	
+	private long txFee;
+	
 	public CoinbaseTransaction() {
 		super(TransactionType.COINBASE);
 		txIn = null;
+		txFee = 0;
 	}
 
 	public CoinbaseTransaction(byte[] bytes, Address.AddressShape addressShape)
@@ -308,7 +311,52 @@ public class CoinbaseTransaction extends Transaction {
 	@Override
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
-		return false;
+		long eqcFoundationCoinBaseValue = 0;
+		long minerCoinBaseValue = 0;
+		if(!isSanity()) {
+			return false;
+		}
+		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
+			if(txOutList.size() != Util.TWO) {
+				return false;
+			}
+			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
+				return false;
+			}
+			if (accountsMerkleTree.isAccountExists(txOutList.get(1).getAddress(), false)) {
+				if (nonce.getPreviousID().compareTo(
+						accountsMerkleTree.getAccount(txOutList.get(1).getAddress().getID()).getNonce()) != 0) {
+					return false;
+				}
+			} else {
+				if(nonce.compareTo(ID.ONE) != 0) {
+					return false;
+				}
+			}
+			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
+			minerCoinBaseValue =  txOutList.get(1).getValue();
+			if(eqcFoundationCoinBaseValue != Util.EQC_FOUNDATION_COINBASE_REWARD + txFee) {
+				return false;
+			}
+			if(minerCoinBaseValue != Util.MINER_COINBASE_REWARD) {
+				return false;
+			}
+		} else {
+			if(txOutList.size() != Util.ONE) {
+				return false;
+			}
+			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
+				return false;
+			}
+			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getNonce()) != 0) {
+				return false;
+			}
+			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
+			if (eqcFoundationCoinBaseValue != txFee) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/* (non-Javadoc)
@@ -368,55 +416,6 @@ public class CoinbaseTransaction extends Transaction {
 		}
 	}
 	
-	public boolean isCoinbaseValid(AccountsMerkleTree accountsMerkleTree, long txFee) {
-		long eqcFoundationCoinBaseValue = 0;
-		long minerCoinBaseValue = 0;
-		if(!isSanity()) {
-			return false;
-		}
-		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
-			if(txOutList.size() != Util.TWO) {
-				return false;
-			}
-			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
-				return false;
-			}
-			if (accountsMerkleTree.isAccountExists(txOutList.get(1).getAddress(), true)) {
-				if (nonce.getPreviousID().compareTo(
-						accountsMerkleTree.getAccount(txOutList.get(1).getAddress()).getNonce()) != 0) {
-					return false;
-				}
-			} else {
-				if(nonce.compareTo(ID.ONE) != 0) {
-					return false;
-				}
-			}
-			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
-			minerCoinBaseValue =  txOutList.get(1).getValue();
-			if(eqcFoundationCoinBaseValue != Util.EQC_FOUNDATION_COINBASE_REWARD + txFee) {
-				return false;
-			}
-			if(minerCoinBaseValue != Util.MINER_COINBASE_REWARD) {
-				return false;
-			}
-		} else {
-			if(txOutList.size() != Util.ONE) {
-				return false;
-			}
-			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
-				return false;
-			}
-			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getNonce()) != 0) {
-				return false;
-			}
-			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
-			if (eqcFoundationCoinBaseValue != txFee) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
 	public void updateTxFee(long txFee) {
 		txOutList.get(0).updateValue(txFee);
 	}
@@ -429,6 +428,7 @@ public class CoinbaseTransaction extends Transaction {
 				account = new Account();
 				account.setAddress(txOut.getAddress());
 				account.setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				account.setNonce(ID.ZERO);
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
 			}
@@ -493,6 +493,20 @@ public class CoinbaseTransaction extends Transaction {
 		
 		Log.info("Total size: " + size);
 		return size;
+	}
+
+	/**
+	 * @return the txFee
+	 */
+	public long getTxFee() {
+		return txFee;
+	}
+
+	/**
+	 * @param txFee the txFee to set
+	 */
+	public void setTxFee(long txFee) {
+		this.txFee = txFee;
 	}
 	
 //	public String toInnerJsons() {

@@ -126,6 +126,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			List<ColumnFamilyHandle> tempColumnFamilyHandles = new ArrayList<>();
 			for(int i=0; i<columnFamilyNames.size(); ++i) {
 				if(!isDefaultColumnFamily(columnFamilyNames.get(i))) {
+					Log.info("Exists undefault table " + new String(columnFamilyDescriptors.get(i).getName()) + " just clear it.");
 					clearTable(columnFamilyHandles.get(i));
 					dropTable(columnFamilyHandles.get(i));
 					columnFamilyHandles.get(i).close();

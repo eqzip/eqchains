@@ -64,6 +64,7 @@ public final class MinerService extends Thread {
 			synchronized (Keystore.class) {
 				if (instance == null) {
 					instance = new MinerService();
+					Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 				}
 			}
 		}
@@ -138,8 +139,9 @@ public final class MinerService extends Thread {
 			BigInteger hash;
 			ID nonce = ID.ZERO;
 			while (true) {
+//				Log.info("" + newEQCBlock.getEqcHeader().getNonce());
 				newEQCBlock.getEqcHeader().setNonce(nonce);
-				hash = new BigInteger(1, Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(newEQCBlock.getBytes(), Util.HUNDRED_THOUSAND, false));
+				hash = new BigInteger(1, newEQCBlock.getHash());
 //						Util.EQCCHA_MULTIPLE((bytes = Util.updateNonce(newEQCBlock.getEqcHeader().getBytes(), ++nonce)),
 //						Util.HUNDRED_THOUSAND, true));
 //	        	System.out.println("hash: " + Util.bigIntegerTo512String(hash));
@@ -149,6 +151,7 @@ public final class MinerService extends Thread {
 //				}
 				if (hash.compareTo(Util.targetBytesToBigInteger(newEQCBlock.getEqcHeader().getTarget())) <= 0) { //new BigInteger(1, abc)) <= 0){//
 //	        		time1 = System.currentTimeMillis();
+					Log.info(Util.getHexString(newEQCBlock.getHash()));
 					Log.info("EQC Block No."
 							+ newEQCBlock.getHeight().longValue()
 							+ " Find use: " + (System.currentTimeMillis() - newEQCBlock.getEqcHeader().getTimestamp().longValue())

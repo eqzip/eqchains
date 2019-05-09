@@ -72,8 +72,6 @@ public class EQCHeader implements EQCTypable {
 	private final static int MAX_NONCE_LEN = 4;
 	private final static int TARGET_LEN = 4;
 	
-	private byte[] hash; 
-	
 	public EQCHeader(ByteBuffer byteBuffer) {
 		parseEQCHeader(byteBuffer.array());
 	}
@@ -298,17 +296,7 @@ public class EQCHeader implements EQCTypable {
 	 * @return byte[] the eqcHeader's EQCCHA hash
 	 */
 	public byte[] getHash() {
-		if(hash == null) {
-			hash = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND, false);
-		}
-		return hash;
-	}
-
-	/**
-	 * @param hash the hash to set
-	 */
-	public void setHash(byte[] hash) {
-		this.hash = hash;
+		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND, false);
 	}
 
 	@Override
@@ -354,7 +342,8 @@ public class EQCHeader implements EQCTypable {
 			return false;
 		}
 		// getHash()
-		if (new BigInteger(1, EQCBlockChainRocksDB.getInstance().getEQCBlock(accountsMerkleTree.getHeight().getNextID(), true).getEqcHeader().getPreHash()).compareTo(Util.targetBytesToBigInteger(target)) > 0) {
+		Log.info(Util.getHexString(getHash()));
+		if (new BigInteger(1, getHash()).compareTo(Util.targetBytesToBigInteger(target)) > 0) {
 			Log.info("falied");
 			return false;
 		}

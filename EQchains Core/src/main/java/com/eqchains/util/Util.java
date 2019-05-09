@@ -182,7 +182,7 @@ public final class Util {
 	
 	public final static int THOUSANDPLUS = 1001;
 
-	public final static int HUNDRED_THOUSAND = 100000;
+	public final static int HUNDRED_THOUSAND = 10;//100000;
 
 	public final static int MILLIAN = 1000000;
 
@@ -271,6 +271,8 @@ public final class Util {
 	public static final BigInteger EUROPA = UnsignedBiginteger(BigInteger.valueOf(1008));
 	
 	public static final byte[] NULL_HASH = UnsignedBiginteger(new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16)).toByteArray();
+	
+	public static final byte[] SINGULARITY = ".".getBytes();
 	
 //	public static ID [] FIBONACCI = {
 //			new ID(1597),
@@ -477,8 +479,9 @@ public final class Util {
 	public static byte[] multipleExtend(final byte[] data, final int multiple) {
 		byte[] result = null;
 		
-		BigInteger begin = new BigInteger(1, data);
+		BigDecimal begin = new BigDecimal(new BigInteger(1, data));
 		MathContext mc = new MathContext(141, RoundingMode.HALF_EVEN);
+		BigDecimal a = null, b = null, c = null;
 //		Log.info("data Len: " + data.length);
 //		BigDecimal begin0 = null;
 //		BigInteger begin1 = null;
@@ -505,35 +508,37 @@ public final class Util {
 		int bufferLen = 1024 * 2 * multiple; 
 //		Log.info("bfl: " + bufferLen);
 		ByteBuffer byteBuffer = ByteBuffer.allocate(bufferLen);
+		
 		for (int i = 1; i <= multiple; ++i) {
-			BigInteger a = begin.divide(BigInteger.valueOf(i));
-//			Log.info("Begin: " + a.toString());
-			BigDecimal b = null;
-			if(data.length <=32) {
-				b = new BigDecimal(a).divide(new BigDecimal(FIBONACCI[2]), mc);
-			}
-			else {
-				b = new BigDecimal(a).divide(new BigDecimal(FIBONACCI[10]), mc);
-			}
-//			Log.info(b.toPlainString());
-			String[] abc = b.toPlainString().split("\\.");
+//			Log.info("Begin: " + begin.toPlainString());
+			a = begin.divide(BigDecimal.valueOf(i), mc);
+//			if(data.length <=32) {
+				b = a.divide(new BigDecimal(FIBONACCI[2]), mc);
+//			}
+//			else {
+				c = a.divide(new BigDecimal(FIBONACCI[10]), mc);
+//			}
+			begin = begin.add(a).add(b).add(c);
+//			Log.info(begin.toPlainString());
+			String[] abc = begin.toPlainString().split("\\.");
 			if(abc.length == 2) {
-				BigInteger c = new BigInteger(abc[0]);
-				BigInteger d = new BigInteger(abc[1]);
+				BigInteger d = new BigInteger(abc[0]);
+				BigInteger e = new BigInteger(abc[1]);
 //				Log.info(" " + begin.add(a).add(d.multiply(e)).subtract(FIBONACCI[i%10]).toString());
-				byteBuffer.put(begin.add(a).toByteArray());
-//				Log.info("L0: " + begin.add(a).toByteArray().length);
-				byteBuffer.put(c.toByteArray());
-//				Log.info("L1: " + c.toByteArray().length);
 				byteBuffer.put(d.toByteArray());
+//				Log.info("L0: " + begin.add(a).toByteArray().length);
+				byteBuffer.put(SINGULARITY);
+				byteBuffer.put(e.toByteArray());
+				byteBuffer.put(SINGULARITY);
+//				Log.info("L1: " + c.toByteArray().length);
 //				Log.info("L2: " + d.toByteArray().length);
 //				Log.info("2");
 			}
 			else {
 //				Log.info("1");
-				BigInteger c = new BigInteger(abc[0]);
-				byteBuffer.put(begin.add(a).toByteArray());
-				byteBuffer.put(c.toByteArray());
+				BigInteger d = new BigInteger(abc[0]);
+				byteBuffer.put(d.toByteArray());
+				byteBuffer.put(SINGULARITY);
 			}
 		}
 		byteBuffer.flip();
@@ -2150,6 +2155,7 @@ public final class Util {
 		account.setAddressCreateHeight(ID.ZERO);
 		account.setBalance(EQC_FOUNDATION_COINBASE_REWARD);
 		account.setBalanceUpdateHeight(ID.ZERO);
+		account.setNonce(ID.ZERO);
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		

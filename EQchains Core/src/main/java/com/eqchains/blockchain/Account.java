@@ -67,7 +67,7 @@ public class Account implements EQCTypable {
 	public Account() {
 		super();
 		version = ID.ZERO;
-		nonce = ID.ZERO;
+//		nonce = ID.ZERO;
 	}
 
 	public Account(byte[] bytes) throws NoSuchFieldException, IOException {

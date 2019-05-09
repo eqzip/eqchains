@@ -672,14 +672,21 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return true;
 	}
 	
-	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, byte[] signature) {
+	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, byte[] signature) throws IllegalStateException {
 		// Fill in TxIn's ReadableAddress
-		txIn.getAddress().setReadableAddress(accountsMerkleTree.getAddress(txIn.getAddress().getID()).getReadableAddress());
+		if(transactionType != TransactionType.COINBASE) {
+			Account account = accountsMerkleTree.getAccount(txIn.getAddress().getID());
+			txIn.getAddress().setReadableAddress(account.getAddress().getReadableAddress());
+			// Check if Publickey is exists and fill in Publickey's ID and Publickey
+			if(!account.isPublickeyExists()) {
+				throw new IllegalStateException(account.toString() + "'s Publickey shouldn't be empty.");
+			}
+			else {
+				publickey.setID(txIn.getAddress().getID());
+				publickey.setPublicKey(accountsMerkleTree.getPublicKey(txIn.getAddress().getID()).getPublicKey());
+			}
+		}
 		
-		// Fill in Publickey's ID and Publickey
-		publickey.setID(txIn.getAddress().getID());
-		publickey.setPublicKey(accountsMerkleTree.getPublicKey(txIn.getAddress().getID()).getPublicKey());
-
 		// Fill in TxOut's Address' ReadableAddress
 		for (TxOut txOut : getTxOutList()) {
 			txOut.getAddress().setReadableAddress(accountsMerkleTree.getAddress(txOut.getAddress().getID()).getReadableAddress());
