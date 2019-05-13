@@ -190,11 +190,11 @@ public class UpdateAddressOperation extends Operation {
 		boolean isSucc = true;
 		Account account = accountsMerkleTree.getAccount(id);
 		if(account.isPublickeyExists()) {
-			account.setPublickey(null);
+			account.getKey().setPublickey(null);
 		}
 		address.setID(account.getID());
-		account.setAddress(address);
-		account.setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+		account.getKey().setAddress(address);
+		account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
 		isSucc = accountsMerkleTree.saveAccount(account);
 		return isSucc;
 	}

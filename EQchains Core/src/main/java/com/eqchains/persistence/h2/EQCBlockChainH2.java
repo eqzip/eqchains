@@ -53,6 +53,7 @@ import javax.naming.spi.DirStateFactory.Result;
 import javax.security.sasl.RealmCallback;
 
 import com.eqchains.blockchain.Account;
+import com.eqchains.blockchain.AssetAccount;
 import com.eqchains.blockchain.EQCBlock;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
@@ -315,69 +316,69 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	
 	public synchronized Vector<Account> getAllAccounts(ID height) {
 		Vector<Account> accounts = new Vector<Account>();
-		Account account = null;
-		Address address = null;
-		try {
-//			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address_update_height>='" + height.longValue() + "'");
-			PreparedStatement preparedStatement = connection
-					.prepareStatement("SELECT * FROM ACCOUNT WHERE address_update_height>=?");
-			preparedStatement.setLong(1, height.longValue());
-			ResultSet resultSet = preparedStatement.executeQuery();
-			while (resultSet.next()) {
-				account = new Account();
-				address = new Address();
-				address.setReadableAddress(resultSet.getString("address"));
-				address.setID(new ID(BigInteger.valueOf(resultSet.getLong("id"))));
-				// Here need do more job to retrieve the code of address. Need consider
-				// sometimes the code is null but otherwise the code isn't null
-				account.setAddress(address);
-				account.setBalance(resultSet.getLong("balance"));
-				accounts.add(account);
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
+//		Account account = null;
+//		Address address = null;
+//		try {
+////			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address_update_height>='" + height.longValue() + "'");
+//			PreparedStatement preparedStatement = connection
+//					.prepareStatement("SELECT * FROM ACCOUNT WHERE address_update_height>=?");
+//			preparedStatement.setLong(1, height.longValue());
+//			ResultSet resultSet = preparedStatement.executeQuery();
+//			while (resultSet.next()) {
+//				account = new AssetAccount();
+//				address = new Address();
+//				address.setReadableAddress(resultSet.getString("address"));
+//				address.setID(new ID(BigInteger.valueOf(resultSet.getLong("id"))));
+//				// Here need do more job to retrieve the code of address. Need consider
+//				// sometimes the code is null but otherwise the code isn't null
+//				account.getKey().setAddress(address);
+//				account.setBalance(resultSet.getLong("balance"));
+//				accounts.add(account);
+//			}
+//		} catch (SQLException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			Log.Error(e.getMessage());
+//		}
 		return accounts;
 	}
 	
 	public synchronized Vector<Account> getAccounts(ID begin, ID end, ID height) {
 		Vector<Account> accounts = new Vector<>();
-		Account account = null;
-		Address address = null;
-		Publickey publickey = null;
-		try {
-//			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address_update_height>='" + height.longValue() + "'");
-			PreparedStatement preparedStatement = connection
-					.prepareStatement("SELECT * FROM ACCOUNT WHERE id>=? AND id<? AND address_update_height<=?");
-			preparedStatement.setLong(1, begin.longValue());
-			preparedStatement.setLong(2, end.longValue());
-			preparedStatement.setLong(3, height.longValue());
-			ResultSet resultSet = preparedStatement.executeQuery();
-			while (resultSet.next()) {
-				account = new Account();
-				address = new Address();
-				address.setReadableAddress(AddressTool.AIToAddress(resultSet.getBytes("address")));
-				address.setID(new ID(BigInteger.valueOf(resultSet.getLong("id"))));
-				account.setAddress(address);
-				account.setAddressCreateHeight(new ID(BigInteger.valueOf(resultSet.getLong("address_update_height"))));
-				if(resultSet.getBytes("publickey") != null) {
-					publickey = new Publickey();
-					publickey.setPublickey(resultSet.getBytes("publickey"));
-					publickey.setPublickeyCreateHeight(new ID(BigInteger.valueOf(resultSet.getLong("publickey_update_height"))));
-					account.setPublickey(publickey);
-				}
-				account.setBalance(resultSet.getLong("balance"));
-				account.setBalanceUpdateHeight(new ID(BigInteger.valueOf(resultSet.getLong("balance_update_height"))));
-				account.setNonce(new ID(BigInteger.valueOf(resultSet.getLong("nonce"))));
-				accounts.add(account);
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
+//		Account account = null;
+//		Address address = null;
+//		Publickey publickey = null;
+//		try {
+////			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address_update_height>='" + height.longValue() + "'");
+//			PreparedStatement preparedStatement = connection
+//					.prepareStatement("SELECT * FROM ACCOUNT WHERE id>=? AND id<? AND address_update_height<=?");
+//			preparedStatement.setLong(1, begin.longValue());
+//			preparedStatement.setLong(2, end.longValue());
+//			preparedStatement.setLong(3, height.longValue());
+//			ResultSet resultSet = preparedStatement.executeQuery();
+//			while (resultSet.next()) {
+//				account = new Account();
+//				address = new Address();
+//				address.setReadableAddress(AddressTool.AIToAddress(resultSet.getBytes("address")));
+//				address.setID(new ID(BigInteger.valueOf(resultSet.getLong("id"))));
+//				account.setAddress(address);
+//				account.setAddressCreateHeight(new ID(BigInteger.valueOf(resultSet.getLong("address_update_height"))));
+//				if(resultSet.getBytes("publickey") != null) {
+//					publickey = new Publickey();
+//					publickey.setPublickey(resultSet.getBytes("publickey"));
+//					publickey.setPublickeyCreateHeight(new ID(BigInteger.valueOf(resultSet.getLong("publickey_update_height"))));
+//					account.setPublickey(publickey);
+//				}
+//				account.setBalance(resultSet.getLong("balance"));
+//				account.setBalanceUpdateHeight(new ID(BigInteger.valueOf(resultSet.getLong("balance_update_height"))));
+//				account.setNonce(new ID(BigInteger.valueOf(resultSet.getLong("nonce"))));
+//				accounts.add(account);
+//			}
+//		} catch (SQLException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			Log.Error(e.getMessage());
+//		}
 		return accounts;
 	}
 
@@ -1503,7 +1504,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			preparedStatement.setLong(2, height.longValue());
 			ResultSet resultSet = preparedStatement.executeQuery();
 			if (resultSet.next()) {
-				account = new Account(resultSet.getBytes("account"));
+				account = Account.parseAccount(resultSet.getBytes("account"));
 			} else {
 				preparedStatement = connection.prepareStatement(
 						"SELECT * FROM ACCOUNT_SNAPSHOT WHERE id=? AND snapshot_height>? ORDER BY snapshot_height ASC LIMIT 1");
@@ -1511,10 +1512,10 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				preparedStatement.setLong(2, height.longValue());
 				resultSet = preparedStatement.executeQuery();
 				if(resultSet.next()) {
-					account = new Account(resultSet.getBytes("account"));
+					account = Account.parseAccount(resultSet.getBytes("account"));
 				}
 			}
-		} catch (SQLException | NoSuchFieldException | IOException e) {
+		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
@@ -1557,7 +1558,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			else {
 				preparedStatement = connection.prepareStatement("INSERT INTO ACCOUNT_SNAPSHOT (id, readable_address, account, snapshot_height) VALUES (?, ?, ?, ?)");
 				preparedStatement.setLong(1, account.getID().longValue());
-				preparedStatement.setString(2, account.getAddress().getReadableAddress());
+				preparedStatement.setString(2, account.getKey().getAddress().getReadableAddress());
 				preparedStatement.setBytes(3, account.getBytes());
 				preparedStatement.setLong(4, height.longValue());
 				result = preparedStatement.executeUpdate();

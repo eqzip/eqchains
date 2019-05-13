@@ -43,7 +43,9 @@ import java.util.Comparator;
 import java.util.Vector;
 
 import com.eqchains.blockchain.Account;
+import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.AssetAccount;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.crypto.EQCPublicKey;
@@ -64,8 +66,35 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @email 10509759@qq.com
  */
 public abstract class Transaction implements Comparator<Transaction>, Comparable<Transaction>, EQCTypable {
+	
+	protected TransactionType transactionType;
+	protected ID nonce;
+	protected TxIn txIn;
+	protected Vector<TxOut> txOutList;
+	protected PublicKey publickey;
+	protected byte[] signature;
+	public final static int MAX_TXOUT = 10;
+	public final static int MIN_TXOUT = 1;
+	public final static int SOLO = 0;
+	
+	
+	/**
+	 * This is a running time variable to save the relevant Subchain's Asset ID 
+	 */
+	protected ID assetID;
+	/**
+	 * This is a running time variable to save the relevant Subchain's Subchain ID 
+	 */
+	protected ID subchainID;
+	/*
+	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
+	 * verified.
+	 */
+	protected final static byte VERIFICATION_MIN_COUNT = 4;
+	protected final static byte VERIFICATION_MAX_COUNT = 13;
+	
 	public enum TransactionType {
-		COINBASE, OPERATION, SOLIDITYCONTRACT, INVALID, TRANSFER;
+		COINBASE, OPERATION, SMARTCONTRACT, INVALID, TRANSFER;
 		public static TransactionType get(int ordinal) {
 			TransactionType transactionType = null;
 			switch (ordinal) {
@@ -76,7 +105,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 				transactionType = TransactionType.OPERATION;
 				break;
 			case 2:
-				transactionType = TransactionType.SOLIDITYCONTRACT;
+				transactionType = TransactionType.SMARTCONTRACT;
 				break;
 			default:
 				transactionType = TransactionType.INVALID;
@@ -124,29 +153,19 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		}
 	}
 
-	protected TransactionType transactionType;
-	protected ID nonce;
-	protected TxIn txIn;
-	protected Vector<TxOut> txOutList;
-	protected PublicKey publickey;
-	protected byte[] signature;
-	public final static int MAX_TXOUT = 10;
-	public final static int MIN_TXOUT = 1;
-	public final static int SOLO = 0;
-
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 */
-	protected final static byte VERIFICATION_MIN_COUNT = 4;
-	protected final static byte VERIFICATION_MAX_COUNT = 13;
-
 	public Transaction(TransactionType transactionType) {
 		txIn = new TxIn();
 		txOutList = new Vector<TxOut>();
 		nonce = ID.ZERO;
 		publickey = new PublicKey();
 		this.transactionType = transactionType;
+		parseSubchainID();
+	}
+	
+	private void parseSubchainID() {
+		if(transactionType == TransactionType.TRANSFER) {
+			subchainID = Asset.EQCOIN;
+		}
 	}
 
 	/**
@@ -676,7 +695,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		// Fill in TxIn's ReadableAddress
 		if(transactionType != TransactionType.COINBASE) {
 			Account account = accountsMerkleTree.getAccount(txIn.getAddress().getID());
-			txIn.getAddress().setReadableAddress(account.getAddress().getReadableAddress());
+			txIn.getAddress().setReadableAddress(account.getKey().getAddress().getReadableAddress());
 			// Check if Publickey is exists and fill in Publickey's ID and Publickey
 			if(!account.isPublickeyExists()) {
 				throw new IllegalStateException(account.toString() + "'s Publickey shouldn't be empty.");
@@ -698,7 +717,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 
 	public boolean isNonceCorrect(AccountsMerkleTree accountsMerkleTree) {
 		// Check if Nonce's value is correct
-		if (!nonce.isNextID(accountsMerkleTree.getAccount(txIn.getAddress().getID()).getNonce())) {
+		if (!nonce.isNextID(accountsMerkleTree.getAccount(txIn.getAddress().getID()).getAsset(assetID).getNonce())) {
 			return false;
 		}
 		return true;
@@ -771,26 +790,26 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			accountsMerkleTree.savePublicKey(publickey, accountsMerkleTree.getHeight().getNextID());
 		}
 
-		// Update current Transaction's TxIn Account's Nonce&Balance
+		// Update current Transaction's TxIn Account's relevant Asset's Nonce&Balance
 		Account account = accountsMerkleTree.getAccount(txIn.getAddress().getID());
-		// Update current Transaction's TxIn Account's Nonce
-		account.increaseNonce();
-		// Update current Transaction's TxIn Account's Balance
-		account.updateBalance(-getBillingValue());
+		// Update current Transaction's TxIn Account's relevant Asset's Nonce
+		account.getAsset(assetID).increaseNonce();
+		// Update current Transaction's TxIn Account's relevant Asset's Balance
+		account.getAsset(assetID).updateBalance(-getBillingValue());
 		accountsMerkleTree.saveAccount(account);
 
 		// Update current Transaction's TxOut Account
 		for (TxOut txOut : txOutList) {
 			account = null;
 			if (txOut.isNew()) {
-				account = new Account();
-				account.setAddress(txOut.getAddress());
-				account.setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				account = new AssetAccount();
+				account.getKey().setAddress(txOut.getAddress());
+				account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
 			}
-			account.updateBalance(txOut.getValue());
-			account.setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
+			account.getAsset(assetID).updateBalance(txOut.getValue());
+			account.getAsset(assetID).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 			if(accountsMerkleTree.saveAccount(account) && txOut.isNew()) {
 				accountsMerkleTree.increaseTotalAccountNumbers();
 			}
@@ -802,4 +821,19 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			operationTransaction.execute(accountsMerkleTree, txIn.getAddress().getID());
 		}
 	}
+
+	/**
+	 * @return the assetID
+	 */
+	public ID getAssetID() {
+		return assetID;
+	}
+
+	/**
+	 * @param assetID the assetID to set
+	 */
+	public void setAssetID(ID assetID) {
+		this.assetID = assetID;
+	}
+	
 }

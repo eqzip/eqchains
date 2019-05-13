@@ -1,17 +1,19 @@
 /**
- * EQCoin core - EQCOIN Foundation's EQCoin core library
- * @copyright 2018-2019 EQCOIN Foundation Inc.  All rights reserved...
- * CC BY-NC-ND( * Copyright of all works released by EQCOIN Foundation or jointly released by EQCOIN Foundation 
- * with cooperative partners are owned by EQCOIN Foundation and entitled to protection
- * available from copyright law by country as well as international conventions.
+ * EQchains core - EQchains Foundation's EQchains core library
+ * @copyright 2018-present EQchains Foundation All rights reserved...
+ * Copyright of all works released by EQchains Foundation or jointly released by
+ * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
  * Non Commercial — You may not use the material for commercial purposes.
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQCOIN Foundation reserves all rights to take any legal
- * action and pursue any right or remedy available under applicable law.)
- * https://www.EQCOIN Foundation.com
+ * or without prior written permission, EQchains Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
+ * https://www.eqchains.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -102,7 +104,10 @@ import com.eqchains.blockchain.Index;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.Root;
 import com.eqchains.blockchain.TransactionsHeader;
+import com.eqchains.blockchain.Account.Asset;
+import com.eqchains.blockchain.Account.Key;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
+import com.eqchains.blockchain.AssetAccount;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
@@ -171,6 +176,8 @@ public final class Util {
 	public final static int ONE = 1;
 
 	public final static int TWO = 2;
+	
+	public final static int ELEVEN = 11;
 
 	public final static int SIXTEEN = 16;
 
@@ -182,7 +189,7 @@ public final class Util {
 	
 	public final static int THOUSANDPLUS = 1001;
 
-	public final static int HUNDRED_THOUSAND = 10;//100000;
+	public final static int HUNDRED_THOUSAND = 100000;
 
 	public final static int MILLIAN = 1000000;
 
@@ -481,7 +488,7 @@ public final class Util {
 		
 		BigDecimal begin = new BigDecimal(new BigInteger(1, data));
 		MathContext mc = new MathContext(141, RoundingMode.HALF_EVEN);
-		BigDecimal a = null, b = null, c = null;
+		BigDecimal a = null, b = null, c = null, d = null;
 //		Log.info("data Len: " + data.length);
 //		BigDecimal begin0 = null;
 //		BigInteger begin1 = null;
@@ -505,30 +512,35 @@ public final class Util {
 //			nLen = begin.toByteArray().length + begin1.toByteArray().length;
 //		}
 		
-		int bufferLen = 1024 * 2 * multiple; 
+		int bufferLen = 2000 * multiple; 
 //		Log.info("bfl: " + bufferLen);
 		ByteBuffer byteBuffer = ByteBuffer.allocate(bufferLen);
-		
+		// Put the original raw data
+		byteBuffer.put(data);
+		byteBuffer.put(SINGULARITY);
+		// Put the multiple extended data
 		for (int i = 1; i <= multiple; ++i) {
 //			Log.info("Begin: " + begin.toPlainString());
-			a = begin.divide(BigDecimal.valueOf(i), mc);
+			a = begin.divide(new BigDecimal(FIBONACCI[5]), mc);
 //			if(data.length <=32) {
 				b = a.divide(new BigDecimal(FIBONACCI[2]), mc);
 //			}
 //			else {
 				c = a.divide(new BigDecimal(FIBONACCI[10]), mc);
 //			}
-			begin = begin.add(a).add(b).add(c);
-//			Log.info(begin.toPlainString());
+			d = b.subtract(c).abs().multiply(new BigDecimal(FIBONACCI[5]), mc);
+				
+			begin = begin.add(a).add(b).add(c).add(d);
+//			Log.info("i: " + i + " " + begin.toPlainString());
 			String[] abc = begin.toPlainString().split("\\.");
 			if(abc.length == 2) {
-				BigInteger d = new BigInteger(abc[0]);
-				BigInteger e = new BigInteger(abc[1]);
+				BigInteger e = new BigInteger(abc[0]);
+				BigInteger f = new BigInteger(abc[1]);
 //				Log.info(" " + begin.add(a).add(d.multiply(e)).subtract(FIBONACCI[i%10]).toString());
-				byteBuffer.put(d.toByteArray());
+				byteBuffer.put(e.toByteArray());
 //				Log.info("L0: " + begin.add(a).toByteArray().length);
 				byteBuffer.put(SINGULARITY);
-				byteBuffer.put(e.toByteArray());
+				byteBuffer.put(f.toByteArray());
 				byteBuffer.put(SINGULARITY);
 //				Log.info("L1: " + c.toByteArray().length);
 //				Log.info("L2: " + d.toByteArray().length);
@@ -536,8 +548,8 @@ public final class Util {
 			}
 			else {
 //				Log.info("1");
-				BigInteger d = new BigInteger(abc[0]);
-				byteBuffer.put(d.toByteArray());
+				BigInteger e = new BigInteger(abc[0]);
+				byteBuffer.put(e.toByteArray());
 				byteBuffer.put(SINGULARITY);
 			}
 		}
@@ -799,10 +811,10 @@ public final class Util {
 	}
 	
 	public static byte[] EQCCHA_MULTIPLE_DUAL(final byte[] bytes, int multiple, boolean isDual ,boolean isCompress) {
-		byte[] hash = null;
+		byte[] hash = bytes;
 //		Log.info("Len: " + bytes.length);
 		try {
-			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(bytes, multiple));
+//			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
 			if(isDual) {
 				hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
 			}
@@ -1150,7 +1162,13 @@ public final class Util {
 		 * @return EQC address
 		 */
 		public static String generateAddress(byte[] publicKey, AddressType type) {
-			byte[] publickey_hash = EQCCHA_MULTIPLE(publicKey, HUNDREDPULS, true);
+			byte[] publickey_hash = null;
+			if(type == AddressType.T1) {
+				publickey_hash = EQCCHA_MULTIPLE_DUAL(publicKey, ELEVEN, false, true);
+			}
+			else if(type == AddressType.T2) {
+				publickey_hash = EQCCHA_MULTIPLE(publicKey, HUNDREDPULS, true);
+			}
 			return _generateAddress(publickey_hash, type);
 		}
 		
@@ -1183,7 +1201,13 @@ public final class Util {
 				e.printStackTrace();
 				Log.Error(e.getMessage());
 			}
-			byte[] crc32c = CRC32C(multipleExtend(os.toByteArray(), HUNDREDPULS));
+			byte[] crc32c = null;
+			if(type == AddressType.T1) {
+				crc32c = CRC32C(multipleExtend(os.toByteArray(), ELEVEN));
+			}
+			else if(type == AddressType.T2) {
+				crc32c = CRC32C(multipleExtend(os.toByteArray(), HUNDREDPULS));
+			}
 			// Generate address Base58(type) + Base58((HASH + (type + HASH)'s CRC32C))
 			try {
 				os = new ByteArrayOutputStream();
@@ -1200,8 +1224,14 @@ public final class Util {
 		public static boolean verifyAddressPublickey(String address, byte[] publickey) {
 			byte[] hidden_address = null;
 			byte[] publickey_hash = null;
+			AddressType addressType = getAddressType(address);
 			try {
-				publickey_hash = EQCCHA_MULTIPLE_FIBONACCI_MERKEL(publickey, HUNDREDPULS, true);
+				if(addressType == AddressType.T1) {
+					publickey_hash = EQCCHA_MULTIPLE_DUAL(publickey, ELEVEN, false, true);
+				}
+				else if(addressType == AddressType.T2) {
+					publickey_hash = EQCCHA_MULTIPLE(publickey, HUNDREDPULS, true);
+				}
 				hidden_address = Base58.decode(address.substring(1));
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -1282,6 +1312,7 @@ public final class Util {
 			byte[] CRC32C = null;
 			byte[] CRC32CC = null;
 			byte[] type_publickey_hash = null;
+			AddressType addressType = getAddressType(address);
 			
 			try {
 				bytes = Base58.decode(address.substring(1));
@@ -1302,7 +1333,12 @@ public final class Util {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				CRC32C = CRC32C(multipleExtend(os.toByteArray(), HUNDREDPULS));
+				if(addressType == AddressType.T1) {
+					CRC32C = CRC32C(multipleExtend(os.toByteArray(), ELEVEN));
+				}
+				else if(addressType == AddressType.T2) {
+					CRC32C = CRC32C(multipleExtend(os.toByteArray(), HUNDREDPULS));
+				}
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -2112,7 +2148,7 @@ public final class Util {
 		eqcFoundationTxOut.setAddress(Util.DB().getAddress(ID.ONE));
 		if (height.compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
 			if(accountsMerkleTree.isAccountExists(address, true)) {
-				transaction.setNonce(accountsMerkleTree.getAccount(address).getNonce().getNextID());
+				transaction.setNonce(accountsMerkleTree.getAccount(address).getAsset(Asset.EQCOIN).getNonce().getNextID());
 			}
 			else {
 				transaction.setNonce(ID.ONE);
@@ -2120,7 +2156,7 @@ public final class Util {
 			eqcFoundationTxOut.setValue(Util.EQC_FOUNDATION_COINBASE_REWARD);
 			minerTxOut.setValue(Util.MINER_COINBASE_REWARD);
 		} else {
-			transaction.setNonce(accountsMerkleTree.getAccount(ID.ONE).getNonce().getNextID());
+			transaction.setNonce(accountsMerkleTree.getAccount(ID.ONE).getAsset(Asset.EQCOIN).getNonce().getNextID());
 			eqcFoundationTxOut.setValue(0);
 			minerTxOut.setValue(0);
 		}
@@ -2150,12 +2186,15 @@ public final class Util {
 		txOut.setValue(EQC_FOUNDATION_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
-		Account account = new Account();
-		account.setAddress(txOut.getAddress());
-		account.setAddressCreateHeight(ID.ZERO);
-		account.setBalance(EQC_FOUNDATION_COINBASE_REWARD);
-		account.setBalanceUpdateHeight(ID.ZERO);
-		account.setNonce(ID.ZERO);
+		AssetAccount account = new AssetAccount();
+		account.getKey().setAddress(txOut.getAddress());
+		account.getKey().setAddressCreateHeight(ID.ZERO);
+		Asset asset = new Asset();
+		asset.setAssetID(Asset.EQCOIN);
+		asset.setBalance(EQC_FOUNDATION_COINBASE_REWARD);
+		asset.setBalanceUpdateHeight(ID.ZERO);
+		asset.setNonce(ID.ZERO);
+		account.setAsset(asset);
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		
@@ -2165,12 +2204,15 @@ public final class Util {
 		txOut.setValue(MINER_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
-		account = new Account();
-		account.setAddress(txOut.getAddress());
-		account.setAddressCreateHeight(ID.ZERO);
-		account.setBalance(MINER_COINBASE_REWARD);
-		account.setBalanceUpdateHeight(ID.ZERO);
-		account.setNonce(ID.ONE);
+		account = new AssetAccount();
+		account.getKey().setAddress(txOut.getAddress());
+		account.getKey().setAddressCreateHeight(ID.ZERO);
+		asset = new Asset();
+		asset.setAssetID(Asset.EQCOIN);
+		asset.setBalance(MINER_COINBASE_REWARD);
+		asset.setBalanceUpdateHeight(ID.ZERO);
+		asset.setNonce(ID.ONE);
+		account.setAsset(asset);
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		transaction.setNonce(ID.ONE);

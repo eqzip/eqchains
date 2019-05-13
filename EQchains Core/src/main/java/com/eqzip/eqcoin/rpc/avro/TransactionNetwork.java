@@ -31,7 +31,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc.avro;
+package com.eqzip.eqcoin.rpc.avro;
 
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
@@ -39,28 +39,28 @@ public interface TransactionNetwork {
   public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"TransactionNetwork\",\"namespace\":\"com.eqzip.eqcoin.rpc.avro\",\"types\":[{\"type\":\"record\",\"name\":\"Cookie\",\"fields\":[{\"name\":\"ip\",\"type\":\"string\"},{\"name\":\"version\",\"type\":\"string\"}]},{\"type\":\"record\",\"name\":\"Status\",\"fields\":[{\"name\":\"cookie\",\"type\":\"Cookie\"},{\"name\":\"code\",\"type\":\"int\"},{\"name\":\"message\",\"type\":\"string\"}]},{\"type\":\"record\",\"name\":\"MinerList\",\"fields\":[{\"name\":\"cookie\",\"type\":\"Cookie\"},{\"name\":\"minerList\",\"type\":\"bytes\"}]},{\"type\":\"record\",\"name\":\"TransactionRPC\",\"fields\":[{\"name\":\"cookie\",\"type\":\"Cookie\"},{\"name\":\"data\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"cookie\",\"type\":\"Cookie\"}],\"response\":\"Status\"},\"getMinerList\":{\"request\":[{\"name\":\"cookie\",\"type\":\"Cookie\"}],\"response\":\"MinerList\"},\"sendTransaction\":{\"request\":[{\"name\":\"transaction\",\"type\":\"TransactionRPC\"}],\"response\":\"Status\"}}}");
   /**
    */
-  com.eqchains.rpc.avro.Status ping(com.eqchains.rpc.avro.Cookie cookie) throws org.apache.avro.AvroRemoteException;
+  com.eqzip.eqcoin.rpc.avro.Status ping(com.eqzip.eqcoin.rpc.avro.Cookie cookie) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.rpc.avro.MinerList getMinerList(com.eqchains.rpc.avro.Cookie cookie) throws org.apache.avro.AvroRemoteException;
+  com.eqzip.eqcoin.rpc.avro.MinerList getMinerList(com.eqzip.eqcoin.rpc.avro.Cookie cookie) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.rpc.avro.Status sendTransaction(com.eqchains.rpc.avro.TransactionRPC transaction) throws org.apache.avro.AvroRemoteException;
+  com.eqzip.eqcoin.rpc.avro.Status sendTransaction(com.eqzip.eqcoin.rpc.avro.TransactionRPC transaction) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
   public interface Callback extends TransactionNetwork {
-    public static final org.apache.avro.Protocol PROTOCOL = com.eqchains.rpc.avro.TransactionNetwork.PROTOCOL;
+    public static final org.apache.avro.Protocol PROTOCOL = com.eqzip.eqcoin.rpc.avro.TransactionNetwork.PROTOCOL;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void ping(com.eqchains.rpc.avro.Cookie cookie, org.apache.avro.ipc.Callback<com.eqchains.rpc.avro.Status> callback) throws java.io.IOException;
+    void ping(com.eqzip.eqcoin.rpc.avro.Cookie cookie, org.apache.avro.ipc.Callback<com.eqzip.eqcoin.rpc.avro.Status> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getMinerList(com.eqchains.rpc.avro.Cookie cookie, org.apache.avro.ipc.Callback<com.eqchains.rpc.avro.MinerList> callback) throws java.io.IOException;
+    void getMinerList(com.eqzip.eqcoin.rpc.avro.Cookie cookie, org.apache.avro.ipc.Callback<com.eqzip.eqcoin.rpc.avro.MinerList> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void sendTransaction(com.eqchains.rpc.avro.TransactionRPC transaction, org.apache.avro.ipc.Callback<com.eqchains.rpc.avro.Status> callback) throws java.io.IOException;
+    void sendTransaction(com.eqzip.eqcoin.rpc.avro.TransactionRPC transaction, org.apache.avro.ipc.Callback<com.eqzip.eqcoin.rpc.avro.Status> callback) throws java.io.IOException;
   }
 }

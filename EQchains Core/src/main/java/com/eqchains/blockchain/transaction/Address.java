@@ -89,12 +89,12 @@ public class Address implements EQCTypable {
 	public Address() {
 	}
 	
-	public Address(String address) {
-		this.readableAddress = address;
+	public Address(String readableAddress) {
+		this.readableAddress = readableAddress;
 	}
 
 	/**
-	 * Create Address according to the bytes from EQC blockchain's Transactions' AddressList.
+	 * Create Address according to the bytes from EQC blockchain's Transactions' newAccountList.
 	 * 
 	 * @param bytes
 	 * @throws IOException

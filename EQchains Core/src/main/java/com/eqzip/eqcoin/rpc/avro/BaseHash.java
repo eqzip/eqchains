@@ -31,7 +31,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc.avro;
+package com.eqzip.eqcoin.rpc.avro;
 @SuppressWarnings("all")
 @org.apache.avro.specific.FixedSize(16)
 @org.apache.avro.specific.AvroGenerated

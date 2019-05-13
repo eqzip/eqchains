@@ -285,7 +285,7 @@ public class Singularity {
 //		Log.info("abc");
 //		Log.info("" + beginBigDecimal.divide(new BigDecimal("1234567890"), mathContext).toPlainString().getBytes(StandardCharsets.US_ASCII).length);
 //		Log.info(beginBigDecimal.divide(new BigDecimal("1234567890"), mathContext).toPlainString());
-//		Test.testHashTime();
+		Test.testHashTime();
 //		Test.testEQCCHA_MULTIPLETime();
 //		Test.testMultiExtendTime();
 //		Test.testCreateAddressTime();

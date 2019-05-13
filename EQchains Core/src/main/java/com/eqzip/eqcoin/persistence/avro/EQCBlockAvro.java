@@ -31,7 +31,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.persistence.avro;
+package com.eqzip.eqcoin.persistence.avro;
 
 import org.apache.avro.specific.SpecificData;
 import org.apache.avro.message.BinaryMessageEncoder;
@@ -177,8 +177,8 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
    * Creates a new EQCBlockAvro RecordBuilder.
    * @return A new EQCBlockAvro RecordBuilder
    */
-  public static com.eqchains.persistence.avro.EQCBlockAvro.Builder newBuilder() {
-    return new com.eqchains.persistence.avro.EQCBlockAvro.Builder();
+  public static com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder newBuilder() {
+    return new com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder();
   }
 
   /**
@@ -186,8 +186,8 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
    * @param other The existing builder to copy.
    * @return A new EQCBlockAvro RecordBuilder
    */
-  public static com.eqchains.persistence.avro.EQCBlockAvro.Builder newBuilder(com.eqchains.persistence.avro.EQCBlockAvro.Builder other) {
-    return new com.eqchains.persistence.avro.EQCBlockAvro.Builder(other);
+  public static com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder newBuilder(com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder other) {
+    return new com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder(other);
   }
 
   /**
@@ -195,8 +195,8 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
    * @param other The existing instance to copy.
    * @return A new EQCBlockAvro RecordBuilder
    */
-  public static com.eqchains.persistence.avro.EQCBlockAvro.Builder newBuilder(com.eqchains.persistence.avro.EQCBlockAvro other) {
-    return new com.eqchains.persistence.avro.EQCBlockAvro.Builder(other);
+  public static com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder newBuilder(com.eqzip.eqcoin.persistence.avro.EQCBlockAvro other) {
+    return new com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder(other);
   }
 
   /**
@@ -218,7 +218,7 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
      * Creates a Builder by copying an existing Builder.
      * @param other The existing Builder to copy.
      */
-    private Builder(com.eqchains.persistence.avro.EQCBlockAvro.Builder other) {
+    private Builder(com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.EQCHeader)) {
         this.EQCHeader = data().deepCopy(fields()[0].schema(), other.EQCHeader);
@@ -238,7 +238,7 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
      * Creates a Builder by copying an existing EQCBlockAvro instance
      * @param other The existing instance to copy.
      */
-    private Builder(com.eqchains.persistence.avro.EQCBlockAvro other) {
+    private Builder(com.eqzip.eqcoin.persistence.avro.EQCBlockAvro other) {
             super(SCHEMA$);
       if (isValidValue(fields()[0], other.EQCHeader)) {
         this.EQCHeader = data().deepCopy(fields()[0].schema(), other.EQCHeader);
@@ -267,7 +267,7 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
       * @param value The value of 'EQCHeader'.
       * @return This builder.
       */
-    public com.eqchains.persistence.avro.EQCBlockAvro.Builder setEQCHeader(java.nio.ByteBuffer value) {
+    public com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder setEQCHeader(java.nio.ByteBuffer value) {
       validate(fields()[0], value);
       this.EQCHeader = value;
       fieldSetFlags()[0] = true;
@@ -287,7 +287,7 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
       * Clears the value of the 'EQCHeader' field.
       * @return This builder.
       */
-    public com.eqchains.persistence.avro.EQCBlockAvro.Builder clearEQCHeader() {
+    public com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder clearEQCHeader() {
       EQCHeader = null;
       fieldSetFlags()[0] = false;
       return this;
@@ -306,7 +306,7 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
       * @param value The value of 'Transactions'.
       * @return This builder.
       */
-    public com.eqchains.persistence.avro.EQCBlockAvro.Builder setTransactions(java.nio.ByteBuffer value) {
+    public com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder setTransactions(java.nio.ByteBuffer value) {
       validate(fields()[1], value);
       this.Transactions = value;
       fieldSetFlags()[1] = true;
@@ -326,7 +326,7 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
       * Clears the value of the 'Transactions' field.
       * @return This builder.
       */
-    public com.eqchains.persistence.avro.EQCBlockAvro.Builder clearTransactions() {
+    public com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder clearTransactions() {
       Transactions = null;
       fieldSetFlags()[1] = false;
       return this;
@@ -345,7 +345,7 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
       * @param value The value of 'Signatures'.
       * @return This builder.
       */
-    public com.eqchains.persistence.avro.EQCBlockAvro.Builder setSignatures(java.nio.ByteBuffer value) {
+    public com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder setSignatures(java.nio.ByteBuffer value) {
       validate(fields()[2], value);
       this.Signatures = value;
       fieldSetFlags()[2] = true;
@@ -365,7 +365,7 @@ public class EQCBlockAvro extends org.apache.avro.specific.SpecificRecordBase im
       * Clears the value of the 'Signatures' field.
       * @return This builder.
       */
-    public com.eqchains.persistence.avro.EQCBlockAvro.Builder clearSignatures() {
+    public com.eqzip.eqcoin.persistence.avro.EQCBlockAvro.Builder clearSignatures() {
       Signatures = null;
       fieldSetFlags()[2] = false;
       return this;

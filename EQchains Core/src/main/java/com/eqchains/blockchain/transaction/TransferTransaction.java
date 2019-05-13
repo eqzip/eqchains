@@ -42,6 +42,7 @@ import java.util.Comparator;
 import java.util.Vector;
 
 import com.eqchains.blockchain.Account;
+import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
@@ -61,13 +62,19 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  */
 public class TransferTransaction extends Transaction {
 
+	private void init() {
+		assetID = Asset.EQCOIN;
+	}
+	
 	public TransferTransaction(TransactionType transactionType) {
 		super(transactionType);
+		init();
 	}
 
 	public TransferTransaction(byte[] bytes, Address.AddressShape addressShape)
 			throws NoSuchFieldException, IOException, UnsupportedOperationException {
 		super(TransactionType.TRANSFER);
+		init();
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		byte[] data = null;
 
@@ -388,7 +395,7 @@ public class TransferTransaction extends Transaction {
 
 		// Check if Publickey exists in Account and equal to current Publickey
 		if(txInAccount.isPublickeyExists()) {
-			if(!txInAccount.getPublickey().equals(publickey)) {
+			if(!Arrays.equals(txInAccount.getKey().getPublickey().getPublickey(), publickey.getPublicKey())) {
 				return false;
 			}
 		}
@@ -400,7 +407,7 @@ public class TransferTransaction extends Transaction {
 		}
 		
 		// Check balance
-		if (txIn.getValue() + Util.MIN_EQC > txInAccount.getBalance()) {
+		if (txIn.getValue() + Util.MIN_EQC > txInAccount.getAsset(Asset.EQCOIN).getBalance()) {
 			return false;
 		}
 

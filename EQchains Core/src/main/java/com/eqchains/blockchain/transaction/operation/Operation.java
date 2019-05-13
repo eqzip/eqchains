@@ -49,7 +49,7 @@ import com.eqchains.util.Log;
 public class Operation implements EQCTypable {
 
 	public enum OP {
-		ADDRESS, EMAIL, RENEW, INVALID;
+		ADDRESS, TXFEERATE, EMAIL, RENEW, INVALID;
 		public static OP get(int ordinal) {
 			OP op = null;
 			switch (ordinal) {
@@ -57,12 +57,14 @@ public class Operation implements EQCTypable {
 				op = OP.ADDRESS;
 				break;
 			case 1:
-				op = OP.EMAIL;
+				op = OP.TXFEERATE;
 				break;
 			case 2:
-				op = OP.RENEW;
+				op = OP.EMAIL;
 				break;
 			case 3:
+				op = OP.RENEW;
+				break;
 			default:
 				op = OP.INVALID;
 				break;

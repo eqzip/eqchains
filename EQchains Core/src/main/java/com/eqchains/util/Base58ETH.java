@@ -1,3 +1,4 @@
+
 package com.eqchains.util;
 
 import java.math.BigInteger;

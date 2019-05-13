@@ -31,6 +31,7 @@ package com.eqchains.util;
 
 import java.math.BigInteger;
 
+import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCType;
 
 /**
@@ -124,6 +125,13 @@ public class ID extends BigInteger {
 	public ID subtract(BigInteger val) {
 		// TODO Auto-generated method stub
 		return new ID(super.subtract(val));
+	}
+	
+	public boolean isSanity() {
+		if(this.compareTo(ID.ZERO) < 0) {
+			return false;
+		}
+		return true;
 	}
 
 }

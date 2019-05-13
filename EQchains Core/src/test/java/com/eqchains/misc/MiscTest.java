@@ -39,7 +39,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.eqchains.blockchain.Account;
+import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.AssetAccount;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
 import com.eqchains.blockchain.EQCBlock;
 import com.eqchains.blockchain.transaction.Address;
@@ -93,14 +95,14 @@ public class MiscTest {
 	   
 	   @Test
 	   void saveAccount() {
-		   Account account = new Account();
+		   Account account = new AssetAccount();
 		   Address address = new Address();
 		   address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		   address.setID(ID.ONE);
-		   account.setAddress(address);
-		   account.setAddressCreateHeight(ID.ZERO);
-		   account.setBalance(Util.MIN_EQC);
-		   account.setBalanceUpdateHeight(ID.ZERO);
+		   account.getKey().setAddress(address);
+		   account.getKey().setAddressCreateHeight(ID.ZERO);
+		   account.getAsset(Asset.EQCOIN).setBalance(Util.MIN_EQC);
+		   account.getAsset(Asset.EQCOIN).setBalanceUpdateHeight(ID.ZERO);
 		   EQCBlockChainRocksDB.getInstance().saveAccount(account);
 		   Account account2 = EQCBlockChainRocksDB.getInstance().getAccount(ID.ONE);
 		   assertEquals(account, account2);
@@ -124,7 +126,7 @@ public class MiscTest {
 	   @Test
 	   void snapshot() {
 		   Account account = EQCBlockChainH2.getInstance().getAccountSnapshot(ID.TWO.getNextID(), ID.ONE);
-		   assertEquals(account.getBalanceUpdateHeight(), ID.ONE);
+		   assertEquals(account.getAsset(Asset.EQCOIN).getBalanceUpdateHeight(), ID.ONE);
 	   }
 	   
 	   @Test

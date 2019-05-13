@@ -73,8 +73,10 @@ import com.eqchains.blockchain.EQCBlock;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Transactions;
+import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.Account.Publickey;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
+import com.eqchains.blockchain.AssetAccount;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
@@ -172,8 +174,11 @@ public class Test {
 		byte[] asd = Util.getSecureRandomBytes();
 		byte[] asdf = new byte[64];
 		System.arraycopy(asd, 0, asdf, 0, asdf.length);
+//		for(int i=0; i<asdf.length; ++i) {
+//			asdf[i] = (byte) 0xFF;
+//		}
 		long c0 = System.currentTimeMillis();
-		int n = 10000;
+		int n = 1000;
 		for (int i = 0; i < n; ++i) {
 			Util.multipleExtend(asdf, Util.HUNDREDPULS);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
@@ -1225,17 +1230,19 @@ public class Test {
 	}
 	
 	public static void testRocksDBAccount() {
-		Account account = new Account();
+		Account account = new AssetAccount();
 		Address address = new Address();
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		address.setID(ID.TWO);
-		account.setAddress(address);
-		account.setAddressCreateHeight(ID.ZERO);
-		account.setBalance(500000);
-		account.setBalanceUpdateHeight(ID.ZERO);
+		account.getKey().setAddress(address);
+		account.getKey().setAddressCreateHeight(ID.ZERO);
+		Asset asset = new Asset();
+		asset.setBalance(500000);
+		asset.setBalanceUpdateHeight(ID.ZERO);
+		account.setAsset(asset);
 		EQCBlockChainRocksDB.getInstance().saveAccount(account);
 		account = EQCBlockChainRocksDB.getInstance().getAccount(ID.TWO);
-		Log.info(account.getAddress().toString());
+		Log.info(account.getKey().getAddress().toString());
 //		RocksIterator rocksIterator = EQCBlockChainRocksDB.getInstance().getRocksDB().newIterator(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT));
 //		rocksIterator.seekToFirst();
 //		while(rocksIterator.isValid()) {
@@ -1246,16 +1253,16 @@ public class Test {
 //				// TODO Auto-generated catch block
 //				e.printStackTrace();
 //			}
-//			Log.info(account.getAddress().toString());
+//			Log.info(account.getKey().getAddress().toString());
 //			rocksIterator.next();
 //		}
 	}
 	
 	public static void testDisplayAccount() {
 		Account account = EQCBlockChainRocksDB.getInstance().getAccount(ID.TWO);
-		Log.info(account.getAddress().toString());
+		Log.info(account.getKey().getAddress().toString());
 		account = EQCBlockChainRocksDB.getInstance().getAccount(new ID(3));
-		Log.info(account.getAddress().toString());
+		Log.info(account.getKey().getAddress().toString());
 	}
 	
 	public static void testDisplayEQCBlock(ID height) {
@@ -1429,30 +1436,36 @@ public class Test {
 	}
 	
 	public static void testTakeSnapshot() {
-		Account account = new Account();
+		Account account = new AssetAccount();
 		Address address = new Address();
 		address.setID(ID.ZERO);
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		account.setAddress(address);
-		account.setAddressCreateHeight(ID.ZERO);
-		account.setBalance(150000);
-		account.setBalanceUpdateHeight(ID.ZERO);
+		account.getKey().setAddress(address);
+		account.getKey().setAddressCreateHeight(ID.ZERO);
+		Asset asset = new Asset();
+		asset.setBalance(150000);
+		asset.setBalanceUpdateHeight(ID.ZERO);
+		account.setAsset(asset);
 		EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.ZERO);
 		
 		address.setID(ID.ZERO);
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		account.setAddress(address);
-		account.setAddressCreateHeight(ID.ZERO);
-		account.setBalance(150001);
-		account.setBalanceUpdateHeight(ID.ONE);
+		account.getKey().setAddress(address);
+		account.getKey().setAddressCreateHeight(ID.ZERO);
+		asset = new Asset();
+		asset.setBalance(150001);
+		asset.setBalanceUpdateHeight(ID.ONE);
+		account.setAsset(asset);
 		EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.ONE);
 		
 		address.setID(ID.ZERO);
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		account.setAddress(address);
-		account.setAddressCreateHeight(ID.ZERO);
-		account.setBalance(150002);
-		account.setBalanceUpdateHeight(ID.TWO);
+		account.getKey().setAddress(address);
+		account.getKey().setAddressCreateHeight(ID.ZERO);
+		asset = new Asset();
+		asset.setBalance(150002);
+		asset.setBalanceUpdateHeight(ID.TWO);
+		account.setAsset(asset);
 		EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.TWO);
 		
 		Log.info(EQCBlockChainH2.getInstance().getAccountSnapshot(ID.ZERO, ID.ONE).toString());
@@ -1475,7 +1488,7 @@ public class Test {
 		txOut.setAddress(new Address(userAccount1.getReadableAddress()));
 		txOut.setValue(50*Util.ABC);
 		transaction.addTxOut(txOut);
-		transaction.setNonce(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI()).getNonce().getNextID());
+		transaction.setNonce(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI()).getAsset(Asset.EQCOIN).getNonce().getNextID());
 		
 		byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
 		byte[] publickey =  Util.AESDecrypt(userAccount.getPublicKey(), "abc");
@@ -1496,7 +1509,7 @@ public class Test {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		transaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(userAccount.getAddressAI()).getAddressCreateHeight()), publickey);
+		transaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(userAccount.getAddressAI()).getKey().getAddressCreateHeight()), publickey);
 		EQCBlockChainH2.getInstance().addTransactionInPool(transaction);
 		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
 		publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
@@ -1535,31 +1548,33 @@ public class Test {
 		updateAddressOperation.setAddress(new Address(userAccount2.getReadableAddress()));
 		operationTransaction.setOperation(updateAddressOperation);
 		operationTransaction.setTxIn(txIn);
-		operationTransaction.setNonce(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI()).getNonce().getNextID());
+		operationTransaction.setNonce(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI()).getAsset(Asset.EQCOIN).getNonce().getNextID());
 		operationTransaction.cypherTxInValue(TXFEE_RATE.POSTPONE0);
 		Log.info("getMaxBillingSize: " + operationTransaction.getMaxBillingSize());
 		Log.info("getTxFeeLimit: " + operationTransaction.getTxFeeLimit());
 		Log.info("getQosRate: " + operationTransaction.getQosRate());
 		Log.info("getQos: " + operationTransaction.getQos());
-		operationTransaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI()).getAddressCreateHeight()), publickey);
+		operationTransaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI()).getKey().getAddressCreateHeight()), publickey);
 		EQCBlockChainH2.getInstance().addTransactionInPool(operationTransaction);
 		
 	}
 
 	public static void testAccountHashTime() {
-		Account account = new Account();
+		Account account = new AssetAccount();
 		Address address = new Address();
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
 		address.setID(ID.ONE);
-		account.setAddress(address);
-		account.setAddressCreateHeight(ID.ONE);
-		account.setBalance(50*Util.ABC);
-		account.setBalanceUpdateHeight(ID.ONE);
+		account.getKey().setAddress(address);
+		account.getKey().setAddressCreateHeight(ID.ONE);
+		Asset asset = new Asset();
+		asset.setBalance(50*Util.ABC);
+		asset.setBalanceUpdateHeight(ID.ONE);
+		account.setAsset(asset);
 		byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
 		Publickey publicKey2 = new Publickey();
 		publicKey2.setPublickey(publickey);
 		publicKey2.setPublickeyCreateHeight(ID.ONE);
-		account.setPublickey(publicKey2);
+		account.getKey().setPublickey(publicKey2);
 		
 		long c0 = System.currentTimeMillis();
 		int n = 10;

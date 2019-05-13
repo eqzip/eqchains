@@ -1,5 +1,5 @@
 /**
- * EQCoin core - EQCOIN Foundation's EQCoin core library
+ * EQZIPWallet - EQchains Foundation's EQZIPWallet
  * @copyright 2018-present EQCOIN Foundation All rights reserved...
  * Copyright of all works released by EQCOIN Foundation or jointly released by
  * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
@@ -14,6 +14,34 @@
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqzip.com
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *//**
+ * EQchains core - EQchains Foundation's EQchains core library
+ * @copyright 2018-present EQchains Foundation All rights reserved...
+ * Copyright of all works released by EQchains Foundation or jointly released by
+ * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQchains Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
+ * https://www.eqchains.com
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -41,7 +69,6 @@ import java.util.Vector;
 import javax.naming.InitialContext;
 import javax.print.attribute.Size2DSyntax;
 
-import com.eqchains.blockchain.Account.Publickey;
 import com.eqchains.blockchain.AccountsMerkleTree.Statistics;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
@@ -424,34 +451,34 @@ public class EQCBlock implements EQCTypable {
 		accountsMerkleTree.buildAccountsMerkleTree();
 		accountsMerkleTree.generateRoot();
 
-		// Initial Root
-		Statistics statistics = accountsMerkleTree.getStatistics();
-		// Check total supply
-		Log.info("" + statistics.totalSupply);
-		Log.info("" + Util.cypherTotalSupply(eqcHeader.getHeight()));
-		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
-			Log.Error("Total supply is invalid!");
-			throw new IllegalStateException("Total supply is invalid!");
-		} else {
-			root.setTotalSupply(Util.cypherTotalSupply(eqcHeader.getHeight()));
-		}
-		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(), true);
-		// Check total Account numbers
-		if(!previousBlock.getRoot().getTotalAccountNumbers().add(BigInteger.valueOf(transactions.getNewAccountList().size())).equals(accountsMerkleTree.getTotalAccountNumbers())){
-			Log.Error("Total Account numbers is invalid!");
-			throw new IllegalStateException("Total Account numbers is invalid!");
-		}
-		else {
-			root.setTotalAccountNumbers(accountsMerkleTree.getTotalAccountNumbers());
-		}
-		// Check total Transaction numbers
-		if (!previousBlock.getRoot().getTotalTransactionNumbers()
-				.add(BigInteger.valueOf(transactions.getNewTransactionList().size())).equals(statistics.totalTransactionNumbers)) {
-			Log.Error("Total Transaction numbers is invalid!");
-			throw new IllegalStateException("Total Transaction numbers is invalid!");
-		} else {
-			root.setTotalTransactionNumbers(statistics.totalTransactionNumbers);
-		}
+//		// Initial Root
+//		Statistics statistics = accountsMerkleTree.getStatistics();
+//		// Check total supply
+//		Log.info("" + statistics.totalSupply);
+//		Log.info("" + Util.cypherTotalSupply(eqcHeader.getHeight()));
+//		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
+//			Log.Error("Total supply is invalid!");
+//			throw new IllegalStateException("Total supply is invalid!");
+//		} else {
+//			root.setTotalSupply(Util.cypherTotalSupply(eqcHeader.getHeight()));
+//		}
+//		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(), true);
+//		// Check total Account numbers
+//		if(!previousBlock.getRoot().getTotalAccountNumbers().add(BigInteger.valueOf(transactions.getNewAccountList().size())).equals(accountsMerkleTree.getTotalAccountNumbers())){
+//			Log.Error("Total Account numbers is invalid!");
+//			throw new IllegalStateException("Total Account numbers is invalid!");
+//		}
+//		else {
+//			root.setTotalAccountNumbers(accountsMerkleTree.getTotalAccountNumbers());
+//		}
+//		// Check total Transaction numbers
+//		if (!previousBlock.getRoot().getTotalTransactionNumbers()
+//				.add(BigInteger.valueOf(transactions.getNewTransactionList().size())).equals(statistics.totalTransactionNumbers)) {
+//			Log.Error("Total Transaction numbers is invalid!");
+//			throw new IllegalStateException("Total Transaction numbers is invalid!");
+//		} else {
+//			root.setTotalTransactionNumbers(statistics.totalTransactionNumbers);
+//		}
 		root.setAccountsMerkelTreeRoot(accountsMerkleTree.getRoot());
 		root.setTransactionsMerkelTreeRoot(getTransactionsMerkelTreeRoot());
 		// Set EQCHeader's Root's hash
@@ -493,6 +520,7 @@ public class EQCBlock implements EQCTypable {
 		}
 
 		// Check if AccountList is valid
+		// here need move to isAccountListValid
 		if(transactions.getNewAccountList().size() == 0) {
 			if(!root.getTotalAccountNumbers().equals(accountsMerkleTree.getEQCBlock(accountsMerkleTree.getHeight(), true).getRoot().getTotalAccountNumbers())) {
 				Log.Error("EQCHeader AccountList is invalid");
@@ -599,15 +627,15 @@ public class EQCBlock implements EQCTypable {
 		Statistics statistics = accountsMerkleTree.getStatistics();
 
 		// Verify Root
-		// Check total supply
-		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
-			Log.Error("Total supply is invalid doesn't equal cypherTotalSupply.");
-			return false;
-		}
-		if(statistics.totalSupply != root.getTotalSupply()){
-			Log.Error("Total supply is invalid doesn't equal root.");
-			return false;
-		}
+//		// Check total supply
+//		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
+//			Log.Error("Total supply is invalid doesn't equal cypherTotalSupply.");
+//			return false;
+//		}
+//		if(statistics.totalSupply != root.getTotalSupply()){
+//			Log.Error("Total supply is invalid doesn't equal root.");
+//			return false;
+//		}
 		
 		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(),
 				true);
@@ -623,17 +651,17 @@ public class EQCBlock implements EQCTypable {
 			return false;
 		}
 		
-		// Check total Transaction numbers
-		if (!previousBlock.getRoot().getTotalTransactionNumbers()
-				.add(BigInteger.valueOf(transactions.getNewTransactionList().size()))
-				.equals(statistics.totalTransactionNumbers)) {
-			Log.Error("Total Transaction numbers is invalid doesn't equal transactions.getNewTransactionList.");
-			return false;
-		}
-		if(!statistics.totalTransactionNumbers.equals(root.getTotalTransactionNumbers())) {
-			Log.Error("Total Transaction numbers is invalid doesn't equal root.getTotalTransactionNumbers.");
-			return false;
-		}
+//		// Check total Transaction numbers
+//		if (!previousBlock.getRoot().getTotalTransactionNumbers()
+//				.add(BigInteger.valueOf(transactions.getNewTransactionList().size()))
+//				.equals(statistics.totalTransactionNumbers)) {
+//			Log.Error("Total Transaction numbers is invalid doesn't equal transactions.getNewTransactionList.");
+//			return false;
+//		}
+//		if(!statistics.totalTransactionNumbers.equals(root.getTotalTransactionNumbers())) {
+//			Log.Error("Total Transaction numbers is invalid doesn't equal root.getTotalTransactionNumbers.");
+//			return false;
+//		}
 		// Check AccountsMerkelTreeRoot
 		if(!Arrays.equals(root.getAccountsMerkelTreeRoot(), accountsMerkleTree.getRoot())) {
 			Log.Error("AccountsMerkelTreeRoot is invalid!");

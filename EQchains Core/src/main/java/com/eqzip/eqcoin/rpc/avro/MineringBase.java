@@ -31,7 +31,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc.avro;
+package com.eqzip.eqcoin.rpc.avro;
 
 import org.apache.avro.specific.SpecificData;
 import org.apache.avro.message.BinaryMessageEncoder;
@@ -79,10 +79,10 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
     return DECODER.decode(b);
   }
 
-  @Deprecated public com.eqchains.rpc.avro.Cookie cookie;
+  @Deprecated public com.eqzip.eqcoin.rpc.avro.Cookie cookie;
   @Deprecated public java.lang.CharSequence baseIp;
   @Deprecated public long baseHeight;
-  @Deprecated public com.eqchains.rpc.avro.BaseHash baseHash;
+  @Deprecated public com.eqzip.eqcoin.rpc.avro.BaseHash baseHash;
   @Deprecated public long currentTimestamp;
 
   /**
@@ -100,7 +100,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
    * @param baseHash The new value for baseHash
    * @param currentTimestamp The new value for currentTimestamp
    */
-  public MineringBase(com.eqchains.rpc.avro.Cookie cookie, java.lang.CharSequence baseIp, java.lang.Long baseHeight, com.eqchains.rpc.avro.BaseHash baseHash, java.lang.Long currentTimestamp) {
+  public MineringBase(com.eqzip.eqcoin.rpc.avro.Cookie cookie, java.lang.CharSequence baseIp, java.lang.Long baseHeight, com.eqzip.eqcoin.rpc.avro.BaseHash baseHash, java.lang.Long currentTimestamp) {
     this.cookie = cookie;
     this.baseIp = baseIp;
     this.baseHeight = baseHeight;
@@ -125,10 +125,10 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
   @SuppressWarnings(value="unchecked")
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
-    case 0: cookie = (com.eqchains.rpc.avro.Cookie)value$; break;
+    case 0: cookie = (com.eqzip.eqcoin.rpc.avro.Cookie)value$; break;
     case 1: baseIp = (java.lang.CharSequence)value$; break;
     case 2: baseHeight = (java.lang.Long)value$; break;
-    case 3: baseHash = (com.eqchains.rpc.avro.BaseHash)value$; break;
+    case 3: baseHash = (com.eqzip.eqcoin.rpc.avro.BaseHash)value$; break;
     case 4: currentTimestamp = (java.lang.Long)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
@@ -138,7 +138,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
    * Gets the value of the 'cookie' field.
    * @return The value of the 'cookie' field.
    */
-  public com.eqchains.rpc.avro.Cookie getCookie() {
+  public com.eqzip.eqcoin.rpc.avro.Cookie getCookie() {
     return cookie;
   }
 
@@ -146,7 +146,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
    * Sets the value of the 'cookie' field.
    * @param value the value to set.
    */
-  public void setCookie(com.eqchains.rpc.avro.Cookie value) {
+  public void setCookie(com.eqzip.eqcoin.rpc.avro.Cookie value) {
     this.cookie = value;
   }
 
@@ -186,7 +186,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
    * Gets the value of the 'baseHash' field.
    * @return The value of the 'baseHash' field.
    */
-  public com.eqchains.rpc.avro.BaseHash getBaseHash() {
+  public com.eqzip.eqcoin.rpc.avro.BaseHash getBaseHash() {
     return baseHash;
   }
 
@@ -194,7 +194,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
    * Sets the value of the 'baseHash' field.
    * @param value the value to set.
    */
-  public void setBaseHash(com.eqchains.rpc.avro.BaseHash value) {
+  public void setBaseHash(com.eqzip.eqcoin.rpc.avro.BaseHash value) {
     this.baseHash = value;
   }
 
@@ -218,8 +218,8 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
    * Creates a new MineringBase RecordBuilder.
    * @return A new MineringBase RecordBuilder
    */
-  public static com.eqchains.rpc.avro.MineringBase.Builder newBuilder() {
-    return new com.eqchains.rpc.avro.MineringBase.Builder();
+  public static com.eqzip.eqcoin.rpc.avro.MineringBase.Builder newBuilder() {
+    return new com.eqzip.eqcoin.rpc.avro.MineringBase.Builder();
   }
 
   /**
@@ -227,8 +227,8 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
    * @param other The existing builder to copy.
    * @return A new MineringBase RecordBuilder
    */
-  public static com.eqchains.rpc.avro.MineringBase.Builder newBuilder(com.eqchains.rpc.avro.MineringBase.Builder other) {
-    return new com.eqchains.rpc.avro.MineringBase.Builder(other);
+  public static com.eqzip.eqcoin.rpc.avro.MineringBase.Builder newBuilder(com.eqzip.eqcoin.rpc.avro.MineringBase.Builder other) {
+    return new com.eqzip.eqcoin.rpc.avro.MineringBase.Builder(other);
   }
 
   /**
@@ -236,8 +236,8 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
    * @param other The existing instance to copy.
    * @return A new MineringBase RecordBuilder
    */
-  public static com.eqchains.rpc.avro.MineringBase.Builder newBuilder(com.eqchains.rpc.avro.MineringBase other) {
-    return new com.eqchains.rpc.avro.MineringBase.Builder(other);
+  public static com.eqzip.eqcoin.rpc.avro.MineringBase.Builder newBuilder(com.eqzip.eqcoin.rpc.avro.MineringBase other) {
+    return new com.eqzip.eqcoin.rpc.avro.MineringBase.Builder(other);
   }
 
   /**
@@ -246,11 +246,11 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
   public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<MineringBase>
     implements org.apache.avro.data.RecordBuilder<MineringBase> {
 
-    private com.eqchains.rpc.avro.Cookie cookie;
-    private com.eqchains.rpc.avro.Cookie.Builder cookieBuilder;
+    private com.eqzip.eqcoin.rpc.avro.Cookie cookie;
+    private com.eqzip.eqcoin.rpc.avro.Cookie.Builder cookieBuilder;
     private java.lang.CharSequence baseIp;
     private long baseHeight;
-    private com.eqchains.rpc.avro.BaseHash baseHash;
+    private com.eqzip.eqcoin.rpc.avro.BaseHash baseHash;
     private long currentTimestamp;
 
     /** Creates a new Builder */
@@ -262,14 +262,14 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
      * Creates a Builder by copying an existing Builder.
      * @param other The existing Builder to copy.
      */
-    private Builder(com.eqchains.rpc.avro.MineringBase.Builder other) {
+    private Builder(com.eqzip.eqcoin.rpc.avro.MineringBase.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.cookie)) {
         this.cookie = data().deepCopy(fields()[0].schema(), other.cookie);
         fieldSetFlags()[0] = true;
       }
       if (other.hasCookieBuilder()) {
-        this.cookieBuilder = com.eqchains.rpc.avro.Cookie.newBuilder(other.getCookieBuilder());
+        this.cookieBuilder = com.eqzip.eqcoin.rpc.avro.Cookie.newBuilder(other.getCookieBuilder());
       }
       if (isValidValue(fields()[1], other.baseIp)) {
         this.baseIp = data().deepCopy(fields()[1].schema(), other.baseIp);
@@ -293,7 +293,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
      * Creates a Builder by copying an existing MineringBase instance
      * @param other The existing instance to copy.
      */
-    private Builder(com.eqchains.rpc.avro.MineringBase other) {
+    private Builder(com.eqzip.eqcoin.rpc.avro.MineringBase other) {
             super(SCHEMA$);
       if (isValidValue(fields()[0], other.cookie)) {
         this.cookie = data().deepCopy(fields()[0].schema(), other.cookie);
@@ -322,7 +322,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * Gets the value of the 'cookie' field.
       * @return The value.
       */
-    public com.eqchains.rpc.avro.Cookie getCookie() {
+    public com.eqzip.eqcoin.rpc.avro.Cookie getCookie() {
       return cookie;
     }
 
@@ -331,7 +331,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * @param value The value of 'cookie'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder setCookie(com.eqchains.rpc.avro.Cookie value) {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder setCookie(com.eqzip.eqcoin.rpc.avro.Cookie value) {
       validate(fields()[0], value);
       this.cookieBuilder = null;
       this.cookie = value;
@@ -351,12 +351,12 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
      * Gets the Builder instance for the 'cookie' field and creates one if it doesn't exist yet.
      * @return This builder.
      */
-    public com.eqchains.rpc.avro.Cookie.Builder getCookieBuilder() {
+    public com.eqzip.eqcoin.rpc.avro.Cookie.Builder getCookieBuilder() {
       if (cookieBuilder == null) {
         if (hasCookie()) {
-          setCookieBuilder(com.eqchains.rpc.avro.Cookie.newBuilder(cookie));
+          setCookieBuilder(com.eqzip.eqcoin.rpc.avro.Cookie.newBuilder(cookie));
         } else {
-          setCookieBuilder(com.eqchains.rpc.avro.Cookie.newBuilder());
+          setCookieBuilder(com.eqzip.eqcoin.rpc.avro.Cookie.newBuilder());
         }
       }
       return cookieBuilder;
@@ -367,7 +367,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
      * @param value The builder instance that must be set.
      * @return This builder.
      */
-    public com.eqchains.rpc.avro.MineringBase.Builder setCookieBuilder(com.eqchains.rpc.avro.Cookie.Builder value) {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder setCookieBuilder(com.eqzip.eqcoin.rpc.avro.Cookie.Builder value) {
       clearCookie();
       cookieBuilder = value;
       return this;
@@ -385,7 +385,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * Clears the value of the 'cookie' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder clearCookie() {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder clearCookie() {
       cookie = null;
       cookieBuilder = null;
       fieldSetFlags()[0] = false;
@@ -405,7 +405,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * @param value The value of 'baseIp'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder setBaseIp(java.lang.CharSequence value) {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder setBaseIp(java.lang.CharSequence value) {
       validate(fields()[1], value);
       this.baseIp = value;
       fieldSetFlags()[1] = true;
@@ -425,7 +425,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * Clears the value of the 'baseIp' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder clearBaseIp() {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder clearBaseIp() {
       baseIp = null;
       fieldSetFlags()[1] = false;
       return this;
@@ -444,7 +444,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * @param value The value of 'baseHeight'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder setBaseHeight(long value) {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder setBaseHeight(long value) {
       validate(fields()[2], value);
       this.baseHeight = value;
       fieldSetFlags()[2] = true;
@@ -464,7 +464,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * Clears the value of the 'baseHeight' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder clearBaseHeight() {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder clearBaseHeight() {
       fieldSetFlags()[2] = false;
       return this;
     }
@@ -473,7 +473,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * Gets the value of the 'baseHash' field.
       * @return The value.
       */
-    public com.eqchains.rpc.avro.BaseHash getBaseHash() {
+    public com.eqzip.eqcoin.rpc.avro.BaseHash getBaseHash() {
       return baseHash;
     }
 
@@ -482,7 +482,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * @param value The value of 'baseHash'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder setBaseHash(com.eqchains.rpc.avro.BaseHash value) {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder setBaseHash(com.eqzip.eqcoin.rpc.avro.BaseHash value) {
       validate(fields()[3], value);
       this.baseHash = value;
       fieldSetFlags()[3] = true;
@@ -502,7 +502,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * Clears the value of the 'baseHash' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder clearBaseHash() {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder clearBaseHash() {
       baseHash = null;
       fieldSetFlags()[3] = false;
       return this;
@@ -521,7 +521,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * @param value The value of 'currentTimestamp'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder setCurrentTimestamp(long value) {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder setCurrentTimestamp(long value) {
       validate(fields()[4], value);
       this.currentTimestamp = value;
       fieldSetFlags()[4] = true;
@@ -541,7 +541,7 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
       * Clears the value of the 'currentTimestamp' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.MineringBase.Builder clearCurrentTimestamp() {
+    public com.eqzip.eqcoin.rpc.avro.MineringBase.Builder clearCurrentTimestamp() {
       fieldSetFlags()[4] = false;
       return this;
     }
@@ -554,11 +554,11 @@ public class MineringBase extends org.apache.avro.specific.SpecificRecordBase im
         if (cookieBuilder != null) {
           record.cookie = this.cookieBuilder.build();
         } else {
-          record.cookie = fieldSetFlags()[0] ? this.cookie : (com.eqchains.rpc.avro.Cookie) defaultValue(fields()[0]);
+          record.cookie = fieldSetFlags()[0] ? this.cookie : (com.eqzip.eqcoin.rpc.avro.Cookie) defaultValue(fields()[0]);
         }
         record.baseIp = fieldSetFlags()[1] ? this.baseIp : (java.lang.CharSequence) defaultValue(fields()[1]);
         record.baseHeight = fieldSetFlags()[2] ? this.baseHeight : (java.lang.Long) defaultValue(fields()[2]);
-        record.baseHash = fieldSetFlags()[3] ? this.baseHash : (com.eqchains.rpc.avro.BaseHash) defaultValue(fields()[3]);
+        record.baseHash = fieldSetFlags()[3] ? this.baseHash : (com.eqzip.eqcoin.rpc.avro.BaseHash) defaultValue(fields()[3]);
         record.currentTimestamp = fieldSetFlags()[4] ? this.currentTimestamp : (java.lang.Long) defaultValue(fields()[4]);
         return record;
       } catch (java.lang.Exception e) {

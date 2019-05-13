@@ -31,7 +31,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc.avro;
+package com.eqzip.eqcoin.rpc.avro;
 
 import org.apache.avro.specific.SpecificData;
 import org.apache.avro.message.BinaryMessageEncoder;
@@ -155,8 +155,8 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
    * Creates a new Cookie RecordBuilder.
    * @return A new Cookie RecordBuilder
    */
-  public static com.eqchains.rpc.avro.Cookie.Builder newBuilder() {
-    return new com.eqchains.rpc.avro.Cookie.Builder();
+  public static com.eqzip.eqcoin.rpc.avro.Cookie.Builder newBuilder() {
+    return new com.eqzip.eqcoin.rpc.avro.Cookie.Builder();
   }
 
   /**
@@ -164,8 +164,8 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
    * @param other The existing builder to copy.
    * @return A new Cookie RecordBuilder
    */
-  public static com.eqchains.rpc.avro.Cookie.Builder newBuilder(com.eqchains.rpc.avro.Cookie.Builder other) {
-    return new com.eqchains.rpc.avro.Cookie.Builder(other);
+  public static com.eqzip.eqcoin.rpc.avro.Cookie.Builder newBuilder(com.eqzip.eqcoin.rpc.avro.Cookie.Builder other) {
+    return new com.eqzip.eqcoin.rpc.avro.Cookie.Builder(other);
   }
 
   /**
@@ -173,8 +173,8 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
    * @param other The existing instance to copy.
    * @return A new Cookie RecordBuilder
    */
-  public static com.eqchains.rpc.avro.Cookie.Builder newBuilder(com.eqchains.rpc.avro.Cookie other) {
-    return new com.eqchains.rpc.avro.Cookie.Builder(other);
+  public static com.eqzip.eqcoin.rpc.avro.Cookie.Builder newBuilder(com.eqzip.eqcoin.rpc.avro.Cookie other) {
+    return new com.eqzip.eqcoin.rpc.avro.Cookie.Builder(other);
   }
 
   /**
@@ -195,7 +195,7 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
      * Creates a Builder by copying an existing Builder.
      * @param other The existing Builder to copy.
      */
-    private Builder(com.eqchains.rpc.avro.Cookie.Builder other) {
+    private Builder(com.eqzip.eqcoin.rpc.avro.Cookie.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.ip)) {
         this.ip = data().deepCopy(fields()[0].schema(), other.ip);
@@ -211,7 +211,7 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
      * Creates a Builder by copying an existing Cookie instance
      * @param other The existing instance to copy.
      */
-    private Builder(com.eqchains.rpc.avro.Cookie other) {
+    private Builder(com.eqzip.eqcoin.rpc.avro.Cookie other) {
             super(SCHEMA$);
       if (isValidValue(fields()[0], other.ip)) {
         this.ip = data().deepCopy(fields()[0].schema(), other.ip);
@@ -236,7 +236,7 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
       * @param value The value of 'ip'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Cookie.Builder setIp(java.lang.CharSequence value) {
+    public com.eqzip.eqcoin.rpc.avro.Cookie.Builder setIp(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.ip = value;
       fieldSetFlags()[0] = true;
@@ -256,7 +256,7 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
       * Clears the value of the 'ip' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Cookie.Builder clearIp() {
+    public com.eqzip.eqcoin.rpc.avro.Cookie.Builder clearIp() {
       ip = null;
       fieldSetFlags()[0] = false;
       return this;
@@ -275,7 +275,7 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
       * @param value The value of 'version'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Cookie.Builder setVersion(java.lang.CharSequence value) {
+    public com.eqzip.eqcoin.rpc.avro.Cookie.Builder setVersion(java.lang.CharSequence value) {
       validate(fields()[1], value);
       this.version = value;
       fieldSetFlags()[1] = true;
@@ -295,7 +295,7 @@ public class Cookie extends org.apache.avro.specific.SpecificRecordBase implemen
       * Clears the value of the 'version' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Cookie.Builder clearVersion() {
+    public com.eqzip.eqcoin.rpc.avro.Cookie.Builder clearVersion() {
       version = null;
       fieldSetFlags()[1] = false;
       return this;

@@ -31,7 +31,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc.avro;
+package com.eqzip.eqcoin.rpc.avro;
 
 import org.apache.avro.specific.SpecificData;
 import org.apache.avro.message.BinaryMessageEncoder;
@@ -79,7 +79,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
     return DECODER.decode(b);
   }
 
-  @Deprecated public com.eqchains.rpc.avro.Cookie cookie;
+  @Deprecated public com.eqzip.eqcoin.rpc.avro.Cookie cookie;
   @Deprecated public int code;
   @Deprecated public java.lang.CharSequence message;
 
@@ -96,7 +96,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
    * @param code The new value for code
    * @param message The new value for message
    */
-  public Status(com.eqchains.rpc.avro.Cookie cookie, java.lang.Integer code, java.lang.CharSequence message) {
+  public Status(com.eqzip.eqcoin.rpc.avro.Cookie cookie, java.lang.Integer code, java.lang.CharSequence message) {
     this.cookie = cookie;
     this.code = code;
     this.message = message;
@@ -117,7 +117,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
   @SuppressWarnings(value="unchecked")
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
-    case 0: cookie = (com.eqchains.rpc.avro.Cookie)value$; break;
+    case 0: cookie = (com.eqzip.eqcoin.rpc.avro.Cookie)value$; break;
     case 1: code = (java.lang.Integer)value$; break;
     case 2: message = (java.lang.CharSequence)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
@@ -128,7 +128,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
    * Gets the value of the 'cookie' field.
    * @return The value of the 'cookie' field.
    */
-  public com.eqchains.rpc.avro.Cookie getCookie() {
+  public com.eqzip.eqcoin.rpc.avro.Cookie getCookie() {
     return cookie;
   }
 
@@ -136,7 +136,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
    * Sets the value of the 'cookie' field.
    * @param value the value to set.
    */
-  public void setCookie(com.eqchains.rpc.avro.Cookie value) {
+  public void setCookie(com.eqzip.eqcoin.rpc.avro.Cookie value) {
     this.cookie = value;
   }
 
@@ -176,8 +176,8 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
    * Creates a new Status RecordBuilder.
    * @return A new Status RecordBuilder
    */
-  public static com.eqchains.rpc.avro.Status.Builder newBuilder() {
-    return new com.eqchains.rpc.avro.Status.Builder();
+  public static com.eqzip.eqcoin.rpc.avro.Status.Builder newBuilder() {
+    return new com.eqzip.eqcoin.rpc.avro.Status.Builder();
   }
 
   /**
@@ -185,8 +185,8 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
    * @param other The existing builder to copy.
    * @return A new Status RecordBuilder
    */
-  public static com.eqchains.rpc.avro.Status.Builder newBuilder(com.eqchains.rpc.avro.Status.Builder other) {
-    return new com.eqchains.rpc.avro.Status.Builder(other);
+  public static com.eqzip.eqcoin.rpc.avro.Status.Builder newBuilder(com.eqzip.eqcoin.rpc.avro.Status.Builder other) {
+    return new com.eqzip.eqcoin.rpc.avro.Status.Builder(other);
   }
 
   /**
@@ -194,8 +194,8 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
    * @param other The existing instance to copy.
    * @return A new Status RecordBuilder
    */
-  public static com.eqchains.rpc.avro.Status.Builder newBuilder(com.eqchains.rpc.avro.Status other) {
-    return new com.eqchains.rpc.avro.Status.Builder(other);
+  public static com.eqzip.eqcoin.rpc.avro.Status.Builder newBuilder(com.eqzip.eqcoin.rpc.avro.Status other) {
+    return new com.eqzip.eqcoin.rpc.avro.Status.Builder(other);
   }
 
   /**
@@ -204,8 +204,8 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
   public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<Status>
     implements org.apache.avro.data.RecordBuilder<Status> {
 
-    private com.eqchains.rpc.avro.Cookie cookie;
-    private com.eqchains.rpc.avro.Cookie.Builder cookieBuilder;
+    private com.eqzip.eqcoin.rpc.avro.Cookie cookie;
+    private com.eqzip.eqcoin.rpc.avro.Cookie.Builder cookieBuilder;
     private int code;
     private java.lang.CharSequence message;
 
@@ -218,14 +218,14 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
      * Creates a Builder by copying an existing Builder.
      * @param other The existing Builder to copy.
      */
-    private Builder(com.eqchains.rpc.avro.Status.Builder other) {
+    private Builder(com.eqzip.eqcoin.rpc.avro.Status.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.cookie)) {
         this.cookie = data().deepCopy(fields()[0].schema(), other.cookie);
         fieldSetFlags()[0] = true;
       }
       if (other.hasCookieBuilder()) {
-        this.cookieBuilder = com.eqchains.rpc.avro.Cookie.newBuilder(other.getCookieBuilder());
+        this.cookieBuilder = com.eqzip.eqcoin.rpc.avro.Cookie.newBuilder(other.getCookieBuilder());
       }
       if (isValidValue(fields()[1], other.code)) {
         this.code = data().deepCopy(fields()[1].schema(), other.code);
@@ -241,7 +241,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
      * Creates a Builder by copying an existing Status instance
      * @param other The existing instance to copy.
      */
-    private Builder(com.eqchains.rpc.avro.Status other) {
+    private Builder(com.eqzip.eqcoin.rpc.avro.Status other) {
             super(SCHEMA$);
       if (isValidValue(fields()[0], other.cookie)) {
         this.cookie = data().deepCopy(fields()[0].schema(), other.cookie);
@@ -262,7 +262,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
       * Gets the value of the 'cookie' field.
       * @return The value.
       */
-    public com.eqchains.rpc.avro.Cookie getCookie() {
+    public com.eqzip.eqcoin.rpc.avro.Cookie getCookie() {
       return cookie;
     }
 
@@ -271,7 +271,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
       * @param value The value of 'cookie'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Status.Builder setCookie(com.eqchains.rpc.avro.Cookie value) {
+    public com.eqzip.eqcoin.rpc.avro.Status.Builder setCookie(com.eqzip.eqcoin.rpc.avro.Cookie value) {
       validate(fields()[0], value);
       this.cookieBuilder = null;
       this.cookie = value;
@@ -291,12 +291,12 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
      * Gets the Builder instance for the 'cookie' field and creates one if it doesn't exist yet.
      * @return This builder.
      */
-    public com.eqchains.rpc.avro.Cookie.Builder getCookieBuilder() {
+    public com.eqzip.eqcoin.rpc.avro.Cookie.Builder getCookieBuilder() {
       if (cookieBuilder == null) {
         if (hasCookie()) {
-          setCookieBuilder(com.eqchains.rpc.avro.Cookie.newBuilder(cookie));
+          setCookieBuilder(com.eqzip.eqcoin.rpc.avro.Cookie.newBuilder(cookie));
         } else {
-          setCookieBuilder(com.eqchains.rpc.avro.Cookie.newBuilder());
+          setCookieBuilder(com.eqzip.eqcoin.rpc.avro.Cookie.newBuilder());
         }
       }
       return cookieBuilder;
@@ -307,7 +307,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
      * @param value The builder instance that must be set.
      * @return This builder.
      */
-    public com.eqchains.rpc.avro.Status.Builder setCookieBuilder(com.eqchains.rpc.avro.Cookie.Builder value) {
+    public com.eqzip.eqcoin.rpc.avro.Status.Builder setCookieBuilder(com.eqzip.eqcoin.rpc.avro.Cookie.Builder value) {
       clearCookie();
       cookieBuilder = value;
       return this;
@@ -325,7 +325,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
       * Clears the value of the 'cookie' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Status.Builder clearCookie() {
+    public com.eqzip.eqcoin.rpc.avro.Status.Builder clearCookie() {
       cookie = null;
       cookieBuilder = null;
       fieldSetFlags()[0] = false;
@@ -345,7 +345,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
       * @param value The value of 'code'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Status.Builder setCode(int value) {
+    public com.eqzip.eqcoin.rpc.avro.Status.Builder setCode(int value) {
       validate(fields()[1], value);
       this.code = value;
       fieldSetFlags()[1] = true;
@@ -365,7 +365,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
       * Clears the value of the 'code' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Status.Builder clearCode() {
+    public com.eqzip.eqcoin.rpc.avro.Status.Builder clearCode() {
       fieldSetFlags()[1] = false;
       return this;
     }
@@ -383,7 +383,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
       * @param value The value of 'message'.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Status.Builder setMessage(java.lang.CharSequence value) {
+    public com.eqzip.eqcoin.rpc.avro.Status.Builder setMessage(java.lang.CharSequence value) {
       validate(fields()[2], value);
       this.message = value;
       fieldSetFlags()[2] = true;
@@ -403,7 +403,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
       * Clears the value of the 'message' field.
       * @return This builder.
       */
-    public com.eqchains.rpc.avro.Status.Builder clearMessage() {
+    public com.eqzip.eqcoin.rpc.avro.Status.Builder clearMessage() {
       message = null;
       fieldSetFlags()[2] = false;
       return this;
@@ -417,7 +417,7 @@ public class Status extends org.apache.avro.specific.SpecificRecordBase implemen
         if (cookieBuilder != null) {
           record.cookie = this.cookieBuilder.build();
         } else {
-          record.cookie = fieldSetFlags()[0] ? this.cookie : (com.eqchains.rpc.avro.Cookie) defaultValue(fields()[0]);
+          record.cookie = fieldSetFlags()[0] ? this.cookie : (com.eqzip.eqcoin.rpc.avro.Cookie) defaultValue(fields()[0]);
         }
         record.code = fieldSetFlags()[1] ? this.code : (java.lang.Integer) defaultValue(fields()[1]);
         record.message = fieldSetFlags()[2] ? this.message : (java.lang.CharSequence) defaultValue(fields()[2]);

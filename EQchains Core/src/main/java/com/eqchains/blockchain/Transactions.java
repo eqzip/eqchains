@@ -37,7 +37,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Vector;
 
-import com.eqchains.blockchain.Account.Publickey;
+import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -606,11 +606,14 @@ public class Transactions implements EQCTypable {
 				}
 				else {
 					// Save new Account in Filter
-					Account account = new Account();
-					account.setAddress(newAccountList.get(i));
-					account.setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
-					account.setBalanceUpdateHeight(account.getAddressCreateHeight());
-					account.setNonce(ID.ZERO);
+					Account account = new AssetAccount();
+					account.getKey().setAddress(newAccountList.get(i));
+					account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+					Asset asset = new Asset();
+					asset.setAssetID(Asset.EQCOIN);
+					asset.setBalanceUpdateHeight(account.getKey().getAddressCreateHeight());
+					asset.setNonce(ID.ZERO);
+					account.setAsset(asset);
 					accountsMerkleTree.saveAccount(account);
 					Log.info("Numbers: " + accountsMerkleTree.getTotalAccountNumbers());
 					accountsMerkleTree.increaseTotalAccountNumbers();
@@ -645,7 +648,7 @@ public class Transactions implements EQCTypable {
 				return false;
 			}
 			else {
-				Address address = accountsMerkleTree.getAccount(publicKey.getID()).getAddress();
+				Address address = accountsMerkleTree.getAccount(publicKey.getID()).getKey().getAddress();
 				if(!AddressTool.verifyAddressPublickey(address.getReadableAddress(), publicKey.getPublicKey())) {
 					return false;
 				}

@@ -35,7 +35,9 @@ import java.io.IOException;
 import java.util.Vector;
 
 import com.eqchains.blockchain.Account;
+import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.AssetAccount;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.serialization.EQCType;
@@ -53,16 +55,21 @@ public class CoinbaseTransaction extends Transaction {
 	
 	private long txFee;
 	
+	private void init() {
+		txIn = null;
+		assetID = Asset.EQCOIN;
+		txFee = 0;
+	}
+	
 	public CoinbaseTransaction() {
 		super(TransactionType.COINBASE);
-		txIn = null;
-		txFee = 0;
+		init();
 	}
 
 	public CoinbaseTransaction(byte[] bytes, Address.AddressShape addressShape)
 			throws NoSuchFieldException, IOException {
 		super(TransactionType.COINBASE);
-		txIn = null;
+		init();
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		byte[] data = null;
 
@@ -325,7 +332,7 @@ public class CoinbaseTransaction extends Transaction {
 			}
 			if (accountsMerkleTree.isAccountExists(txOutList.get(1).getAddress(), false)) {
 				if (nonce.getPreviousID().compareTo(
-						accountsMerkleTree.getAccount(txOutList.get(1).getAddress().getID()).getNonce()) != 0) {
+						accountsMerkleTree.getAccount(txOutList.get(1).getAddress().getID()).getAsset(Asset.EQCOIN).getNonce()) != 0) {
 					return false;
 				}
 			} else {
@@ -348,7 +355,7 @@ public class CoinbaseTransaction extends Transaction {
 			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
 				return false;
 			}
-			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getNonce()) != 0) {
+			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getAsset(Asset.EQCOIN).getNonce()) != 0) {
 				return false;
 			}
 			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
@@ -407,12 +414,12 @@ public class CoinbaseTransaction extends Transaction {
 		// Set Nonce
 		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
 			if (accountsMerkleTree.isAccountExists(txOutList.get(1).getAddress(), true)) {
-				nonce = accountsMerkleTree.getAccount(txOutList.get(1).getAddress()).getNonce().getNextID();
+				nonce = accountsMerkleTree.getAccount(txOutList.get(1).getAddress()).getAsset(Asset.EQCOIN).getNonce().getNextID();
 			} else {
 				nonce = ID.ONE;
 			}
 		} else {
-			nonce = accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getNonce().getNextID();
+			nonce = accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getAsset(Asset.EQCOIN).getNonce().getNextID();
 		}
 	}
 	
@@ -425,24 +432,28 @@ public class CoinbaseTransaction extends Transaction {
 		// Update current Transaction's TxOut Account
 		for (TxOut txOut : txOutList) {
 			if (txOut.isNew()) {
-				account = new Account();
-				account.setAddress(txOut.getAddress());
-				account.setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
-				account.setNonce(ID.ZERO);
+				account = new AssetAccount();
+				account.getKey().setAddress(txOut.getAddress());
+				account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				Asset asset = new Asset();
+				asset.setAssetID(assetID);
+				asset.setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
+				asset.setNonce(ID.ZERO);
+				account.setAsset(asset);
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
 			}
-			account.updateBalance(txOut.getValue());
-			account.setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
+			account.getAsset(assetID).updateBalance(txOut.getValue()); 
+			account.getAsset(assetID).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 			// Update Nonce
 			if(accountsMerkleTree.getHeight().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
-				if(account.getAddress().getID().compareTo(ID.ONE) > 0) {
-					account.increaseNonce();
+				if(account.getKey().getAddress().getID().compareTo(ID.ONE) > 0) {
+					account.getAsset(assetID).increaseNonce();
 				}
 			}
 			else {
-				if(account.getAddress().getID().compareTo(ID.ONE) == 0) {
-					account.increaseNonce();
+				if(account.getKey().getAddress().getID().compareTo(ID.ONE) == 0) {
+					account.getAsset(assetID).increaseNonce();
 				}
 			}
 			if(accountsMerkleTree.saveAccount(account) && txOut.isNew()) {

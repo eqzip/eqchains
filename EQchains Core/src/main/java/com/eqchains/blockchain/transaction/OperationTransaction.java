@@ -32,9 +32,11 @@ package com.eqchains.blockchain.transaction;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Vector;
 
 import com.eqchains.blockchain.Account;
+import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
@@ -63,6 +65,7 @@ public class OperationTransaction extends TransferTransaction {
 	public final static int MIN_TXOUT = 0;
 
 	private void init() {
+		assetID = Asset.EQCOIN;
 	}
 
 	public OperationTransaction() {
@@ -503,7 +506,7 @@ public class OperationTransaction extends TransferTransaction {
 
 		// Check if Publickey exists in Account and equal to current Publickey
 		if (txInAccount.isPublickeyExists()) {
-			if (!txInAccount.getPublickey().equals(publickey)) {
+			if (!Arrays.equals(txInAccount.getKey().getPublickey().getPublickey(), publickey.getPublicKey())) {
 				return false;
 			}
 		} else {
@@ -514,7 +517,7 @@ public class OperationTransaction extends TransferTransaction {
 		}
 
 		// Check balance
-		if (txIn.getValue() + Util.MIN_EQC > txInAccount.getBalance()) {
+		if (txIn.getValue() + Util.MIN_EQC > txInAccount.getAsset(Asset.EQCOIN).getBalance()) {
 			return false;
 		}
 
