@@ -149,7 +149,7 @@ public class Root implements EQCTypable {
 	}
 
 	public byte[] getHash() {
-		return Util.EQCCHA_MULTIPLE(getBytes(), Util.HUNDREDPULS, false);
+		return Util.EQCCHA_MULTIPLE_DUAL(getBytes(), Util.ONE, true, false);
 	}
 
 	@Override

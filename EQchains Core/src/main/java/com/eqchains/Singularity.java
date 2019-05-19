@@ -52,7 +52,7 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
-import com.eqchains.blockchain.EQCBlock;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
 import com.eqchains.blockchain.transaction.Address;

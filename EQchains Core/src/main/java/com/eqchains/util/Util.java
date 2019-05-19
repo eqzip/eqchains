@@ -87,6 +87,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.StandardConstants;
 
 import org.apache.commons.collections.functors.SwitchClosure;
+import org.apache.commons.net.nntp.NewGroupsOrNewsQuery;
 import org.apache.commons.net.ntp.NTPUDPClient;
 import org.apache.commons.net.ntp.TimeInfo;
 import org.apache.commons.net.ntp.TimeStamp;
@@ -95,22 +96,23 @@ import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 import org.bouncycastle.jcajce.provider.symmetric.Threefish;
 import org.junit.jupiter.params.shadow.com.univocity.parsers.annotations.Trim;
 
-import com.eqchains.blockchain.Account;
 import com.eqchains.blockchain.AccountsMerkleTree;
-import com.eqchains.blockchain.EQCBlock;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Index;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.Root;
 import com.eqchains.blockchain.TransactionsHeader;
-import com.eqchains.blockchain.Account.Asset;
-import com.eqchains.blockchain.Account.Key;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
-import com.eqchains.blockchain.AssetAccount;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Account.Asset;
+import com.eqchains.blockchain.account.Account.Key;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
+import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
@@ -281,6 +283,8 @@ public final class Util {
 	
 	public static final byte[] SINGULARITY = ".".getBytes();
 	
+	public static final IllegalArgumentException DATA_FORMAT_EXCEPTION = new IllegalArgumentException("The data format is invalid.");
+	
 //	public static ID [] FIBONACCI = {
 //			new ID(1597),
 //			new ID(2584),
@@ -339,7 +343,7 @@ public final class Util {
 		createDir(BLOCK_PATH);
 		if (!Configuration.getInstance().isInitSingularityBlock()
 				&& Keystore.getInstance().getUserAccounts().size() > 0/* Will Remove when Cold Wallet ready */) {
-			EQCBlock eqcBlock = gestationSingularityBlock();
+			EQCHive eqcBlock = gestationSingularityBlock();
 			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
 			EQCBlockChainRocksDB.getInstance().saveEQCBlock(eqcBlock);
 //			Address address = eqcBlock.getTransactions().getAddressList().get(0);
@@ -794,23 +798,24 @@ public final class Util {
 		return new BigInteger(1, bytes).toString(radix).toUpperCase();
 	}
 
+//	public static byte[] EQCCHA_MULTIPLE(final byte[] bytes, int multiple, boolean isCompress) {
+//		return EQCCHA_MULTIPLE_DUAL(bytes, multiple, true, isCompress);
+//	}
+	
 	/**
-	 * EQCCHA_MULTIPLE - EQCOIN complex hash algorithm used for calculate the hash
+	 * EQCCHA_MULTIPLE_DUAL - EQchains complex hash algorithm used for calculate the hash
 	 * of EQC block chain's header and address. Each input data will be expanded by
 	 * a factor of multiple.
 	 * 
 	 * @param bytes      The raw data for example EQC block chain's header or
 	 *                   address
 	 * @param multiple   The input data will be expanded by a factor of multiple
+	 * @param isDual 	 If use SHA3-512 handle the input data
 	 * @param isCompress If this is an address or signatures. Then at the end use
 	 *                   SHA3-256 to reduce the size of it
 	 * @return Hash value processed by EQCCHA
 	 */
-	public static byte[] EQCCHA_MULTIPLE(final byte[] bytes, int multiple, boolean isCompress) {
-		return EQCCHA_MULTIPLE_DUAL(bytes, multiple, true, isCompress);
-	}
-	
-	public static byte[] EQCCHA_MULTIPLE_DUAL(final byte[] bytes, int multiple, boolean isDual ,boolean isCompress) {
+	public static byte[] EQCCHA_MULTIPLE_DUAL(final byte[] bytes, int multiple, boolean isDual, boolean isCompress) {
 		byte[] hash = bytes;
 //		Log.info("Len: " + bytes.length);
 		try {
@@ -830,46 +835,18 @@ public final class Util {
 		return hash;
 	}
 	
-	/**
-	 * EQCCHA - EQCOIN complex hash algorithm used for calculate the hash
-	 * of EQC block chain's address.
-	 * 
-	 * @param bytes      The raw data for example EQC block chain's header or
-	 *                   address
-	 * @param isCompress If this is an address or signatures. Then at the end use
-	 *                   SHA3-256 to reduce the size of it
-	 * @return Hash value processed by EQCCHA
-	 */
-	public static byte[] EQCCHA(final byte[] bytes, int multiple, boolean isCompress) {
-		byte[] hash = null;
-//		Log.info("Len: " + bytes.length);
-		try {
-			hash = MessageDigest.getInstance("SHA3-512").digest(bytes);		
-			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
-			// Due to this is an address or signature so here use SHA3-256 reduce the size of it
-			if (isCompress) {
-				hash = SHA3_256(multipleExtend(hash, multiple));
-			}
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		return hash;
-	}
-	
-	public static byte[] EQCCHA_MULTIPLE_FIBONACCI_MERKEL(final byte[] bytes, int multiple, boolean isCompress) {
+	public static byte[] EQCCHA_MULTIPLE_FIBONACCI_MERKEL(final byte[] bytes, int multiple) {
 		Vector<byte[]> ten = new Vector<byte[]>();
 		BigInteger begin = new BigInteger(1, bytes);
 		BigInteger divisor = begin.divide(BigInteger.valueOf(multiple));
 		MerkleTree merkleTree = null;
 		for(int i=1; i<=10; ++i) {
-			ten.add(EQCCHA_MULTIPLE_DUAL(begin.multiply(BigInteger.valueOf(i).multiply(divisor).multiply(FIBONACCI[i-1])).toByteArray(), multiple, false, false));
+			ten.add(EQCCHA_MULTIPLE_DUAL(begin.multiply(BigInteger.valueOf(i).multiply(divisor).multiply(FIBONACCI[i-1])).toByteArray(), multiple, true, false));
 //			Log.info("i: " + i + " len: " + ten.get(i).length);
 		}
 		merkleTree = new MerkleTree(ten);
 		merkleTree.generateRoot();
-		return EQCCHA_MULTIPLE(merkleTree.getRoot(), multiple, isCompress);
+		return EQCCHA_MULTIPLE_DUAL(merkleTree.getRoot(), multiple, true, false);
 	}
 	
 	public static byte[] SHA3_256(byte[] bytes) {
@@ -1149,7 +1126,7 @@ public final class Util {
 		public final static int T2_PUBLICKEY_LEN = 67;
 
 		public enum AddressType {
-			T1, T2, T3
+			T1, T2, T3, T4
 		}
 
 		private AddressTool() {
@@ -1167,7 +1144,7 @@ public final class Util {
 				publickey_hash = EQCCHA_MULTIPLE_DUAL(publicKey, ELEVEN, false, true);
 			}
 			else if(type == AddressType.T2) {
-				publickey_hash = EQCCHA_MULTIPLE(publicKey, HUNDREDPULS, true);
+				publickey_hash = EQCCHA_MULTIPLE_DUAL(publicKey, HUNDREDPULS, true, true);
 			}
 			return _generateAddress(publickey_hash, type);
 		}
@@ -1230,7 +1207,7 @@ public final class Util {
 					publickey_hash = EQCCHA_MULTIPLE_DUAL(publickey, ELEVEN, false, true);
 				}
 				else if(addressType == AddressType.T2) {
-					publickey_hash = EQCCHA_MULTIPLE(publickey, HUNDREDPULS, true);
+					publickey_hash = EQCCHA_MULTIPLE_DUAL(publickey, HUNDREDPULS, true, true);
 				}
 				hidden_address = Base58.decode(address.substring(1));
 			} catch (Exception e) {
@@ -1822,7 +1799,7 @@ public final class Util {
 					// TODO Auto-generated method stub
 					return null;
 				}
-				
+
 			}
 			
 			public static class PeerPublickeys implements EQCTypable {
@@ -1952,6 +1929,21 @@ public final class Util {
 				public byte[] getBin(AddressShape addressShape) {
 					// TODO Auto-generated method stub
 					return null;
+				}
+
+				public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+					// TODO Auto-generated method stub
+					return false;
+				}
+
+				public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+					// TODO Auto-generated method stub
+					
+				}
+
+				public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+					// TODO Auto-generated method stub
+					
 				}
 				
 			}
@@ -2084,7 +2076,7 @@ public final class Util {
 					// TODO Auto-generated method stub
 					return null;
 				}
-				
+
 			}
 
 			@Override
@@ -2135,13 +2127,28 @@ public final class Util {
 				// TODO Auto-generated method stub
 				return null;
 			}
+
+			public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+				// TODO Auto-generated method stub
+				
+			}
+
+			public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+				// TODO Auto-generated method stub
+				
+			}
 			
 		}
 		
 	}
 
 	public static Transaction generateCoinBaseTransaction(Address address, ID height, AccountsMerkleTree accountsMerkleTree) {
-		Transaction transaction = new CoinbaseTransaction();
+		TransferTransaction transaction = new CoinbaseTransaction();
 		TxOut eqcFoundationTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		minerTxOut.setAddress(address);
@@ -2165,13 +2172,13 @@ public final class Util {
 		return transaction;
 	}
 
-	public static EQCBlock gestationSingularityBlock() {
+	public static EQCHive gestationSingularityBlock() {
 		saveEQCBlockTailHeight(ID.ZERO);
 		// Create AccountsMerkleTree
 		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO, new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
 		
 		// Create EQC block
-		EQCBlock eqcBlock = new EQCBlock();
+		EQCHive eqcBlock = new EQCHive();
 
 		// Create TransactionsHeader
 		TransactionsHeader transactionsHeader = new TransactionsHeader();
@@ -2179,7 +2186,7 @@ public final class Util {
 //		eqcBlock.getTransactions().setTransactionsHeader(transactionsHeader);
 
 		// Create Transaction
-		Transaction transaction = new CoinbaseTransaction();
+		TransferTransaction transaction = new CoinbaseTransaction();
 		TxOut txOut = new TxOut();
 		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		txOut.getAddress().setID(ID.ONE);
@@ -2316,7 +2323,7 @@ public final class Util {
 
 	
 
-	public static PublicKey getPublicKey(ID serialNumber, EQCBlock eqcBlock) {
+	public static PublicKey getPublicKey(ID serialNumber, EQCHive eqcBlock) {
 		PublicKey publicKey = null;
 		publicKey = EQCBlockChainH2.getInstance().getPublicKey(serialNumber);
 		if (publicKey == null) {
@@ -2331,7 +2338,7 @@ public final class Util {
 		return publicKey;
 	}
 
-	public static String getAddress(ID serialNumber, EQCBlock eqcBlock) {
+	public static String getAddress(ID serialNumber, EQCHive eqcBlock) {
 		Address address = null;
 		address = EQCBlockChainH2.getInstance().getAddress(serialNumber);
 		if (address == null) {
@@ -2588,8 +2595,8 @@ public final class Util {
 		merkleTree = new MerkleTree(reverse);
 		merkleTree.generateRoot();
 		Log.info("Root: " + dumpBytes(merkleTree.getRoot(), 16));
-		Log.info("Magic: " + dumpBytes(EQCCHA_MULTIPLE_FIBONACCI_MERKEL(merkleTree.getRoot(), HUNDRED_THOUSAND, false), 16));
-		Log.info(new BigInteger(1, EQCCHA_MULTIPLE_FIBONACCI_MERKEL(merkleTree.getRoot(), HUNDRED_THOUSAND, false)).toString());
+		Log.info("Magic: " + dumpBytes(EQCCHA_MULTIPLE_FIBONACCI_MERKEL(merkleTree.getRoot(), HUNDRED_THOUSAND), 16));
+		Log.info(new BigInteger(1, EQCCHA_MULTIPLE_FIBONACCI_MERKEL(merkleTree.getRoot(), HUNDRED_THOUSAND)).toString());
 	}
 
 	public static ID fibonacci(long number) {

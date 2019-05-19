@@ -61,7 +61,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
-import com.eqchains.blockchain.EQCBlock;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.TransactionsHeader;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
@@ -137,7 +137,7 @@ public final class MinerService extends Thread {
 //			SerialNumber blockTailHeight = EQCBlockChainH2.getInstance().getEQCBlockTailHeight();
 //			EQCBlock blockTail = EQCBlockChainH2.getInstance().getEQCBlock(blockTailHeight, false);
 			ID blockTailHeight = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
-			EQCBlock blockTail = EQCBlockChainRocksDB.getInstance().getEQCBlock(blockTailHeight, false);
+			EQCHive blockTail = EQCBlockChainRocksDB.getInstance().getEQCBlock(blockTailHeight, false);
 			
 			// If haven't create AccountsMerkleTree just create it
 			accountsMerkleTree = new AccountsMerkleTree(blockTailHeight, new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
@@ -147,7 +147,7 @@ public final class MinerService extends Thread {
 			
 			// Create new EQCBlock
 			ID newBlockHeight = new ID(blockTailHeight.add(BigInteger.ONE));
-			EQCBlock newEQCBlock = new EQCBlock(newBlockHeight, blockTail.getEqcHeader().getHash());
+			EQCHive newEQCBlock = new EQCHive(newBlockHeight, blockTail.getEqcHeader().getHash());
 
 			// Initial new EQCBlock
 			try {

@@ -115,7 +115,7 @@ public class Keystore {
 			eqcPublicKey.setECPoint((ECPublicKey) pubKey);
 			
 			account.setUserName(userName);
-			account.setPwdHash(Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(password.getBytes(), Util.HUNDREDPULS, true));
+			account.setPwdHash(Util.EQCCHA_MULTIPLE_DUAL(password.getBytes(), Util.HUNDREDPULS, true, false));
 			account.setPrivateKey(Util.AESEncrypt(((ECPrivateKey)privKey).getS().toByteArray(), password));
 			account.setPublicKey(Util.AESEncrypt(eqcPublicKey.getCompressedPublicKeyEncoded(), password));
 			account.setReadableAddress(Util.AddressTool.generateAddress(eqcPublicKey.getCompressedPublicKeyEncoded(), addressType));

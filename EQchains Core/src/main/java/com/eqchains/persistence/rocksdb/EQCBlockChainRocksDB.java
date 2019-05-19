@@ -55,11 +55,11 @@ import org.rocksdb.TransactionDBOptions;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
-import com.eqchains.blockchain.Account;
-import com.eqchains.blockchain.EQCBlock;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.PublicKey;
+import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
@@ -527,13 +527,13 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 	
 	@Override
-	public EQCBlock getEQCBlock(ID height, boolean isSegwit) {
-		EQCBlock eqcBlock = null;
+	public EQCHive getEQCBlock(ID height, boolean isSegwit) {
+		EQCHive eqcBlock = null;
 		byte[] bytes = null;
 		
 		try {
 			if((bytes = get(TABLE.EQCBLOCK, height.getEQCBits())) != null) {
-				eqcBlock = new EQCBlock(bytes, isSegwit);
+				eqcBlock = new EQCHive(bytes, isSegwit);
 			}
 		} catch (RocksDBException | NoSuchFieldException | IOException e) {
 			// TODO Auto-generated catch block
@@ -560,7 +560,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean saveEQCBlock(EQCBlock eqcBlock) {
+	public boolean saveEQCBlock(EQCHive eqcBlock) {
 		boolean isSucc = true;
 		try {
 			WriteBatch writeBatch = new WriteBatch();
@@ -616,7 +616,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean deleteTransactionsInPool(EQCBlock eqcBlock) {
+	public boolean deleteTransactionsInPool(EQCHive eqcBlock) {
 		// TODO Auto-generated method stub
 		return false;
 	}

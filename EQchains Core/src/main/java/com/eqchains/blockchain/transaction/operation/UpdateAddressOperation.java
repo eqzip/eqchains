@@ -33,8 +33,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.Account;
 import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Address.AddressShape;

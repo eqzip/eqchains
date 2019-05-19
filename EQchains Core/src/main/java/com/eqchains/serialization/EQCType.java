@@ -37,6 +37,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Vector;
 
+import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
@@ -182,15 +183,15 @@ public class EQCType {
 	public final static byte EQCBITS = (byte) 128;
 	public final static byte EQCBITS_BUFFER_LEN = 11;
 
-	/**
-	 * Convert String to BINX using StandardCharsets.US_ASCII charset
-	 * 
-	 * @param foo The String which will be convert to BINX
-	 * @return String's bytes in BINX format
-	 */
-	public static byte[] stringToBINX(final String foo) {
-		return bytesToBINX(foo.getBytes(StandardCharsets.US_ASCII));
-	}
+//	/**
+//	 * Convert String to BINX using StandardCharsets.US_ASCII charset
+//	 * 
+//	 * @param foo The String which will be convert to BINX
+//	 * @return String's bytes in BINX format
+//	 */
+//	public static byte[] stringToBINX(final String foo) {
+//		return bytesToBINX(foo.getBytes(StandardCharsets.US_ASCII));
+//	}
 
 	public static byte[] bytesToBINX(final byte[] bytes) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -677,6 +678,19 @@ public class EQCType {
 		}
 		return Util.UnsignedBiginteger(new BigInteger(sb.toString(), 2));
 	}
+	
+	public static ID eqcBitsToID(final byte[] bytes) {
+		BigInteger foo = new BigInteger(1, Util.reverseBytes(bytes));
+		String strFoo = foo.toString(2);
+		StringBuilder sb = new StringBuilder().append(strFoo);
+		int len = strFoo.length();
+		for (int i = 1; i < strFoo.length(); ++i) {
+			if (i % 8 == 0) {
+				sb.deleteCharAt(len - i);
+			}
+		}
+		return new ID(Util.UnsignedBiginteger(new BigInteger(sb.toString(), 2)));
+	}
 
 	public static byte[] stringToASCIIBytes(String foo) {
 		return foo.getBytes(StandardCharsets.US_ASCII);
@@ -686,4 +700,23 @@ public class EQCType {
 		return new String(bytes, StandardCharsets.US_ASCII);
 	}
 
+	public static byte[] booleanToEQCBits(boolean isTrue) {
+		byte[] bytes = null;
+		if(isTrue) {
+			bytes = intToEQCBits(1);
+		}
+		else {
+			bytes = intToEQCBits(0);
+		}
+		return bytes;
+	}
+	
+	public static boolean eqcBitsToBoolean(byte[] bytes) {
+		int value = eqcBitsToInt(bytes);
+		if(value == 0) {
+			return false;
+		}
+		return true;
+	}
+	
 }

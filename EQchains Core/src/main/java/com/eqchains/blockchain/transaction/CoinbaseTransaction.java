@@ -34,10 +34,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Vector;
 
-import com.eqchains.blockchain.Account;
-import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.AccountsMerkleTree;
-import com.eqchains.blockchain.AssetAccount;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Account.Asset;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.serialization.EQCType;
@@ -51,14 +51,18 @@ import com.eqchains.util.Util.AddressTool;
  * @date Mar 21, 2019
  * @email 10509759@qq.com
  */
-public class CoinbaseTransaction extends Transaction {
+public class CoinbaseTransaction extends TransferTransaction {
 	
 	private long txFee;
+	public final static int MIN_TXOUT = 1;
+	public final static int MAX_TXOUT = 3;
+	protected final static byte BODY_VERIFICATION_MIN_COUNT = MIN_TXOUT + 1;
+	protected final static byte BODY_VERIFICATION_MAX_COUNT = MAX_TXOUT + 1;
 	
 	private void init() {
 		txIn = null;
-		assetID = Asset.EQCOIN;
 		txFee = 0;
+		solo = SOLO;
 	}
 	
 	public CoinbaseTransaction() {
@@ -69,182 +73,18 @@ public class CoinbaseTransaction extends Transaction {
 	public CoinbaseTransaction(byte[] bytes, Address.AddressShape addressShape)
 			throws NoSuchFieldException, IOException {
 		super(TransactionType.COINBASE);
+		if(!isValid(bytes, addressShape)) {
+			throw Util.DATA_FORMAT_EXCEPTION;
+		}
 		init();
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-
-		if (addressShape == Address.AddressShape.ID) {
-			// Parse Solo
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int solo = EQCType.eqcBitsToInt(data);
-				if (solo != SOLO) {
-					throw new IllegalStateException("CoinbaseTransaction's Solo is invalid: " + solo);
-				}
-			}
-
-			// Parse Transaction type
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int transactionType = (int) EQCType.eqcBitsToLong(data);
-				if (transactionType != TransactionType.COINBASE.ordinal()) {
-					throw new IllegalStateException(
-							"CoinbaseTransaction's TransactionType is invalid: " + transactionType);
-				} else {
-					this.transactionType = TransactionType.COINBASE;
-				}
-			}
-			
-			// Parse nonce
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				nonce = new ID(data);
-			}
-			
-			// Parse TxOut
-			data = null;
-			while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				TxOut txOut = new TxOut();
-				// Parse TxOut address
-				txOut.getAddress().setID(new ID(data));
-				// Parse TxOut value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					txOut.setValue(EQCType.eqcBitsToLong(data));
-				}
-
-				// Add TxOut
-				txOutList.add(txOut);
-				data = null;
-			}
-		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
-			// Parse Solo
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int solo = EQCType.eqcBitsToInt(data);
-				if (solo != SOLO) {
-					throw new IllegalStateException("CoinbaseTransaction's Solo is invalid: " + solo);
-				}
-			}
-
-			// Parse Transaction type
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int transactionType = EQCType.eqcBitsToInt(data);
-				if (transactionType != TransactionType.COINBASE.ordinal()) {
-					throw new IllegalStateException(
-							"CoinbaseTransaction's TransactionType is invalid: " + transactionType);
-				} else {
-					this.transactionType = TransactionType.COINBASE;
-				}
-			}
-			
-			// Parse nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				nonce = new ID(data);
-			}
-
-			// Parse TxOut
-			data = null;
-			while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				TxOut txOut = new TxOut();
-				// Parse TxOut address
-				if (addressShape == Address.AddressShape.READABLE) {
-					txOut.getAddress().setReadableAddress(EQCType.bytesToASCIISting(data));
-				} else if (addressShape == Address.AddressShape.AI) {
-					txOut.getAddress().setReadableAddress(AddressTool.AIToAddress(data));
-				}
-
-				// Parse TxOut value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					txOut.setValue(EQCType.eqcBitsToLong(data));
-				}
-
-				// Add TxOut
-				txOutList.add(txOut);
-				data = null;
-			}
-		}
+		parseHeader(is);
+		parseBody(is, addressShape);
 	}
 
 	public static boolean isValid(byte[] bytes, AddressShape addressShape) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data;
-		byte txOutValidCount = 0;
-		int type = -1;
-		boolean isTxOutValid = false, isSoloValid = false, isTransactionTypeValid = false, isNonceValid = false;
-
-		if (addressShape == Address.AddressShape.ID) {
-			// Parse Solo
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int solo = EQCType.eqcBitsToInt(data);
-				if (solo == SOLO) {
-					isSoloValid = true;
-				}
-			}
-
-			// Parse Transaction type
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int transactionType = (int) EQCType.eqcBitsToLong(data);
-				if (transactionType == TransactionType.COINBASE.ordinal()) {
-					isTransactionTypeValid = true;
-				} 
-			}
-			
-			// Parse nonce
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				isNonceValid = true;
-			}
-
-			// Parse TxOut
-			data = null;
-			while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				// Parse TxOut address
-				isTxOutValid = false;
-				// Parse TxOut value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxOutValid = true;
-					++txOutValidCount;
-				}
-				data = null;
-			}
-		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
-			// Parse Solo
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int solo = EQCType.eqcBitsToInt(data);
-				if (solo == SOLO) {
-					isSoloValid = true;
-				}
-			}
-
-			// Parse Transaction type
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int transactionType = EQCType.eqcBitsToInt(data);
-				if (transactionType == TransactionType.COINBASE.ordinal()) {
-					isTransactionTypeValid = true;
-				}
-			}
-
-			// Parse nonce
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				isNonceValid = true;
-			}
-			
-			// Parse TxOut
-			data = null;
-			while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				// Parse TxOut address
-				isTxOutValid = false;
-				// Parse TxOut value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxOutValid = true;
-					++txOutValidCount;
-				}
-				data = null;
-			}
-		}
-
-		return isSoloValid && isTransactionTypeValid && isNonceValid && (txOutValidCount == Util.TWO) && isTxOutValid
-				&& EQCType.isInputStreamEnd(is);
+		return isHeaderValid(is) && isBodyValid(is, addressShape) && EQCType.isInputStreamEnd(is);
 	}
 
 	/*
@@ -258,16 +98,10 @@ public class CoinbaseTransaction extends Transaction {
 	public byte[] getBytes(Address.AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			// Serialization Solo
-			os.write(EQCType.longToEQCBits(SOLO));
-			// Serialization Transaction type
-			os.write(EQCType.longToEQCBits(TransactionType.COINBASE.ordinal()));
-			// Serialization nonce
-			os.write(EQCType.bigIntegerToEQCBits(nonce));
-			// Serialization TxOut
-			for (TxOut txOut : txOutList) {
-				os.write(txOut.getBytes(addressShape));
-			}
+			// Serialization Header
+			os.write(getHeaderBytes());
+			// Serialization Body
+			os.write(getBodyBytes(addressShape));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -324,7 +158,7 @@ public class CoinbaseTransaction extends Transaction {
 			return false;
 		}
 		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
-			if(txOutList.size() != Util.TWO) {
+			if(txOutList.size() != MAX_TXOUT) {
 				return false;
 			}
 			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
@@ -349,13 +183,13 @@ public class CoinbaseTransaction extends Transaction {
 				return false;
 			}
 		} else {
-			if(txOutList.size() != Util.ONE) {
+			if(txOutList.size() != MIN_TXOUT) {
 				return false;
 			}
 			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
 				return false;
 			}
-			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getAsset(Asset.EQCOIN).getNonce()) != 0) {
+			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getAsset(getAssetID()).getNonce()) != 0) {
 				return false;
 			}
 			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
@@ -372,7 +206,7 @@ public class CoinbaseTransaction extends Transaction {
 	@Override
 	public boolean isTxOutNumberValid() {
 		// TODO Auto-generated method stub
-		return txOutList.size() <= 2;
+		return txOutList.size() >= MIN_TXOUT && txOutList.size() <= MAX_TXOUT;
 	}
 
 	@Override
@@ -436,24 +270,24 @@ public class CoinbaseTransaction extends Transaction {
 				account.getKey().setAddress(txOut.getAddress());
 				account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
 				Asset asset = new Asset();
-				asset.setAssetID(assetID);
+				asset.setAssetID(getAssetID());
 				asset.setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 				asset.setNonce(ID.ZERO);
 				account.setAsset(asset);
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
 			}
-			account.getAsset(assetID).updateBalance(txOut.getValue()); 
-			account.getAsset(assetID).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
+			account.getAsset(getAssetID()).updateBalance(txOut.getValue()); 
+			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 			// Update Nonce
 			if(accountsMerkleTree.getHeight().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
 				if(account.getKey().getAddress().getID().compareTo(ID.ONE) > 0) {
-					account.getAsset(assetID).increaseNonce();
+					account.getAsset(getAssetID()).increaseNonce();
 				}
 			}
 			else {
 				if(account.getKey().getAddress().getID().compareTo(ID.ONE) == 0) {
-					account.getAsset(assetID).increaseNonce();
+					account.getAsset(getAssetID()).increaseNonce();
 				}
 			}
 			if(accountsMerkleTree.saveAccount(account) && txOut.isNew()) {
@@ -520,13 +354,148 @@ public class CoinbaseTransaction extends Transaction {
 		this.txFee = txFee;
 	}
 	
-//	public String toInnerJsons() {
-//		return
-//
-//		"\"Transaction\":" + "\n{\n" + ((txIn == null) ? TxIn.coinBase() : txIn.toInnerJson()) + ",\n"
-//				+ "\"txOutList\":" + "\n" + getTxOutString() + ",\n" + "\"Nonce\":" + "\"" + nonce + "\"" + ",\n"
-//				+ "\"signature\":" + "\"" + Util.getHexString(signature) + "\"" + ",\n" + "\"publickey\":" + "\""
-//				+ ((publickey == null) ? null : Util.getHexString(publickey.getPublicKey())) + "\"" + "\n" + "}";
-//	}
+	public static boolean isValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException{
+		return false;
+	};
+
+	public static boolean isBodyValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException{
+		byte validCount = 0;
+		byte[] data = null;
+		boolean isTxOutValid = false;
+		if (addressShape == Address.AddressShape.ID) {
+			// Parse nonce
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				++validCount;
+			}
+			
+			// Parse TxOut
+			data = null;
+			while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				// Parse TxOut address
+				isTxOutValid = false;
+				// Parse TxOut value
+				data = null;
+				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+					isTxOutValid = true;
+					++validCount;
+				}
+				// Add TxOut
+				data = null;
+			}
+		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
+			// Parse nonce
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				++validCount;
+			}
+
+			// Parse TxOut
+			data = null;
+			while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
+				// Parse TxOut address
+				isTxOutValid = false;
+				// Parse TxOut value
+				data = null;
+				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+					isTxOutValid = true;
+					++validCount;
+				}
+				// Add TxOut
+				data = null;
+			}
+		}
+		return isTxOutValid && (validCount >= BODY_VERIFICATION_MIN_COUNT) && (validCount <= BODY_VERIFICATION_MAX_COUNT);
+	};
+
+	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+	}
+	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
+		byte[] data = null;
+		if (addressShape == Address.AddressShape.ID) {
+			// Parse nonce
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				nonce = new ID(data);
+			}
+			
+			// Parse TxOut
+			data = null;
+			while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				TxOut txOut = new TxOut();
+				// Parse TxOut address
+				txOut.getAddress().setID(new ID(data));
+				// Parse TxOut value
+				data = null;
+				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+					txOut.setValue(EQCType.eqcBitsToLong(data));
+				}
+
+				// Add TxOut
+				txOutList.add(txOut);
+				data = null;
+			}
+		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
+			// Parse nonce
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+				nonce = new ID(data);
+			}
+
+			// Parse TxOut
+			data = null;
+			while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
+				TxOut txOut = new TxOut();
+				// Parse TxOut address
+				if (addressShape == Address.AddressShape.READABLE) {
+					txOut.getAddress().setReadableAddress(EQCType.bytesToASCIISting(data));
+				} else if (addressShape == Address.AddressShape.AI) {
+					txOut.getAddress().setReadableAddress(AddressTool.AIToAddress(data));
+				}
+
+				// Parse TxOut value
+				data = null;
+				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+					txOut.setValue(EQCType.eqcBitsToLong(data));
+				}
+
+				// Add TxOut
+				txOutList.add(txOut);
+				data = null;
+			}
+		}
+	}
+	
+	public byte[] getHeaderBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			// Serialization Solo
+			os.write(solo.getEQCBits());
+			// Serialization Transaction type
+			os.write(transactionType.getEQCBits());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+	public byte[] getBodyBytes() {
+		return null;
+	}
+	public byte[] getBodyBytes(AddressShape addressShape) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			// Serialization nonce
+			os.write(nonce.getEQCBits());
+			// Serialization TxOut
+			for (TxOut txOut : txOutList) {
+				os.write(txOut.getBytes(addressShape));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
 	
 }

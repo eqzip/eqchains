@@ -38,12 +38,12 @@ import java.io.IOException;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.eqchains.blockchain.Account;
-import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.AccountsMerkleTree;
-import com.eqchains.blockchain.AssetAccount;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
-import com.eqchains.blockchain.EQCBlock;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Account.Asset;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
@@ -64,36 +64,6 @@ import com.eqchains.util.Util.AddressTool.AddressType;
 public class MiscTest {
 	
 	   @Test
-	    void verifyAddressCRC32C() {
-		   String readableAddress = Keystore.getInstance().getUserAccounts().get(0).getReadableAddress();
-		   Log.info(readableAddress);
-	        assertTrue(AddressTool.verifyAddressCRC32C(readableAddress));
-	    }
-	   
-	   @Test
-	   void base58AndCrc32c() {
-		   byte[] bytes = Util.getSecureRandomBytes();
-		   String address = Base58.encode(bytes);
-		   Log.info(address);
-		   try {
-			byte[] bytes1 = Base58.decode(address);
-			assertArrayEquals(bytes, bytes1);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	   }
-	   
-	   @Test
-	   void generateAddress() {
-		   byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
-		   String address = AddressTool.generateAddress(publickey, AddressType.T1);
-		   Log.info(address);
-		   assertTrue(AddressTool.verifyAddressPublickey(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress(), publickey));
-		   assertTrue(AddressTool.verifyAddressPublickey(address, publickey));
-	   }
-	   
-	   @Test
 	   void saveAccount() {
 		   Account account = new AssetAccount();
 		   Address address = new Address();
@@ -106,13 +76,6 @@ public class MiscTest {
 		   EQCBlockChainRocksDB.getInstance().saveAccount(account);
 		   Account account2 = EQCBlockChainRocksDB.getInstance().getAccount(ID.ONE);
 		   assertEquals(account, account2);
-	   }
-	   
-	   @Test
-	   void verifyAI2Address() {
-		   Address address = new Address();
-		   address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		   assertEquals(AddressTool.AIToAddress(address.getAddressAI()), address.getReadableAddress());
 	   }
 	   
 	   @Test
@@ -137,7 +100,7 @@ public class MiscTest {
 			accountsMerkleTree.buildAccountsMerkleTree();
 			accountsMerkleTree.generateRoot();
 			Log.info(Util.dumpBytes(accountsMerkleTree.getRoot(), 16));
-			EQCBlock eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+			EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
 			accountsMerkleTree.close();
 			assertArrayEquals(accountsMerkleTree.getRoot(), eqcBlock.getRoot().getAccountsMerkelTreeRoot());
 		   }
@@ -149,7 +112,7 @@ public class MiscTest {
 		   for(int i=8; i<id.intValue(); ++i) {
 			   Log.info("i: " + i);
 		   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-		   EQCBlock eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+		   EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
 			try {
 				assertTrue(eqcBlock.verify(accountsMerkleTree));
 				accountsMerkleTree.close();

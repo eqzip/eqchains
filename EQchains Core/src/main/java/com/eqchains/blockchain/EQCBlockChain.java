@@ -32,6 +32,7 @@ package com.eqchains.blockchain;
 import java.math.BigInteger;
 import java.util.Vector;
 
+import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.util.ID;
@@ -97,13 +98,13 @@ public interface EQCBlockChain {
 //	public boolean addAllPublicKeys(EQCBlock eqcBlock);
 	
 	// Block relevant interface for for avro, H2(optional).
-	public EQCBlock getEQCBlock(ID height, boolean isSegwit);
+	public EQCHive getEQCBlock(ID height, boolean isSegwit);
 	
 	public boolean isEQCBlockExists(ID height);
 	
 //	public boolean isEQCBlockExists(EQCBlock eqcBlock);
 	
-	public boolean saveEQCBlock(EQCBlock eqcBlock);
+	public boolean saveEQCBlock(EQCHive eqcBlock);
 	
 	public boolean deleteEQCBlock(ID height);
 	
@@ -126,7 +127,7 @@ public interface EQCBlockChain {
 	
 	public boolean deleteTransactionInPool(Transaction transaction);
 	
-	public boolean deleteTransactionsInPool(EQCBlock eqcBlock);
+	public boolean deleteTransactionsInPool(EQCHive eqcBlock);
 	
 	public boolean isTransactionExistsInPool(Transaction transaction);
 	

@@ -37,7 +37,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Vector;
 
-import com.eqchains.blockchain.Account.Asset;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Account.Asset;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -547,7 +549,7 @@ public class Transactions implements EQCTypable {
 	}
 	
 	public byte[] getHash() {
-		return  Util.EQCCHA_MULTIPLE(getBytes(), Util.ONE, false);
+		return  Util.EQCCHA_MULTIPLE_DUAL(getBytes(), Util.ONE, true, false);
 	}
 
 	@Override

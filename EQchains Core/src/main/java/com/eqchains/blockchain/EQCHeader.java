@@ -296,7 +296,7 @@ public class EQCHeader implements EQCTypable {
 	 * @return byte[] the eqcHeader's EQCCHA hash
 	 */
 	public byte[] getHash() {
-		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND, false);
+		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND);
 	}
 
 	@Override

@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain;
+package com.eqchains.blockchain.account;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -41,6 +41,7 @@ import java.util.Vector;
 
 import javax.print.attribute.standard.RequestingUserName;
 
+import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -48,6 +49,7 @@ import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -63,19 +65,30 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @email 10509759@qq.com
  */
 public abstract class Account implements EQCTypable {
-	protected AccountType accountType;
-	protected ID version;
-	protected Key key;
-	protected Vector<Asset> assetList;
-	protected ID assetListSize;
+	
+	/**
+	 * Header field include AccountType
+	 */
+	private AccountType accountType;
+	
+	/**
+	 * Body field include Version, Key, AssetList
+	 */
+	private ID version;
+	private Key key;
+	private Vector<Asset> assetList;
+	private ID assetListSize;
+//	private ID miscNonce; // Reversed when some account involved in MiscSmartContractTransaction just update version to 1 and add this filed to record the relevant nonce.
 //	private String email; // KYC
 	/*
 	 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
 	 */
-	protected final static byte VERIFICATION_COUNT = 4;
+	private final static byte HEADER_VERIFICATION_COUNT = 1;
+	private final static byte BODY_VERIFICATION_COUNT = 3;
+	public final static byte MAX_VERSION = 0;
 	
 	public enum AccountType {
-		ASSET, SUBCHAIN, SMARTCONTRACT, INVALID;
+		ASSET, SMARTCONTRACT, INVALID;
 		public static AccountType get(int ordinal) {
 			AccountType accountType = null;
 			switch (ordinal) {
@@ -83,9 +96,6 @@ public abstract class Account implements EQCTypable {
 				accountType = AccountType.ASSET;
 				break;
 			case 1:
-				accountType = AccountType.SUBCHAIN;
-				break;
-			case 2:
 				accountType = AccountType.SMARTCONTRACT;
 				break;
 			default:
@@ -105,17 +115,9 @@ public abstract class Account implements EQCTypable {
 		}
 	}
 	
-	public Account(AccountType accountType) {
-		super();
-		this.accountType = accountType;
-		version = ID.ZERO;
-		assetList = new Vector<>();
-		key = new Key();
-	}
-	
-	public static AccountType parseAccountType(byte[] bytes) {
+	public static AccountType parseAccountType(ByteArrayInputStream is) {
 		AccountType accountType = AccountType.INVALID;
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		
 		byte[] data = null;
 		try {
 			if ((data = EQCType.parseEQCBits(is)) != null) {
@@ -131,14 +133,13 @@ public abstract class Account implements EQCTypable {
 	}
 
 	public static Account parseAccount(byte[] bytes) {
+		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		Account account = null;
-		AccountType accountType = parseAccountType(bytes);
+		AccountType accountType = parseAccountType(is);
 
 		try {
 			if (accountType == AccountType.ASSET) {
 				account = new AssetAccount(bytes);
-			} else if (accountType == accountType.SUBCHAIN) {
-				account = null;
 			} else if (accountType == accountType.SMARTCONTRACT) {
 				account = null;
 			} 
@@ -155,6 +156,12 @@ public abstract class Account implements EQCTypable {
 		if(address.getType() == AddressType.T1 || address.getType() == AddressType.T2) {
 			accountType = AccountType.ASSET;
 		}
+		else if(address.getType() == AddressType.T3) {
+			// If code.SmartContractType == Subchain 
+		}
+		else if(address.getType() == AddressType.T4) {
+			// If code.SmartContractType == Misc
+		}
 		return accountType;
 	}
 	
@@ -166,8 +173,6 @@ public abstract class Account implements EQCTypable {
 			if (accountType == AccountType.ASSET) {
 				account = new AssetAccount();
 				account.getKey().setAddress(address);
-			} else if (accountType == accountType.SUBCHAIN) {
-				account = null;
 			} else if (accountType == accountType.SMARTCONTRACT) {
 				account = null;
 			} 
@@ -181,15 +186,23 @@ public abstract class Account implements EQCTypable {
 
 	public Account(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		
+		// Parse Header
+		parseHeader(is);
+		// Parse Body
+		parseBody(is);
+	}
+	
+	public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		// Parse AccountType
+		byte[] data = null;
 		if ((data = EQCType.parseEQCBits(is)) != null) {
 			accountType = AccountType.get(new ID(data).intValue());
 		}
-		
+	}
+	
+	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		// Parse Version
-		data = null;
+		byte[] data = null;
 		if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
 			version = new ID(data);
 		}
@@ -213,11 +226,27 @@ public abstract class Account implements EQCTypable {
 //		if ((data = EQCType.parseEQCBits(is)) != null) {
 //			email = EQCType.bytesToASCIISting(data);
 //		}
-
 	}
 	
-	protected boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+	@Override
+	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+			throws NoSuchFieldException, IOException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public static boolean isHeaderValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+		byte[] data = null;
+		byte validCount = 0;
+		
+		// Parse AccountType
+		if ((data = EQCType.parseEQCBits(is)) != null) {
+			++validCount;
+		}
+		return (validCount == HEADER_VERIFICATION_COUNT);
+	}
+	
+	public static boolean isBodyValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		byte[] data = null;
 		byte validCount = 0;
 		
@@ -228,7 +257,7 @@ public abstract class Account implements EQCTypable {
 		
 		// Parse Version
 		data = null;
-		if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
+		if (((data = EQCType.parseEQCBits(is)) != null)) {
 			++validCount;
 		}
 		
@@ -249,7 +278,20 @@ public abstract class Account implements EQCTypable {
 //			email = EQCType.bytesToASCIISting(data);
 //		}
 		
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+		return (validCount == BODY_VERIFICATION_COUNT);
+	}
+	
+	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
+		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		return isHeaderValid(is) && isBodyValid(is) && EQCType.isInputStreamEnd(is);
+	}
+	
+	public Account(AccountType accountType) {
+		super();
+		this.accountType = accountType;
+		version = ID.ZERO;
+		assetList = new Vector<>();
+		key = new Key();
 	}
 	
 //	/**
@@ -368,67 +410,30 @@ public abstract class Account implements EQCTypable {
 	 * @date Dec 14, 2018
 	 * @email 10509759@qq.com
 	 */
-	public static class Key implements EQCTypable {
+	public static class Key implements EQCTypable, EQCInheritable {
 		private Address address;
 		private ID addressCreateHeight;
 		private Publickey publickey;
 		/*
 		 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
 		 */
-		private final static byte VERIFICATION_COUNT = 4;
+		private final static byte VERIFICATION_COUNT = 3;
 		
 		public Key() {
 			// TODO Auto-generated constructor stub
 		}
 		
 		public Key(byte[] bytes) throws NoSuchFieldException, IOException {
+			if(!isValid(bytes)) {
+				throw Util.DATA_FORMAT_EXCEPTION;
+			}
 			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-			byte[] data = null;
-			
-			// Parse Address
-			if ((data = EQCType.parseBIN(is)) != null) {
-				address = new Address(data);
-			}
-			
-			// Parse addressCreateHeight
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				addressCreateHeight = new ID(data);
-			}
-			
-			// Parse publickey
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null) {
-				publickey = new Publickey(data);
-			}
-
+			parseBody(is);
 		}
 		
 		public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
 			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-			byte[] data = null;
-			byte validCount = 0;
-			
-			// Parse Address
-			if ((data = EQCType.parseBIN(is)) != null) {
-				++validCount;
-			}
-			
-			// Parse addressCreateHeight
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				++validCount;
-			}
-			
-			// Parse publickey
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null) {
-				if(Publickey.isValid(data)) {
-					++validCount;
-				}
-			}
-
-			return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+			return isBodyValid(is) && EQCType.isInputStreamEnd(is);
 		}
 		
 		public boolean isPublickeyExists() {
@@ -536,6 +541,92 @@ public abstract class Account implements EQCTypable {
 			return null;
 		}
 
+		public static boolean isHeaderValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		public static boolean isBodyValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			byte[] data = null;
+			byte validCount = 0;
+			
+			// Parse Address
+			if ((data = EQCType.parseBIN(is)) != null) {
+				++validCount;
+			}
+			
+			// Parse addressCreateHeight
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				++validCount;
+			}
+			
+			// Parse publickey
+			data = null;
+			if ((data = EQCType.parseBIN(is)) != null) {
+				if(Publickey.isValid(data)) {
+					++validCount;
+				}
+			}
+
+			return (validCount == VERIFICATION_COUNT);
+		}
+
+		public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			byte[] data = null;
+			// Parse Address
+			if ((data = EQCType.parseBIN(is)) != null) {
+				address = new Address(data);
+			}
+			
+			// Parse addressCreateHeight
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				addressCreateHeight = new ID(data);
+			}
+			
+			// Parse publickey
+			data = null;
+			if ((data = EQCType.parseBIN(is)) != null) {
+				publickey = new Publickey(data);
+			}
+		}
+
+		public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+				throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public byte[] getHeaderBytes() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public byte[] getBodyBytes() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public byte[] getBodyBytes(AddressShape addressShape) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
 //		/* (non-Javadoc)
 //		 * @see java.lang.Object#hashCode()
 //		 */
@@ -597,7 +688,7 @@ public abstract class Account implements EQCTypable {
 //	}
 	
 	public byte[] getHash() {
-		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDREDPULS, false);
+		return Util.EQCCHA_MULTIPLE_DUAL(getBytes(), Util.HUNDREDPULS, true, false);
 	}
 	
 	public boolean isPublickeyExists() {
@@ -636,7 +727,7 @@ public abstract class Account implements EQCTypable {
 					"\"List\":" + "\n" + getAssetListString() + "\n}\n" +
 				"}";
 	}
-	protected String getAssetListString() {
+	public String getAssetListString() {
 		String asset = "[\n";
 		if (assetList.size() > 0) {
 			for (int i = 0; i < assetList.size() - 1; ++i) {
@@ -752,7 +843,7 @@ public abstract class Account implements EQCTypable {
 //		return true;
 //	}
 //	
-	public static class Asset implements EQCTypable, Comparator<Asset>, Comparable<Asset> {
+	public static class Asset implements EQCTypable, EQCInheritable, Comparator<Asset>, Comparable<Asset> {
 		public static final ID EQCOIN = ID.ONE;
 		private ID assetID;
 		private ID assetCreateHeight;
@@ -762,39 +853,14 @@ public abstract class Account implements EQCTypable {
 		/*
 		 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
 		 */
-		private final static byte VERIFICATION_COUNT = 4;
+		private final static byte VERIFICATION_COUNT = 5;
 		
 		public Asset(byte[] bytes) throws NoSuchFieldException, IOException {
+			if(!isValid(bytes)) {
+				throw Util.DATA_FORMAT_EXCEPTION;
+			}
 			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-			byte[] data = null;
-
-			// Parse AssetID
-			if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
-				assetID = new ID(data);
-			}
-			
-			// Parse AssetCreateHeight
-			if (((data = EQCType.parseEQCBits(is)) != null)) {
-				assetCreateHeight = new ID(data);
-			}
-
-			// Parse Balance
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				balance = EQCType.eqcBitsToLong(data);
-			}
-
-			// Parse BalanceUpdateHeight
-			data = null;
-			if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
-				balanceUpdateHeight = new ID(data);
-			}
-
-			// Parse Nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				nonce = new ID(data);
-			}
+			parseBody(is);
 		}
 		
 		public Asset() {
@@ -804,39 +870,7 @@ public abstract class Account implements EQCTypable {
 
 		public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
 			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-			byte[] data = null;
-			byte validCount = 0;
-
-			// Parse AssetID
-			if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-			
-			// Parse AssetCreateHeight
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				++validCount;
-			}
-
-			// Parse Balance
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				++validCount;
-			}
-
-			// Parse BalanceUpdateHeight
-			data = null;
-			if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-
-			// Parse Nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				++validCount;
-			}
-			
-			return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+			return isBodyValid(is) && EQCType.isInputStreamEnd(is);
 		}
 		
 		@Override
@@ -874,13 +908,13 @@ public abstract class Account implements EQCTypable {
 			if(addressShape.length != 0) {
 				return false;
 			}
-			if(assetID == null || balanceUpdateHeight == null || nonce == null) {
+			if(assetID == null || assetCreateHeight == null || balanceUpdateHeight == null || nonce == null) {
 				return false;
 			}
-			if(!assetID.isSanity() || !balanceUpdateHeight.isSanity() || !nonce.isSanity()) {
+			if(!assetID.isSanity() || !assetCreateHeight.isSanity() || !balanceUpdateHeight.isSanity() || !nonce.isSanity()) {
 				return false;
 			}
-			if(assetID.equals(ID.ONE)) {
+			if(assetID.equals(Asset.EQCOIN)) {
 				if(balance < Util.MIN_EQC) {
 					return false;
 				}
@@ -974,6 +1008,98 @@ public abstract class Account implements EQCTypable {
 		public int compare(Asset o1, Asset o2) {
 			return o1.getAssetID().compareTo(o2.getAssetID());
 		}
+
+		public static boolean isHeaderValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		public static boolean isBodyValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			byte[] data = null;
+			byte validCount = 0;
+
+			// Parse AssetID
+			if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
+				++validCount;
+			}
+			
+			// Parse AssetCreateHeight
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				++validCount;
+			}
+
+			// Parse Balance
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				++validCount;
+			}
+
+			// Parse BalanceUpdateHeight
+			data = null;
+			if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
+				++validCount;
+			}
+
+			// Parse Nonce
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				++validCount;
+			}
+			
+			return (validCount == VERIFICATION_COUNT);
+		}
+
+		@Override
+		public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			byte[] data = null;
+
+			// Parse AssetID
+			if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
+				assetID = new ID(data);
+			}
+			
+			// Parse AssetCreateHeight
+			if (((data = EQCType.parseEQCBits(is)) != null)) {
+				assetCreateHeight = new ID(data);
+			}
+
+			// Parse Balance
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				balance = EQCType.eqcBitsToLong(data);
+			}
+
+			// Parse BalanceUpdateHeight
+			data = null;
+			if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
+				balanceUpdateHeight = new ID(data);
+			}
+
+			// Parse Nonce
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				nonce = new ID(data);
+			}
+		}
+
+		public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+				throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			
+		}
 		
 	}
 	
@@ -1061,39 +1187,16 @@ public abstract class Account implements EQCTypable {
 		}
 		
 		public Publickey(byte[] bytes) throws NoSuchFieldException, IOException {
+			if(!isValid(bytes)) {
+				throw Util.DATA_FORMAT_EXCEPTION;
+			}
 			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-			byte[] data = null;
-			
-			// Parse publickey
-			if ((data = EQCType.parseBIN(is)) != null) {
-				publickey =data;
-			}
-
-			// Parse publickeyCreateHeight
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				publickeyCreateHeight = new ID(data);
-			}
-
+			parseBody(is);
 		}
 		
 		public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
 			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-			byte[] data = null;
-			byte validCount = 0;
-			
-			// Parse publickey
-			if ((data = EQCType.parseBIN(is)) != null) {
-				++validCount;
-			}
-
-			// Parse publickeyCreateHeight
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				++validCount;
-			}
-			
-			return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+			return isBodyValid(is) && EQCType.isInputStreamEnd(is);
 		}
 		
 		/**
@@ -1168,7 +1271,10 @@ public abstract class Account implements EQCTypable {
 			if(addressShape.length != 0) {
 				return false;
 			}
-			if(!(publickey != null && publickeyCreateHeight != null)) {
+			if(publickey == null || publickeyCreateHeight == null) {
+				return false;
+			}
+			if(!publickeyCreateHeight.isSanity()) {
 				return false;
 			}
 			return true;
@@ -1218,6 +1324,79 @@ public abstract class Account implements EQCTypable {
 			} else if (!publickeyCreateHeight.equals(other.publickeyCreateHeight))
 				return false;
 			return true;
+		}
+
+		public static boolean isHeaderValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		public static boolean isBodyValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			byte[] data = null;
+			byte validCount = 0;
+			
+			// Parse publickey
+			if ((data = EQCType.parseBIN(is)) != null) {
+				++validCount;
+			}
+
+			// Parse publickeyCreateHeight
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				++validCount;
+			}
+			
+			return (validCount == VERIFICATION_COUNT);
+		}
+
+		public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+			byte[] data = null;
+			
+			// Parse publickey
+			if ((data = EQCType.parseBIN(is)) != null) {
+				publickey =data;
+			}
+
+			// Parse publickeyCreateHeight
+			data = null;
+			if ((data = EQCType.parseEQCBits(is)) != null) {
+				publickeyCreateHeight = new ID(data);
+			}
+		}
+
+		public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+				throws NoSuchFieldException, IOException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public byte[] getHeaderBytes() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public byte[] getBodyBytes() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public byte[] getBodyBytes(AddressShape addressShape) {
+			// TODO Auto-generated method stub
+			return null;
 		}
 		
 	}

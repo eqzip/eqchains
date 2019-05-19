@@ -35,9 +35,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Vector;
 
-import com.eqchains.blockchain.Account;
-import com.eqchains.blockchain.Account.Asset;
 import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Account.Asset;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.blockchain.transaction.operation.Operation;
@@ -64,285 +65,24 @@ public class OperationTransaction extends TransferTransaction {
 	private Operation operation;
 	public final static int MIN_TXOUT = 0;
 
-	private void init() {
-		assetID = Asset.EQCOIN;
-	}
-
 	public OperationTransaction() {
 		super(TransactionType.OPERATION);
-		init();
 	}
 
 	public OperationTransaction(byte[] bytes, Address.AddressShape addressShape)
 			throws NoSuchFieldException, IOException, UnsupportedOperationException {
 		super(TransactionType.OPERATION);
-		init();
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-
-		if (addressShape == Address.AddressShape.ID) {
-			// Parse Solo
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int solo = (int) EQCType.eqcBitsToLong(data);
-				if (solo != SOLO) {
-					throw new IllegalStateException("OperationTransaction Solo is invalid: " + solo);
-				}
-			}
-
-			// Parse Transaction type
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				int transactionType = (int) EQCType.eqcBitsToLong(data);
-				if (transactionType != TransactionType.OPERATION.ordinal()) {
-					throw new IllegalStateException(
-							"OperationTransaction TransactionType is invalid: " + transactionType);
-				} else {
-					this.transactionType = TransactionType.OPERATION;
-				}
-			}
-
-			// Parse Operation
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-					operation = Operation.parseOperation(data, addressShape);
-			}
-
-			// Parse nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				nonce = new ID(data);
-			}
-
-			// Parse TxIn
-			// Parse TxIn address
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				txIn.getAddress().setID(new ID(data));
-			}
-			// Parse TxIn value
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				txIn.setValue(EQCType.eqcBitsToLong(data));
-			}
-
-			// If the ByteArrayInputStream doesn't end which means have TxOut
-			if (!EQCType.isInputStreamEnd(is)) {
-				// Parse TxOut
-				data = null;
-				while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					TxOut txOut = new TxOut();
-					// Parse TxOut address
-					txOut.getAddress().setID(new ID(EQCType.eqcBitsToBigInteger(data)));
-					// Parse TxOut value
-					data = null;
-					if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-						txOut.setValue(EQCType.eqcBitsToLong(data));
-					}
-					// Add TxOut
-					txOutList.add(txOut);
-					data = null;
-				}
-			}
-		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
-			// Parse Solo
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				int solo = (int) EQCType.eqcBitsToLong(data);
-				if (solo != SOLO) {
-					throw new IllegalStateException("OperationTransaction Solo is invalid: " + solo);
-				}
-			}
-
-			// Parse Transaction type
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				int transactionType = (int) EQCType.eqcBitsToLong(data);
-				if (transactionType != TransactionType.OPERATION.ordinal()) {
-					throw new IllegalStateException(
-							"OperationTransaction TransactionType is invalid: " + transactionType);
-				} else {
-					this.transactionType = TransactionType.OPERATION;
-				}
-			}
-
-			// Parse Operation
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-					operation = Operation.parseOperation(data, addressShape);
-			}
-
-			// Parse nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				nonce = new ID(data);
-			}
-
-			// Parse TxIn
-			// Parse TxIn address
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				if (addressShape == Address.AddressShape.READABLE) {
-					txIn.getAddress().setReadableAddress(EQCType.bytesToASCIISting(data));
-				} else if (addressShape == Address.AddressShape.AI) {
-					txIn.getAddress().setReadableAddress(Util.AddressTool.AIToAddress(data));
-				}
-			}
-			// Parse TxIn value
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				txIn.setValue(EQCType.eqcBitsToLong(data));
-			}
-
-			// If the ByteArrayInputStream doesn't end which means have TxOut
-			if (!EQCType.isInputStreamEnd(is)) {
-				// Parse TxOut
-				data = null;
-				while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-					TxOut txOut = new TxOut();
-					// Parse TxOut address
-					if (addressShape == Address.AddressShape.READABLE) {
-						txOut.getAddress().setReadableAddress(EQCType.bytesToASCIISting(data));
-					} else if (addressShape == Address.AddressShape.AI) {
-						txOut.getAddress().setReadableAddress(Util.AddressTool.AIToAddress(data));
-					}
-					// Parse TxOut value
-					data = null;
-					if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-						txOut.setValue(EQCType.eqcBitsToLong(data));
-					}
-					// Add TxOut
-					txOutList.add(txOut);
-					data = null;
-				}
-			}
+		if(!isValid(bytes, addressShape)) {
+			throw Util.DATA_FORMAT_EXCEPTION;
 		}
+		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		parseHeader(is);
+		parseBody(is, addressShape);
 	}
 
 	public static boolean isValid(byte[] bytes, AddressShape addressShape) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data;
-		byte txOutValidCount = 0;
-		boolean isSoloValid = false, isTransactionTypeValid = false, isOperationValid = false, isTxInValid = false,
-				isTxOutValid = false, isNonceValid = false;
-
-		if (addressShape == Address.AddressShape.ID) {
-			// Parse Solo
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				int solo = (int) EQCType.eqcBitsToLong(data);
-				if (solo == SOLO) {
-					isSoloValid = true;
-				}
-			}
-
-			// Parse Transaction type
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				int transactionType = (int) EQCType.eqcBitsToLong(data);
-				if (transactionType == TransactionType.OPERATION.ordinal()) {
-					isTransactionTypeValid = true;
-				} 
-			}
-
-			// Parse Operation
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-					isOperationValid = true;
-			}
-
-			// Parse nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				isNonceValid = true;
-			}
-
-			// Parse TxIn
-			// Parse TxIn address
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				// Parse TxIn value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxInValid = true;
-				}
-			}
-
-			// If the ByteArrayInputStream doesn't end which means have TxOut
-			if (!EQCType.isInputStreamEnd(is)) {
-				// Parse TxOut
-				data = null;
-				while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxOutValid = false;
-					// Parse TxOut value
-					data = null;
-					if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-						isTxOutValid = true;
-						++txOutValidCount;
-					}
-					data = null;
-				}
-			}
-			else {
-				isTxOutValid = true;
-			}
-		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
-			// Parse Solo
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				int solo = (int) EQCType.eqcBitsToLong(data);
-				if (solo == SOLO) {
-					isSoloValid = true;
-				}
-			}
-
-			// Parse Transaction type
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				int transactionType = (int) EQCType.eqcBitsToLong(data);
-				if (transactionType == TransactionType.OPERATION.ordinal()) {
-					isTransactionTypeValid = true;
-				} 
-			}
-
-			// Parse Operation
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-					isOperationValid = true;
-			}
-
-			// Parse nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				isNonceValid = true;
-			}
-
-			// Parse TxIn
-			// Parse TxIn address
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				// Parse TxIn value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxInValid = true;
-				}
-			}
-			
-			// If the ByteArrayInputStream doesn't end which means have TxOut
-			if (!EQCType.isInputStreamEnd(is)) {
-				// Parse TxOut
-				data = null;
-				while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-					// Parse TxOut address
-					isTxOutValid = false;
-					// Parse TxOut value
-					data = null;
-					if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-						isTxOutValid = true;
-						++txOutValidCount;
-					}
-					data = null;
-				}
-			}
-			else {
-				isTxOutValid = true;
-			}
-		}
-
-		return isSoloValid && isOperationValid && isTxInValid && (txOutValidCount >= MIN_TXOUT)
-				&& (txOutValidCount <= MAX_TXOUT) && isTxOutValid && isNonceValid && EQCType.isInputStreamEnd(is);
+		return isHeaderValid(is) && isBodyValid(is, addressShape) && EQCType.isInputStreamEnd(is);
 	}
 
 	/**
@@ -370,24 +110,10 @@ public class OperationTransaction extends TransferTransaction {
 	public byte[] getBytes(Address.AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			// Serialization Solo
-			os.write(EQCType.longToEQCBits(SOLO));
-			// Serialization Transaction type
-			os.write(EQCType.longToEQCBits(TransactionType.OPERATION.ordinal()));
-			// Serialization Operation
-			os.write(operation.getBin(addressShape));
-			// Serialization nonce
-			os.write(EQCType.bigIntegerToEQCBits(nonce));
-			// Serialization TxIn
-			if (txIn != null) {
-				os.write(txIn.getBytes(addressShape));
-			}
-			if (txOutList.size() > 0) {
-				// Serialization TxOut
-				for (TxOut txOut : txOutList) {
-					os.write(txOut.getBytes(addressShape));
-				}
-			}
+			// Serialization Header
+			os.write(getHeaderBytes());
+			// Serialization Body
+			os.write(getBodyBytes(addressShape));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -666,5 +392,49 @@ public class OperationTransaction extends TransferTransaction {
 
 		return true;
 	}
+	
+	public void update(AccountsMerkleTree accountsMerkleTree) {
+		super.update(accountsMerkleTree);
+		// If is OperationTransaction
+		OperationTransaction operationTransaction = (OperationTransaction) this;
+		operationTransaction.execute(accountsMerkleTree, txIn.getAddress().getID());
+	}
+	
+	public byte[] getBodyBytes(AddressShape addressShape) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			// Serialization Operation
+			os.write(operation.getBin(addressShape));
+			// Serialization Super body
+			os.write(super.getBodyBytes(addressShape));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+	
+	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
+		byte[] data = null;
+		// Parse Operation
+		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
+				operation = Operation.parseOperation(data, addressShape);
+		}
+		// Parse Super body
+		super.parseBody(is, addressShape);
+	}
+	
+	public static boolean isBodyValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException{
+		byte[] data = null;
+		boolean isOperationValid = false;
+		// Parse Operation
+		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
+			if(Operation.isValid(data)) {
+				isOperationValid = true;
+			}
+		}
+		return isOperationValid && TransferTransaction.isBodyValid(is, addressShape);
+	};
 	
 }

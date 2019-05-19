@@ -52,9 +52,7 @@ import java.util.Vector;
 import javax.naming.spi.DirStateFactory.Result;
 import javax.security.sasl.RealmCallback;
 
-import com.eqchains.blockchain.Account;
-import com.eqchains.blockchain.AssetAccount;
-import com.eqchains.blockchain.EQCBlock;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Index;
@@ -62,7 +60,9 @@ import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.Root;
 import com.eqchains.blockchain.Signatures;
 import com.eqchains.blockchain.Transactions;
-import com.eqchains.blockchain.Account.Publickey;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Account.Publickey;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxOut;
@@ -702,11 +702,11 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getEQCBlock(com.eqzip.eqcoin.util.SerialNumber, boolean)
 	 */
 	@Override
-	public synchronized EQCBlock getEQCBlock(ID height, boolean isSegwit) {
-		EQCBlock eqcBlock = null;
+	public synchronized EQCHive getEQCBlock(ID height, boolean isSegwit) {
+		EQCHive eqcBlock = null;
 		File file = new File(Util.BLOCK_PATH + height.longValue() + Util.EQC_SUFFIX);
 		if(file.exists() && file.isFile() && (file.length() > 0)) {
-			eqcBlock = new EQCBlock();
+			eqcBlock = new EQCHive();
 			InputStream is = null;
 			try {
 				is = new FileInputStream(file);
@@ -788,7 +788,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * com.eqzip.eqcoin.blockchain.EQCBlockChain#isEQCBlockExists(com.eqzip.eqcoin.
 	 * blockchain.EQCBlock)
 	 */
-	public synchronized boolean isEQCBlockExists(EQCBlock eqcBlock) {
+	public synchronized boolean isEQCBlockExists(EQCHive eqcBlock) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -800,7 +800,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * blockchain.EQCBlock)
 	 */
 	@Override
-	public synchronized boolean saveEQCBlock(EQCBlock eqcBlock) {
+	public synchronized boolean saveEQCBlock(EQCHive eqcBlock) {
 		boolean isSaveSuccessful = true;
 		File file = new File(Util.BLOCK_PATH + eqcBlock.getHeight().longValue() + Util.EQC_SUFFIX);
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -1078,8 +1078,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	
 	@Override
 	public synchronized byte[] getEQCHeaderHash(ID height) {
-		EQCBlock eqcBlock = getEQCBlock(height, true);
-		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(eqcBlock.getEqcHeader().getBytes(), Util.HUNDRED_THOUSAND, true);
+		EQCHive eqcBlock = getEQCBlock(height, true);
+		return eqcBlock.getEqcHeader().getHash();
 	}
 
 	/*
@@ -1222,7 +1222,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 
 	public synchronized boolean addTransaction(Transaction transaction, ID height, int trans_id) {
 		int result = 0;
-		int validCount = transaction.isCoinBase()?(transaction.getTxOutNumber()):(1+transaction.getTxOutNumber());
+		int validCount = 0;//transaction.isCoinBase()?(transaction.getTxOutNumber()):(1+transaction.getTxOutNumber());
 		
 		try {
 			if(!transaction.isCoinBase()) {
@@ -1294,7 +1294,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return numbers;
 	}
 
-	public synchronized boolean addAllTransactions(EQCBlock eqcBlock) {
+	public synchronized boolean addAllTransactions(EQCHive eqcBlock) {
 		int isSuccessful = 0;
 		Vector<Transaction> transactions = eqcBlock.getTransactions().getNewTransactionList();
 		for(int i=0; i<transactions.size(); ++i) {
@@ -1309,7 +1309,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		try {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM SIGNATURE_HASH WHERE signature='" + signature + "'");
 			 PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM SIGNATURE_HASH WHERE signature = ?");
-			 preparedStatement.setBytes(1, Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(signature, Util.ONE, true));
+			 preparedStatement.setBytes(1, Util.EQCCHA_MULTIPLE_DUAL(signature, Util.ONE, false, true));
 			 ResultSet resultSet = preparedStatement.executeQuery();
 			 if(resultSet.next()) {
 				 return true;
@@ -1322,7 +1322,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return false;
 	}
 
-	public synchronized boolean addAllAddress(EQCBlock eqcBlock) {
+	public synchronized boolean addAllAddress(EQCHive eqcBlock) {
 		boolean isSuccess = false;
 		for(Address address : eqcBlock.getTransactions().getNewAccountList()) {
 			isSuccess = appendAddress(address, eqcBlock.getHeight());
@@ -1330,7 +1330,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return isSuccess;
 	}
 
-	public synchronized boolean addAllPublicKeys(EQCBlock eqcBlock) {
+	public synchronized boolean addAllPublicKeys(EQCHive eqcBlock) {
 		boolean isSuccess = false;
 		for(PublicKey publicKey : eqcBlock.getTransactions().getNewPublicKeyList()) {
 			isSuccess = savePublicKey(publicKey, eqcBlock.getHeight());
@@ -1345,7 +1345,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			preparedStatement.setLong(1, height.longValue());
 			preparedStatement.setInt(2, trans_id);
 			preparedStatement.setLong(3, txin_id.longValue());
-			preparedStatement.setBytes(4, Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(signature, Util.ONE, true));
+			preparedStatement.setBytes(4, Util.EQCCHA_MULTIPLE_DUAL(signature, Util.ONE, false, true));
 			result = preparedStatement.executeUpdate();
 			Log.info("result: " + result);
 		} catch (SQLException e) {
@@ -1356,7 +1356,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return result == ONE_ROW;
 	}
 
-	public synchronized boolean addAllSignatures(EQCBlock eqcBlock) {
+	public synchronized boolean addAllSignatures(EQCHive eqcBlock) {
 		boolean isSuccess = false;
 		for(int i=0; i<eqcBlock.getSignatures().getSignatureList().size(); ++i) {
 			isSuccess = appendSignature(eqcBlock.getHeight(), i, eqcBlock.getTransactions().getNewTransactionList().get(i+1).getTxIn().getAddress().getID(), eqcBlock.getSignatures().getSignatureList().get(i));
@@ -1427,7 +1427,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public synchronized boolean deleteTransactionsInPool(EQCBlock eqcBlock) {
+	public synchronized boolean deleteTransactionsInPool(EQCHive eqcBlock) {
 		int isSuccessful = 0;
 		Vector<Transaction> transactions = eqcBlock.getTransactions().getNewTransactionList();
 		for(int i=1; i<transactions.size(); ++i) {

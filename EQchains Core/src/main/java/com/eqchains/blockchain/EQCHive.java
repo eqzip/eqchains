@@ -1,32 +1,4 @@
 /**
- * EQZIPWallet - EQchains Foundation's EQZIPWallet
- * @copyright 2018-present EQCOIN Foundation All rights reserved...
- * Copyright of all works released by EQCOIN Foundation or jointly released by
- * EQCOIN Foundation with cooperative partners are owned by EQCOIN Foundation
- * and entitled to protection available from copyright law by country as well as
- * international conventions.
- * Attribution — You must give appropriate credit, provide a link to the license.
- * Non Commercial — You may not use the material for commercial purposes.
- * No Derivatives — If you remix, transform, or  upon the material, you may
- * not distribute the modified material.
- * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQCOIN Foundation reserves all rights to
- * take any legal action and pursue any right or remedy available under applicable
- * law.
- * https://www.eqzip.com
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *//**
  * EQchains core - EQchains Foundation's EQchains core library
  * @copyright 2018-present EQchains Foundation All rights reserved...
  * Copyright of all works released by EQchains Foundation or jointly released by
@@ -94,7 +66,7 @@ import com.eqchains.util.Util;
  * @date Oct 1, 2018
  * @email 10509759@qq.com
  */
-public class EQCBlock implements EQCTypable {
+public class EQCHive implements EQCTypable {
 	private EQCHeader eqcHeader;
 	private Root root;
 	private Transactions transactions;
@@ -111,7 +83,7 @@ public class EQCBlock implements EQCTypable {
 	 */
 	private static byte VERIFICATION_COUNT = 4;
 
-	public EQCBlock(EQCBlockAvro eqcBlockAvro) throws NoSuchFieldException, IOException {
+	public EQCHive(EQCBlockAvro eqcBlockAvro) throws NoSuchFieldException, IOException {
 		if (EQCHeader.isValid(eqcBlockAvro.getEQCHeader())) {
 			eqcHeader = new EQCHeader(eqcBlockAvro.getEQCHeader());
 		} else {
@@ -129,7 +101,7 @@ public class EQCBlock implements EQCTypable {
 		}
 	}
 
-	public EQCBlock(EQCBlockAvro eqcBlockAvro, boolean isSegwit) throws NoSuchFieldException, IOException {
+	public EQCHive(EQCBlockAvro eqcBlockAvro, boolean isSegwit) throws NoSuchFieldException, IOException {
 		if (EQCHeader.isValid(eqcBlockAvro.getEQCHeader())) {
 			eqcHeader = new EQCHeader(eqcBlockAvro.getEQCHeader());
 		} else {
@@ -149,7 +121,7 @@ public class EQCBlock implements EQCTypable {
 		}
 	}
 
-	public EQCBlock(byte[] bytes, boolean isSegwit) throws NoSuchFieldException, IOException {
+	public EQCHive(byte[] bytes, boolean isSegwit) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		byte[] data = null;
 		// Parse EqcHeader
@@ -227,7 +199,7 @@ public class EQCBlock implements EQCTypable {
 		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
 	}
 
-	public EQCBlock() {
+	public EQCHive() {
 		init();
 	}
 
@@ -238,7 +210,7 @@ public class EQCBlock implements EQCTypable {
 		signatures = new Signatures();
 	}
 
-	public EQCBlock(ID currentBlockHeight, byte[] previousBlockHeaderHash) {
+	public EQCHive(ID currentBlockHeight, byte[] previousBlockHeaderHash) {
 
 		init();
 		// Create EQC block header
@@ -637,7 +609,7 @@ public class EQCBlock implements EQCTypable {
 //			return false;
 //		}
 		
-		EQCBlock previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(),
+		EQCHive previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(),
 				true);
 		// Check total Account numbers
 		if (!previousBlock.getRoot().getTotalAccountNumbers()
@@ -689,10 +661,10 @@ public class EQCBlock implements EQCTypable {
 	}
 
 	@Deprecated
-	public static boolean verify(EQCBlock eqcBlock, AccountsMerkleTree accountsMerkleTree) {
+	public static boolean verify(EQCHive eqcBlock, AccountsMerkleTree accountsMerkleTree) {
 		// Check if EQCHeader is valid
 		BigInteger target = Util.targetBytesToBigInteger(Util.cypherTarget(eqcBlock.getHeight()));
-		if (new BigInteger(1, Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(eqcBlock.getEqcHeader().getBytes(), Util.HUNDRED_THOUSAND, false))
+		if (new BigInteger(1, Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(eqcBlock.getEqcHeader().getBytes(), Util.HUNDRED_THOUSAND))
 				.compareTo(target) > 0) {
 			Log.Error("EQCHeader is invalid");
 			return false;
@@ -1000,8 +972,7 @@ public class EQCBlock implements EQCTypable {
 //		else {
 //			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
 //		}
-		return Util.EQCCHA_MULTIPLE(Util.getMerkleTreeRoot(transactionsMerkelTreeRootList), Util.HUNDREDPULS,
-				false);
+		return Util.EQCCHA_MULTIPLE_DUAL(Util.getMerkleTreeRoot(transactionsMerkelTreeRootList), Util.ONE, false, false);
 	}
 
 	@Override

@@ -87,6 +87,10 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCTypable {
 
 	public static boolean isValid(byte[] bytes, AddressShape addressShape) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		return isValid(is, addressShape) && EQCType.isInputStreamEnd(is);
+	}
+	
+	public static boolean isValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
 		byte[] data = null;
 		byte validCount = 0;
 		
@@ -108,7 +112,7 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCTypable {
 			++validCount;
 		}
 		
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+		return (validCount == VERIFICATION_COUNT);
 	}
 	
 	/**

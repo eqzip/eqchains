@@ -67,16 +67,16 @@ import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.Account;
 import com.eqchains.blockchain.AccountsMerkleTree;
-import com.eqchains.blockchain.EQCBlock;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Transactions;
-import com.eqchains.blockchain.Account.Asset;
-import com.eqchains.blockchain.Account.Publickey;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
-import com.eqchains.blockchain.AssetAccount;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Account.Asset;
+import com.eqchains.blockchain.account.Account.Publickey;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
@@ -147,16 +147,16 @@ public class Test {
 	public static void testHashTime() {
 		EQCHeader header = new EQCHeader();
 		header.setNonce(ID.ONE);
-		header.setPreHash(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.ONE, false));
+		header.setPreHash(Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.ONE, true, false));
 		header.setTarget(Util.getDefaultTargetBytes());
-		header.setRootHash(Util.EQCCHA_MULTIPLE(Util.getSecureRandomBytes(), Util.ONE, false));
+		header.setRootHash(Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.ONE, true, false));
 		header.setHeight(ID.ZERO);
 		header.setTimestamp(new ID(System.currentTimeMillis()));
 		Log.info(header.toString());
 		long c0 = System.currentTimeMillis();
-		int n = 10;
+		int n = 1000;
 		for (int i = 0; i < n; ++i) {
-			Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(header.getBytes(), Util.HUNDRED_THOUSAND, false);
+			Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(header.getBytes(), Util.HUNDRED_THOUSAND);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
 		}
 		long c1 = System.currentTimeMillis();
@@ -192,7 +192,7 @@ public class Test {
 		byte[] asd = Util.getSecureRandomBytes();
 		int n = 100;
 		for (int i = 0; i < n; ++i) {
-			Util.EQCCHA_MULTIPLE(asd, Util.HUNDREDPULS, false);
+			Util.EQCCHA_MULTIPLE_DUAL(asd, Util.HUNDREDPULS, true, false);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
 		}
 		long c1 = System.currentTimeMillis();
@@ -389,7 +389,7 @@ public class Test {
 			StringBuilder sb = new StringBuilder();
 //    	sb.append("00");
 			BigInteger pubKeyHash = new BigInteger(1,
-					Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.HUNDREDPULS, true));
+					Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.HUNDREDPULS));
 
 			Log.info("pubKeyHash:\n" + Util.dumpBytesBigEndianHex(pubKeyHash.toByteArray()));
 			try {
@@ -755,7 +755,7 @@ public class Test {
 	
 	public static void testEQCBlock() {
 		for (int i = 0; i < 2; ++i) {
-			EQCBlock eqcBlock = EQCBlockChainH2.getInstance().getEQCBlock(new ID(BigInteger.valueOf(i)),
+			EQCHive eqcBlock = EQCBlockChainH2.getInstance().getEQCBlock(new ID(BigInteger.valueOf(i)),
 					true);
 			Log.info(eqcBlock.toString());
 		}
@@ -785,7 +785,7 @@ public class Test {
 		transactions.addTransaction(transaction);
 		transactions.addTransaction(transaction);
 		Log.info(transactions.toString());
-		EQCBlock eqcBlock = Util.gestationSingularityBlock();
+		EQCHive eqcBlock = Util.gestationSingularityBlock();
 		Log.info(eqcBlock.toString());
 		eqcBlock.setTransactions(transactions);
 		Log.info(eqcBlock.toString());
@@ -1145,7 +1145,7 @@ public class Test {
 	public static void testRocksDB() {
 		try {
 			System.gc();
-			byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE, false);
+			byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE);
 			long begin = System.currentTimeMillis();
 			Log.info("" + begin);
 			for(int i=0; i<10000000; ++i) {
@@ -1188,7 +1188,7 @@ public class Test {
 				columnFamilyHandle = rocksDB.createColumnFamily(columnFamilyDescriptors.get(1));
 				rocksDB.setOptions(columnFamilyHandle, MutableColumnFamilyOptions.builder().setCompressionType(CompressionType.NO_COMPRESSION).build());
 
-				byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE, false);
+				byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE);
 				long begin = System.currentTimeMillis();
 				Log.info("" + begin);
 				for(int i=0; i<10000000; ++i) {
@@ -1306,7 +1306,7 @@ public class Test {
 	
 	public static void testSingularBlockBytes() {
 		Configuration.getInstance().updateIsInitSingularityBlock(false);
-		EQCBlock eqcBlock = Util.gestationSingularityBlock();
+		EQCHive eqcBlock = Util.gestationSingularityBlock();
 		Log.info(eqcBlock.toString());
 		EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
 		EQCBlockChainRocksDB.getInstance().saveEQCBlock(eqcBlock);
@@ -1509,7 +1509,7 @@ public class Test {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		transaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(userAccount.getAddressAI()).getKey().getAddressCreateHeight()), publickey);
+		transaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(userAccount.getAddressAI()).getKey().getAddressCreateHeight()));
 		EQCBlockChainH2.getInstance().addTransactionInPool(transaction);
 		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
 		publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
@@ -1554,7 +1554,7 @@ public class Test {
 		Log.info("getTxFeeLimit: " + operationTransaction.getTxFeeLimit());
 		Log.info("getQosRate: " + operationTransaction.getQosRate());
 		Log.info("getQos: " + operationTransaction.getQos());
-		operationTransaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI()).getKey().getAddressCreateHeight()), publickey);
+		operationTransaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI()).getKey().getAddressCreateHeight()));
 		EQCBlockChainH2.getInstance().addTransactionInPool(operationTransaction);
 		
 	}
@@ -1650,11 +1650,11 @@ public class Test {
 		byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
 		Log.info("Publickey Len: " + publickey.length);
 		long c0 = System.currentTimeMillis();
-		int n = 100;
+		int n = 10000;
 		for (int i = 0; i < n; ++i) {
 //			Util.multipleExtend(Util.getSecureRandomBytes(), Util.HUNDRED_THOUSAND);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
-			Util.AddressTool.generateAddress(publickey, AddressType.T1);
+			Util.AddressTool.generateAddress(publickey, AddressType.T2);
 		}
 		long c1 = System.currentTimeMillis();
 		Log.info("total time: " + (c1-c0) + " average time:" + (double)(c1-c0)/n);
@@ -1696,7 +1696,7 @@ public class Test {
 		   ID id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
 		   for(int i=1; i<id.intValue(); ++i) {
 		   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-			EQCBlock eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+			EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
 			try {
 				assertTrue(eqcBlock.verify(accountsMerkleTree));
 			} catch (NoSuchFieldException | IOException e) {

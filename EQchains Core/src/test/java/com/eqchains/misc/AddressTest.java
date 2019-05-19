@@ -27,62 +27,62 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.util;
+package com.eqchains.misc;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.eqchains.serialization.EQCType;
+import com.eqchains.blockchain.transaction.Address;
+import com.eqchains.keystore.Keystore;
+import com.eqchains.util.Base58;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
+import com.eqchains.util.Util.AddressTool;
+import com.eqchains.util.Util.AddressTool.AddressType;
 
 /**
  * @author Xun Wang
- * @date 9- -2018
+ * @date May 13, 2019
  * @email 10509759@qq.com
  */
-class TypeTest {
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeEach
-	void setUp() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterEach
-	void tearDown() throws Exception {
-	}
-
-	/**
-	 * Test method for {@link com.eqzip.eqcoin.util.Type#stringToBytes(java.lang.String)}.
-	 */
-	@Test
-	void testStringToBIN6() {
-		byte[] bytes = EQCType.stringToBIN("abc");
-		Log.info(Util.dumpBytesBigEndianBinary(bytes));
-	}
-
+public class AddressTest {
+	 @Test
+	    void verifyAddressCRC32C() {
+		   String readableAddress = Keystore.getInstance().getUserAccounts().get(0).getReadableAddress();
+		   Log.info(readableAddress);
+	        assertTrue(AddressTool.verifyAddressCRC32C(readableAddress));
+	    }
+	   
+	   @Test
+	   void base58AndCrc32c() {
+		   byte[] bytes = Util.getSecureRandomBytes();
+		   String address = Base58.encode(bytes);
+		   Log.info(address);
+		   try {
+			byte[] bytes1 = Base58.decode(address);
+			assertArrayEquals(bytes, bytes1);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	   }
+	   
+	   @Test
+	   void generateAddress() {
+		   byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
+		   String address = AddressTool.generateAddress(publickey, AddressType.T1);
+		   Log.info(address);
+		   assertTrue(AddressTool.verifyAddressPublickey(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress(), publickey));
+		   assertTrue(AddressTool.verifyAddressPublickey(address, publickey));
+	   }
+	   
+	   @Test
+	   void verifyAI2Address() {
+		   Address address = new Address();
+		   address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		   assertEquals(AddressTool.AIToAddress(address.getAddressAI()), address.getReadableAddress());
+	   }
 }

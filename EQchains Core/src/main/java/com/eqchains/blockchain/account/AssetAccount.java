@@ -27,66 +27,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.crypto;
+package com.eqchains.blockchain.account;
 
-import java.util.Iterator;
-import java.util.Vector;
+import java.io.IOException;
 
-import com.eqchains.util.Util;
+import com.eqchains.blockchain.AccountsMerkleTree;
 
 /**
  * @author Xun Wang
- * @date Nov 12, 2018
+ * @date May 11, 2019
  * @email 10509759@qq.com
  */
-public class MerkleTree {
-	private byte[] root;
-	private Vector<byte[]> nodeList;
+public class AssetAccount extends Account {
 
-	public MerkleTree(Vector<byte[]> bytes) {
-		nodeList = bytes;
-		root = null;
+	public AssetAccount() {
+		super(AccountType.ASSET);
 	}
 
-	public void generateRoot() {
-		if(nodeList.size() == 0) {
-			return;
-		}
-		Vector<byte[]> nodes = nodeList;
-		while ((nodes = getNextNodeList(nodes)).size() > 1) {
-		}
-		root = nodes.get(0);
-	}
-
-	public Vector<byte[]> getNextNodeList(Vector<byte[]> nodes) {
-		Vector<byte[]> nextNodeList = new Vector<byte[]>();
-		byte[] left = null, right = null, bytes = null;
-		Iterator<byte[]> iterator = nodes.iterator();
-		while (iterator.hasNext()) {
-			// Left node
-			left = iterator.next();
-			iterator.remove();
-			// Right node
-			if (iterator.hasNext()) {
-				right = iterator.next();
-				iterator.remove();
-				// Left node and right node's EQCCHA's hash
-				bytes = new byte[left.length + right.length];
-				System.arraycopy(left, 0, bytes, 0, left.length);
-				System.arraycopy(right, 0, bytes, left.length, right.length);
-			}
-			else {
-				bytes = left;
-			}
-			nextNodeList.add(Util.EQCCHA_MULTIPLE_DUAL(bytes, Util.ONE, true, false));
-		}
-		// Clear original nodes to save memory
-		nodes = null;
-		return nextNodeList;
-	}
-
-	public byte[] getRoot() {
-		return root;
+	public AssetAccount(byte[] bytes) throws NoSuchFieldException, IOException {
+		super(bytes);
 	}
 
 }

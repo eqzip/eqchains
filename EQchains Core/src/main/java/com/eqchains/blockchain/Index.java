@@ -328,7 +328,7 @@ public class Index implements EQCTypable {
 //	}
 	
 	public byte[] getHash() {
-		return  Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND, false);
+		return  Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND);
 	}
 	
 //	public byte[] getAccountsMerkleTreeRootListRoot() {

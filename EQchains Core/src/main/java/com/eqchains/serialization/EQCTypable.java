@@ -29,6 +29,10 @@
  */
 package com.eqchains.serialization;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+
+import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 
 /**

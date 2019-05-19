@@ -43,8 +43,10 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
-import com.eqchains.blockchain.Account.Asset;
-import com.eqchains.blockchain.Account.Publickey;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Account.Asset;
+import com.eqchains.blockchain.account.Account.Publickey;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
@@ -88,7 +90,7 @@ public class AccountsMerkleTree {
 		// so here need special operation
 		if(height.equals(ID.ZERO)) {
 			if(Configuration.getInstance().isInitSingularityBlock()) {
-				EQCBlock eqcBlock = Util.DB().getEQCBlock(height, true);
+				EQCHive eqcBlock = Util.DB().getEQCBlock(height, true);
 				totalAccountNumbers = eqcBlock.getRoot().getTotalAccountNumbers();
 			}
 			else {
@@ -219,7 +221,7 @@ public class AccountsMerkleTree {
 	public void generateRoot() {
 		MerkleTree merkleTree = new MerkleTree(accountsMerkleTreeRootList);
 		merkleTree.generateRoot();
-		accountsMerkleTreeRoot = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(merkleTree.getRoot(), Util.THOUSANDPLUS, false);
+		accountsMerkleTreeRoot = merkleTree.getRoot();
 	}
 	
 	public byte[] getRoot() {
@@ -558,7 +560,7 @@ public class AccountsMerkleTree {
 		return hash;
 	}
 	
-	public EQCBlock getEQCBlock(ID height, boolean isSegwit) {
+	public EQCHive getEQCBlock(ID height, boolean isSegwit) {
 		return Util.DB().getEQCBlock(height, true);
 	}
 

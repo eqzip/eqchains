@@ -334,7 +334,7 @@ public class UserAccount implements EQCTypable {
 	}
 	
 	public boolean isPasswordCorrect(String password) {
-		return Arrays.equals(pwdHash, Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(password.getBytes(), Util.HUNDREDPULS, true));
+		return Arrays.equals(pwdHash, Util.EQCCHA_MULTIPLE_DUAL(password.getBytes(), Util.HUNDREDPULS, true, false));
 	}
 	
 	public byte[] signTransaction(String password, TransferTransaction transaction) {
