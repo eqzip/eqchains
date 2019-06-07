@@ -1,4 +1,4 @@
-{"namespace": "com.eqzip.eqcoin.rpc.avro",
+{"namespace": "com.eqchains.rpc.avro",
  "protocol": "SyncblockNetwork",
 
  "types": [
