@@ -41,8 +41,8 @@ import org.junit.jupiter.api.Test;
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Account.Asset;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.keystore.Keystore;
@@ -71,7 +71,7 @@ public class MiscTest {
 		   address.setID(ID.ONE);
 		   account.getKey().setAddress(address);
 		   account.getKey().setAddressCreateHeight(ID.ZERO);
-		   account.getAsset(Asset.EQCOIN).setBalance(Util.MIN_EQC);
+		   account.getAsset(Asset.EQCOIN).setBalance(new ID(Util.MIN_EQC));
 		   account.getAsset(Asset.EQCOIN).setBalanceUpdateHeight(ID.ZERO);
 		   EQCBlockChainRocksDB.getInstance().saveAccount(account);
 		   Account account2 = EQCBlockChainRocksDB.getInstance().getAccount(ID.ONE);

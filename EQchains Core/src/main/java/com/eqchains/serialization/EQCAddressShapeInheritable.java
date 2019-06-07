@@ -40,17 +40,8 @@ import com.eqchains.blockchain.transaction.Address.AddressShape;
  * @email 10509759@qq.com
  */
 public interface EQCAddressShapeInheritable {
-	public static boolean isValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException{
-		return false;
-	};
-	public static boolean isHeaderValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException{
-		return false;
-	};
-	public static boolean isBodyValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException{
-		return false;
-	};
-	public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException;
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException;
-	public byte[] getHeaderBytes();
+	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException, IllegalArgumentException;
+	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException, IllegalArgumentException;
+	public byte[] getHeaderBytes(AddressShape addressShape);
 	public byte[] getBodyBytes(AddressShape addressShape);
 }

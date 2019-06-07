@@ -186,7 +186,7 @@ public final class MinerService extends Thread {
 							+ " ms, details:");
 
 					Log.info(newEQCBlock.getEqcHeader().toString());
-					Log.info(newEQCBlock.getRoot().toString());
+//					Log.info(newEQCBlock.getRoot().toString());
 					
 					// 暂时先放在这个位置将来要换到异步的Miner Network Service中。
 					EQCBlockChainH2.getInstance().saveEQCBlock(newEQCBlock);

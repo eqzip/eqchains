@@ -64,27 +64,25 @@ public class EQCHeader implements EQCTypable {
 	private ID nonce;
 	// The EQCHeader's size is lengthen
 	private final int min_size = 139;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
-	 */
-	private final static byte VERIFICATION_COUNT = 6;
 	private final static int MIN_TIMESTAMP_LEN = 6;
 	private final static int MAX_NONCE_LEN = 4;
 	private final static int TARGET_LEN = 4;
 	
-	public EQCHeader(ByteBuffer byteBuffer) {
+	public EQCHeader(ByteBuffer byteBuffer) throws NoSuchFieldException {
 		parseEQCHeader(byteBuffer.array());
 	}
 	
 	/**
 	 * @param header
+	 * @throws NoSuchFieldException 
 	 */
-	public EQCHeader(byte[] bytes) {
+	public EQCHeader(byte[] bytes) throws NoSuchFieldException {
 		super();
 		parseEQCHeader(bytes);
 	}
 
-	private void parseEQCHeader(byte[] bytes) {
+	private void parseEQCHeader(byte[] bytes) throws NoSuchFieldException {
+		EQCType.assertNotNull(bytes);
 		preHash = new byte[Util.HASH_LEN];
 		target = new byte[TARGET_LEN];
 		rootHash = new byte[Util.HASH_LEN];
@@ -98,19 +96,12 @@ public class EQCHeader implements EQCTypable {
 			// Parse RootHash
 			is.read(rootHash);
 			// Parse Height
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				height = new ID(data);
-			}
+			height = new ID(EQCType.parseEQCBits(is));
 			// Parse Timestamp
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				timestamp = new ID(data);
-			}
+			timestamp = new ID(EQCType.parseEQCBits(is));
 			// Parse Nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				nonce = new ID(data);
-			}
+			nonce = new ID(EQCType.parseEQCBits(is));
+			EQCType.assertNoRedundantData(is);
 		} catch (IOException | NoSuchFieldException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -118,56 +109,52 @@ public class EQCHeader implements EQCTypable {
 		}
 	}
 	
-	public static boolean isValid(ByteBuffer byteBuffer) {
-		return isValid(byteBuffer.array());
-	}
-	
-	public static boolean isValid(byte[] bytes) {
-		byte validCount = 0;
-		byte[] preHash = new byte[Util.HASH_LEN];
-		byte[] target = new byte[TARGET_LEN];
-		byte[] rootHash = new byte[Util.HASH_LEN];
-		int result = 0;
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		try {
-			// Parse PreHash
-			result = is.read(preHash);
-			if(result != -1) {
-				++validCount;
-			}
-			// Parse Target
-			result = is.read(target);
-			if(result != -1) {
-				++validCount;
-			}
-			// Parse RootHash
-			result = is.read(rootHash);
-			if(result != -1) {
-				++validCount;
-			}
-			// Parse Height
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				++validCount;
-			}
-			// Parse Timestamp
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-			// Parse Nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				++validCount;
-			}
-		} catch (IOException | NoSuchFieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
-	}
+//	public static boolean isValid(byte[] bytes) {
+//		byte validCount = 0;
+//		byte[] preHash = new byte[Util.HASH_LEN];
+//		byte[] target = new byte[TARGET_LEN];
+//		byte[] rootHash = new byte[Util.HASH_LEN];
+//		int result = 0;
+//		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+//		byte[] data = null;
+//		try {
+//			// Parse PreHash
+//			result = is.read(preHash);
+//			if(result != -1) {
+//				++validCount;
+//			}
+//			// Parse Target
+//			result = is.read(target);
+//			if(result != -1) {
+//				++validCount;
+//			}
+//			// Parse RootHash
+//			result = is.read(rootHash);
+//			if(result != -1) {
+//				++validCount;
+//			}
+//			// Parse Height
+//			if ((data = EQCType.parseEQCBits(is)) != null) {
+//				++validCount;
+//			}
+//			// Parse Timestamp
+//			data = null;
+//			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+//				++validCount;
+//			}
+//			// Parse Nonce
+//			data = null;
+//			if ((data = EQCType.parseEQCBits(is)) != null) {
+//				++validCount;
+//			}
+//		} catch (IOException | NoSuchFieldException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			Log.Error(e.getMessage());
+//		}
+//		
+//		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+//	}
 	
 	/**
 	 * 
@@ -296,14 +283,11 @@ public class EQCHeader implements EQCTypable {
 	 * @return byte[] the eqcHeader's EQCCHA hash
 	 */
 	public byte[] getHash() {
-		return Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(getBytes(), Util.HUNDRED_THOUSAND);
+		return Util.EQCCHA_MULTIPLE_DUAL_MIX(getBytes(), Util.HUNDREDPULS, true, false);
 	}
 
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		if(addressShape.length != 0) {
-			return false;
-		}
+	public boolean isSanity() {
 		if(preHash == null || target == null || rootHash == null || height == null || timestamp == null || nonce == null) {
 			return false;
 		}
@@ -325,18 +309,6 @@ public class EQCHeader implements EQCTypable {
 		return true;
 	}
 
-	@Override
-	public byte[] getBytes(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	public boolean isDifficultyValid(AccountsMerkleTree accountsMerkleTree) {
 		if (!Arrays.equals(target, Util.cypherTarget(accountsMerkleTree.getHeight().getNextID()))) {
 			return false;
@@ -390,6 +362,12 @@ public class EQCHeader implements EQCTypable {
 	 */
 	public void setHeight(ID height) {
 		this.height = height;
+	}
+
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 	
 }

@@ -36,9 +36,11 @@ import java.util.Arrays;
 
 import javax.print.attribute.standard.RequestingUserName;
 
+import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.serialization.EQCAddressShapeTypable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -52,7 +54,7 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @date Sep 27, 2018
  * @email 10509759@qq.com
  */
-public class Address implements EQCTypable {
+public class Address implements EQCAddressShapeTypable {
 	/*
 	 * AddressShape enum which expressed three types of addresses Readable, ID and
 	 * AI. <p> Readable Address used for RPC for example send the Transaction's
@@ -67,12 +69,6 @@ public class Address implements EQCTypable {
 	private ID id = null;
 	private String readableAddress = null;
 	private byte[] code = null;
-
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 */
-	private final static byte VERIFICATION_COUNT = 2;
 
 	/**
 	 * @param id
@@ -101,19 +97,22 @@ public class Address implements EQCTypable {
 	 * @throws NoSuchFieldException
 	 */
 	public Address(byte[] bytes) throws NoSuchFieldException, IOException {
+		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
+		parseAddress(is);
+		EQCType.assertNoRedundantData(is);
+	}
+	
+	public Address(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+		parseAddress(is);
+	}
 
+	private void parseAddress(ByteArrayInputStream is) throws NoSuchFieldException, IllegalStateException, IOException {
 		// Parse ID
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			id = new ID(data);
-		}
+		id = new ID(EQCType.parseEQCBits(is));
 		
 		// Parse Address
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null) {
-			readableAddress = Util.AddressTool.AIToAddress(data);
-		}
+		readableAddress = Util.AddressTool.AIToAddress(EQCType.parseBIN(is));
 
 //		// Parse Code
 //		data = null;
@@ -121,46 +120,27 @@ public class Address implements EQCTypable {
 //			setCode(data);
 //		}
 	}
-
-	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		byte validCount = 0;
-
-		// Parse ID
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-			++validCount;
-		}
-
-		// Parse Address
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			++validCount;
-		}
-
-//		// Check if include the code in the address
-//		if (!EQCType.isInputStreamEnd(is)) {
-//			// Parse Code
-//			data = null;
-//			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-//				++validCount;
-//			}
-//		} else {
-//			// Without code just update the validCount for verify the result
-//			++validCount;
-//		}
-
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
-	}
-
+	
 	/**
 	 * Get the Address' whole bytes include Address' ID, Address' AI
-	 * value and relevant code(Optional). For storage Address in AddressList.
+	 * value and relevant code(Optional). For storage Address in newAccountList.
 	 * 
 	 * @return byte[]
 	 */
 	public byte[] getBytes() {
-		return getBytes(AddressShape.AI);
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(id.getEQCBits());
+			os.write(EQCType.bytesToBIN(AddressTool.addressToAI(readableAddress)));
+//			if (code != null) {
+//				os.write(EQCType.bytesToBIN(code));
+//			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
 	}
 
 	/**
@@ -184,33 +164,6 @@ public class Address implements EQCTypable {
 		return size;
 	}
 
-	/**
-	 * Get the address' whole Bin include Address' ID, Address' AI
-	 * value and relevant code(Optional). For storage Address in AddressList.
-	 * 
-	 * @return byte[]
-	 */
-	public byte[] getBytes(Address.AddressShape addressShape) {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			os.write(id.getEQCBits());
-			if(addressShape == AddressShape.AI) {
-				os.write(EQCType.bytesToBIN(AddressTool.addressToAI(readableAddress)));
-			}
-			else if(addressShape == AddressShape.READABLE) {
-				os.write(EQCType.bytesToBIN(EQCType.stringToASCIIBytes(readableAddress)));
-			}
-//			if (code != null) {
-//				os.write(EQCType.bytesToBIN(code));
-//			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		return os.toByteArray();
-	}
-
 	public AddressType getType() {
 		return Util.AddressTool.getAddressType(readableAddress);
 	}
@@ -231,6 +184,7 @@ public class Address implements EQCTypable {
 
 	/**
 	 * @param ID the ID to set
+	 * @throws NoSuchFieldException 
 	 */
 	public void setID(ID id) {
 		this.id = id;
@@ -352,38 +306,42 @@ public class Address implements EQCTypable {
 	}
 
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
+	public boolean isSanity(AddressShape addressShape) {
 		if (getType() != AddressType.T1 && getType() != AddressType.T2) {
 			return false;
 		}
-		if (addressShape.length == 0) {
+		if (addressShape == null) {
 			if (readableAddress == null) {
 				return false;
 			}
 			if (id == null) {
 				return false;
 			}
-		} else if (addressShape.length == 1) {
-			if (addressShape[0] == AddressShape.AI || addressShape[0] == AddressShape.READABLE) {
+			if(id.compareTo(ID.ONE) < 0) {
+				return false;
+			}
+		} else {
+			if (addressShape == AddressShape.AI || addressShape == AddressShape.READABLE) {
 				if (readableAddress == null) {
 					return false;
 				}
-			} else if(addressShape[0] == AddressShape.ID) {
+			} else if(addressShape == AddressShape.ID) {
 				if (id == null) {
 					return false;
 				}
+				if(id.compareTo(ID.ONE) < 0) {
+					return false;
+				}
 			} 
-		} else {
-			return false;
-		}
+		} 
+		
 		return true;
 	}
 
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		return EQCType.bytesToBIN(getBytes(addressShape));
+	public byte[] getAddressAI() {
+		return AddressTool.addressToAI(readableAddress);
 	}
-
+	
 	/**
 	 * Get the Address' bytes according to it's AddressShape(READABLE, AI, ID). For
 	 * create the Transaction for storage it in the EQC block chain when
@@ -393,7 +351,7 @@ public class Address implements EQCTypable {
 	 * @param addressShape
 	 * @return byte[]
 	 */
-	public byte[] getAddressShapeBytes(AddressShape addressShape) {
+	public byte[] getBytes(AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			if (addressShape == Address.AddressShape.ID) {
@@ -411,7 +369,7 @@ public class Address implements EQCTypable {
 		}
 		return os.toByteArray();
 	}
-
+	
 	/**
 	 * Get the Address' bin according to it's AddressShape(READABLE, AI, ID). For
 	 * create the Transaction for storage it in the EQC block chain when
@@ -421,24 +379,22 @@ public class Address implements EQCTypable {
 	 * @param addressShape
 	 * @return byte[]
 	 */
-	public byte[] getAddressShapeBin(AddressShape addressShape) {
+	public byte[] getBin(AddressShape addressShape) {
 		byte[] bin = null;
 		// Due to EQCBits bytes is BIN type also so here just get it
 		if(addressShape == AddressShape.ID) {
-			bin = getAddressShapeBytes(addressShape);
+			bin = getBytes(addressShape);
 		}
 		else {
-			bin = EQCType.bytesToBIN(getAddressShapeBytes(addressShape));
+			bin = EQCType.bytesToBIN(getBytes(addressShape));
 		}
 		return bin;
 	}
+	
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
-	public byte[] getAddressAI() {
-		return AddressTool.addressToAI(readableAddress);
-	}
-	
-	public byte[] getReadableAddressBytes() {
-		return readableAddress.getBytes();
-	}
-	
 }

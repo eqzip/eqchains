@@ -74,9 +74,10 @@ import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Transactions;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Account.Asset;
-import com.eqchains.blockchain.account.Account.Publickey;
+import com.eqchains.blockchain.account.CoinAsset;
+import com.eqchains.blockchain.account.Publickey;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
@@ -147,16 +148,17 @@ public class Test {
 	public static void testHashTime() {
 		EQCHeader header = new EQCHeader();
 		header.setNonce(ID.ONE);
-		header.setPreHash(Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.ONE, true, false));
+		header.setPreHash(Util.EQCCHA_MULTIPLE_DUAL_MIX(Util.getSecureRandomBytes(), Util.ONE, true, false));
 		header.setTarget(Util.getDefaultTargetBytes());
 		header.setRootHash(Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.ONE, true, false));
 		header.setHeight(ID.ZERO);
 		header.setTimestamp(new ID(System.currentTimeMillis()));
 		Log.info(header.toString());
 		long c0 = System.currentTimeMillis();
-		int n = 1000;
+		int n = 10000;
 		for (int i = 0; i < n; ++i) {
-			Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(header.getBytes(), Util.HUNDRED_THOUSAND);
+//			Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(header.getBytes(), Util.HUNDRED_THOUSAND);
+			Util.EQCCHA_MULTIPLE_DUAL_MIX(header.getBytes(), Util.HUNDREDPULS, true, false);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
 		}
 		long c1 = System.currentTimeMillis();
@@ -178,9 +180,33 @@ public class Test {
 //			asdf[i] = (byte) 0xFF;
 //		}
 		long c0 = System.currentTimeMillis();
-		int n = 1000;
+		int n = 1000000;
 		for (int i = 0; i < n; ++i) {
 			Util.multipleExtend(asdf, Util.HUNDREDPULS);
+//			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
+		}
+		long c1 = System.currentTimeMillis();
+		Log.info("total time: " + (c1-c0) + " average time:" + (double)(c1-c0)/n);
+	}
+	
+	public static void testMultiExtendTimeMix() {
+//		EQCHeader header = new EQCHeader();
+//		header.setNonce(ID.ONE);
+//		header.setPreHash(Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.HUNDRED_THOUSAND, true));
+//		header.setTarget(Util.getDefaultTargetBytes());
+//		header.setRootHash(Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE, true));
+//		header.setTimestamp(new ID(System.currentTimeMillis()));
+//		Log.info(header.toString());
+		byte[] asd = Util.getSecureRandomBytes();
+		byte[] asdf = new byte[64];
+		System.arraycopy(asd, 0, asdf, 0, asdf.length);
+//		for(int i=0; i<asdf.length; ++i) {
+//			asdf[i] = (byte) 0xFF;
+//		}
+		long c0 = System.currentTimeMillis();
+		int n = 100;
+		for (int i = 0; i < n; ++i) {
+			Util.multipleExtendMix(asdf, Util.HUNDREDPULS);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
 		}
 		long c1 = System.currentTimeMillis();
@@ -355,7 +381,12 @@ public class Test {
 	
 	public static void testAIToAddress() {
 		Log.info(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		Log.info(Util.AddressTool.AIToAddress(Util.AddressTool.addressToAI(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress())));
+		try {
+			Log.info(Util.AddressTool.AIToAddress(Util.AddressTool.addressToAI(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress())));
+		} catch (NoSuchFieldException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public static void testUserAccount() {
@@ -827,12 +858,12 @@ public class Test {
 		Log.info("TxIn value:" + txIn.getValue());
 		Log.info("TxFeeLimit: " + transaction.getTxFeeLimit());
 		
-		if(TransferTransaction.isValid(transaction.getBytes(Address.AddressShape.READABLE), AddressShape.READABLE)) {
-			Log.info("Right format");
-		}
-		else {
-			Log.info("Bad format");
-		}
+//		if(TransferTransaction.isValid(transaction.getBytes(Address.AddressShape.READABLE), AddressShape.READABLE)) {
+//			Log.info("Right format");
+//		}
+//		else {
+//			Log.info("Bad format");
+//		}
 //		Log.info(transaction.toString());
 //		byte[] bytes = transaction.getBytes(AddressShape.ADDRESS);
 //		Transaction transaction1 = new Transaction(transaction.getBytes(AddressShape.ADDRESS), AddressShape.ADDRESS);
@@ -1236,8 +1267,8 @@ public class Test {
 		address.setID(ID.TWO);
 		account.getKey().setAddress(address);
 		account.getKey().setAddressCreateHeight(ID.ZERO);
-		Asset asset = new Asset();
-		asset.setBalance(500000);
+		Asset asset = new CoinAsset();
+		asset.setBalance(new ID(500000));
 		asset.setBalanceUpdateHeight(ID.ZERO);
 		account.setAsset(asset);
 		EQCBlockChainRocksDB.getInstance().saveAccount(account);
@@ -1442,8 +1473,8 @@ public class Test {
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		account.getKey().setAddress(address);
 		account.getKey().setAddressCreateHeight(ID.ZERO);
-		Asset asset = new Asset();
-		asset.setBalance(150000);
+		Asset asset = new CoinAsset();
+		asset.setBalance(new ID(150000));
 		asset.setBalanceUpdateHeight(ID.ZERO);
 		account.setAsset(asset);
 		EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.ZERO);
@@ -1452,8 +1483,8 @@ public class Test {
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		account.getKey().setAddress(address);
 		account.getKey().setAddressCreateHeight(ID.ZERO);
-		asset = new Asset();
-		asset.setBalance(150001);
+		asset = new CoinAsset();
+		asset.setBalance(new ID(150001));
 		asset.setBalanceUpdateHeight(ID.ONE);
 		account.setAsset(asset);
 		EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.ONE);
@@ -1462,8 +1493,8 @@ public class Test {
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		account.getKey().setAddress(address);
 		account.getKey().setAddressCreateHeight(ID.ZERO);
-		asset = new Asset();
-		asset.setBalance(150002);
+		asset = new CoinAsset();
+		asset.setBalance(new ID(150002));
 		asset.setBalanceUpdateHeight(ID.TWO);
 		account.setAsset(asset);
 		EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.TWO);
@@ -1566,8 +1597,8 @@ public class Test {
 		address.setID(ID.ONE);
 		account.getKey().setAddress(address);
 		account.getKey().setAddressCreateHeight(ID.ONE);
-		Asset asset = new Asset();
-		asset.setBalance(50*Util.ABC);
+		Asset asset = new CoinAsset();
+		asset.setBalance(new ID(50*Util.ABC));
 		asset.setBalanceUpdateHeight(ID.ONE);
 		account.setAsset(asset);
 		byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
@@ -1650,7 +1681,7 @@ public class Test {
 		byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
 		Log.info("Publickey Len: " + publickey.length);
 		long c0 = System.currentTimeMillis();
-		int n = 10000;
+		int n = 1000;
 		for (int i = 0; i < n; ++i) {
 //			Util.multipleExtend(Util.getSecureRandomBytes(), Util.HUNDRED_THOUSAND);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
@@ -1664,7 +1695,7 @@ public class Test {
 		byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
 		Log.info("Publickey Len: " + publickey.length);
 		long c0 = System.currentTimeMillis();
-		int n = 100;
+		int n = 10000;
 		for (int i = 0; i < n; ++i) {
 			Util.AddressTool.verifyAddressPublickey(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress(), publickey);
 		}
@@ -1705,5 +1736,32 @@ public class Test {
 			}
 		   }
 	   }
+	
+	public static boolean isPrime(int n) {
+		if (n < 2)
+			return false;
+		if (n == 2)
+			return true;
+		if (n % 2 == 0)
+			return false;
+		for (int i = 3; i < n; i += 2)
+			if (n % i == 0)
+				return false;
+		return true;
+	}
+	
+	public static void printPrime() {
+		int number = 0, n = 2;
+		StringBuffer sb = new StringBuffer();
+		while(number < Util.HUNDREDPULS) {
+			if(isPrime(n)) {
+				sb.append("new ID(" + n + "),");
+				++number;
+				Log.info("" + number);
+			}
+			++n;
+		}
+		Log.info(sb.toString());
+	}
 	
 }

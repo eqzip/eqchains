@@ -48,4 +48,10 @@ public class AssetAccount extends Account {
 		super(bytes);
 	}
 
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

@@ -38,8 +38,10 @@ import java.util.Arrays;
 import java.util.Vector;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Account.Asset;
+import com.eqchains.blockchain.account.AssetSubchainAccount;
+import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -67,10 +69,6 @@ public class Transactions implements EQCTypable {
 	private long newAccountListSize;
 	private Vector<PublicKey> newPublicKeyList;
 	private long newPublickeyListSize;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
-	 */
-	private static byte VERIFICATION_COUNT = 3;
 	
 	public Transactions() {
 		super();
@@ -100,133 +98,85 @@ public class Transactions implements EQCTypable {
 		init();
 		
 		// Parse TransactionList
-		ARRAY array = null;
-		if ((array = EQCType.parseARRAY(is)) != null) {
+		ARRAY array = EQCType.parseARRAY(is);
+		if (!array.isNULL()) {
 			newTransactionListSize = array.length;
-			for (byte[] transaction : array.elements) {
-				newTransactionList.add(Transaction.parseTransaction(transaction, Address.AddressShape.ID));
+			ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
+			for (int i=0; i<newTransactionListSize; ++i) {
+				newTransactionList.add(Transaction.parseTransaction(EQCType.parseBIN(iStream), Address.AddressShape.ID));
 			}
+			EQCType.assertNoRedundantData(iStream);
+		}
+		else {
+			throw EQCType.NULL_OBJECT_EXCEPTION;
 		}
 
 		// Parse Accounts
-		array = null;
-		if ((array = EQCType.parseARRAY(is)) != null) {
-			newAccountListSize = (int) array.length;
-			for(byte[] address : array.elements) {
-				newAccountList.add(new Address(address));
+		array = EQCType.parseARRAY(is);
+		if (!array.isNULL()) {
+			newAccountListSize = array.length;
+			ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
+			for(int i=0; i<newAccountListSize; ++i) {
+				newAccountList.add(new Address(iStream));
 			}
+			EQCType.assertNoRedundantData(iStream);
 		}
 		
 		// Parse PublicKeys
-		array = null;
-		if ((array = EQCType.parseARRAY(is)) != null) {
+		array = EQCType.parseARRAY(is);
+		if (!array.isNULL()) {
 			newPublickeyListSize = array.length;
-			for(byte[] publickey : array.elements) {
-				newPublicKeyList.add(new PublicKey(publickey));
+			ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
+			for(int i=0; i<newPublickeyListSize; ++i) {
+				newPublicKeyList.add(new PublicKey(iStream));
 			}
+			EQCType.assertNoRedundantData(iStream);
 		}
 	}
 	
-	public static boolean isValid(ByteBuffer byteBuffer) throws NoSuchFieldException, IOException {
-		return isValid(byteBuffer.array());
-	}
+//	private void parseTransactionList(byte[] bytes) throws NoSuchFieldException, IOException {
+//		ARRAY array = EQCType.parseARRAY(bytes);
+//		newTransactionListSize = array.length;
+//		for (byte[] transaction : array.elements) {
+//			newTransactionList.add(Transaction.parseTransaction(transaction, Address.AddressShape.ID));
+//		}
+//	}
+//	
+//	
+//	private void parsePublicKeys(byte[] bytes) throws NoSuchFieldException, IOException{
+//		ARRAY publickeys = EQCType.parseARRAY(bytes);
+//		newPublickeyListSize = publickeys.length;
+//		for(byte[] publickey : publickeys.elements) {
+//			newPublicKeyList.add(new PublicKey(publickey));
+//		}
+//	}
 	
-	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		byte validCount = 0;
-		
-		// Parse TransactionList
-		ARRAY array = EQCType.parseARRAY(is);
-		if ((array != null) && isTransactionListValid(array)) {
-				++validCount;
-		}
-		
-		// Parse Accounts
-		array = EQCType.parseARRAY(is);
-		if ((array == null) || ((array != null) && isAccountsValid(array))) {
-				++validCount;
-		}
-		
-		// Parse PublicKeys
-		array = EQCType.parseARRAY(is);
-		if ((array == null) || ((array != null) && isPublicKeysValid(array))) {
-				++validCount;
-		}
-		
-		return (validCount >= VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
-	}
+//	private static boolean isPublicKeysValid(ARRAY publickeys) throws NoSuchFieldException, IOException {
+//		boolean boolIsPublicKeysValid = false;
+//		if(publickeys.length == publickeys.elements.size()) {
+//			boolIsPublicKeysValid = true;
+//		}
+//		for(byte[] publickey : publickeys.elements) {
+//			if(!PublicKey.isValid(publickey)) {
+//				boolIsPublicKeysValid = false;
+//				break;
+//			}
+//		}
+//		return boolIsPublicKeysValid;
+//	}
 	
-	private void parseTransactionList(byte[] bytes) throws NoSuchFieldException, IOException {
-		ARRAY array = EQCType.parseARRAY(bytes);
-		newTransactionListSize = array.length;
-		for (byte[] transaction : array.elements) {
-			newTransactionList.add(Transaction.parseTransaction(transaction, Address.AddressShape.ID));
-		}
-	}
-	
-	private static boolean isTransactionListValid(ARRAY transactions) throws NoSuchFieldException, IOException {
-		boolean boolIsTransactionListValid = false;
-		if(transactions.length == transactions.elements.size()) {
-			boolIsTransactionListValid = true;
-		}
-		for(byte[] transaction : transactions.elements) {
-			if(!Transaction.isValid(transaction, Address.AddressShape.ID)) {
-				boolIsTransactionListValid = false;
-				break;
-			}
-		}
-		return boolIsTransactionListValid;
-	}
-	
-	private void parsePublicKeys(byte[] bytes) throws NoSuchFieldException, IOException{
-		ARRAY publickeys = EQCType.parseARRAY(bytes);
-		newPublickeyListSize = publickeys.length;
-		for(byte[] publickey : publickeys.elements) {
-			newPublicKeyList.add(new PublicKey(publickey));
-		}
-	}
-	
-	private static boolean isPublicKeysValid(ARRAY publickeys) throws NoSuchFieldException, IOException {
-		boolean boolIsPublicKeysValid = false;
-		if(publickeys.length == publickeys.elements.size()) {
-			boolIsPublicKeysValid = true;
-		}
-		for(byte[] publickey : publickeys.elements) {
-			if(!PublicKey.isValid(publickey)) {
-				boolIsPublicKeysValid = false;
-				break;
-			}
-		}
-		return boolIsPublicKeysValid;
-	}
-	
-	private void parseAccounts(byte[] bytes) throws NoSuchFieldException, IOException{
-		ARRAY array = EQCType.parseARRAY(bytes);
-		newAccountListSize = (int) array.length;
-		for(byte[] address : array.elements) {
-			newAccountList.add(new Address(address));
-		}
-	}
-	
-	private static boolean isAccountsValid(ARRAY addresses) throws NoSuchFieldException, IOException {
-		boolean boolIsAccountsValid = false;
-		if(addresses.length == addresses.elements.size()) {
-			boolIsAccountsValid = true;
-		}
-		for(byte[] address : addresses.elements) {
-			if(!Address.isValid(address)) {
-				boolIsAccountsValid = false;
-				break;
-			}
-		}
-		return boolIsAccountsValid;
-	}
+//	private void parseAccounts(byte[] bytes) throws NoSuchFieldException, IOException{
+//		ARRAY array = EQCType.parseARRAY(bytes);
+//		newAccountListSize = (int) array.length;
+//		for(byte[] address : array.elements) {
+//			newAccountList.add(new Address(address));
+//		}
+//	}
 	
 	public void addTransaction(Transaction transaction) {
 		if(!isTransactionExists(transaction)) {
 			// Add Publickey
-			if(transaction.getPublickey().isNew()) {
+			if(!transaction.isCoinBase() && transaction.getPublickey().isNew()) {
 				newPublicKeyList.add(transaction.getPublickey());
 			}
 			// Add new Address
@@ -304,7 +254,7 @@ public class Transactions implements EQCTypable {
 		else {
 			Vector<byte[]> addresses = new Vector<byte[]>();
 			for (Address address : newAccountList) {
-				addresses.add(address.getBytes(AddressShape.AI));
+				addresses.add(address.getBytes());
 			}
 			return EQCType.bytesArrayToARRAY(addresses);
 //			ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -342,7 +292,7 @@ public class Transactions implements EQCTypable {
 		else {
 			Vector<byte[]> transactions = new Vector<byte[]>();
 			for(Transaction transaction: newTransactionList) {
-				transactions.add(transaction.getBytes());
+				transactions.add(transaction.getBin(AddressShape.ID));
 			}
 			return EQCType.bytesArrayToARRAY(transactions);
 //			ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -521,7 +471,7 @@ public class Transactions implements EQCTypable {
 	public byte[] getNewTransactionListMerkelTreeRoot() {
 		Vector<byte[]> transactions = new Vector<byte[]>();
 		for (Transaction transaction : newTransactionList) {
-			transactions.add(transaction.getBytes());
+			transactions.add(transaction.getBytes(AddressShape.ID));
 		}
 		return Util.getMerkleTreeRoot(transactions);
 	}
@@ -553,12 +503,9 @@ public class Transactions implements EQCTypable {
 	}
 
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		if(addressShape.length != 0) {
-			return false;
-		}
+	public boolean isSanity() {
 		for(Address address : newAccountList) {
-			if(!address.isSanity()) {
+			if(!address.isSanity(null)) {
 				return false;
 			}
 		}
@@ -568,25 +515,13 @@ public class Transactions implements EQCTypable {
 			}
 		}
 		for(Transaction transaction : newTransactionList) {
-			if(!transaction.isSanity(addressShape)) {
+			if(!transaction.isSanity(AddressShape.ID)) {
 				return false;
 			}
 		}
 		return false;
 	}
 
-	@Override
-	public byte[] getBytes(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	public long getTxFee() {
 		long txFee = 0;
 		for(int i=1; i<newTransactionList.size(); ++i) {
@@ -596,8 +531,11 @@ public class Transactions implements EQCTypable {
 	}
 	
 	public boolean isAccountListValid(AccountsMerkleTree accountsMerkleTree) {
-		if (!newAccountList.get(0).getID().subtract(accountsMerkleTree
-						.getEQCBlock(accountsMerkleTree.getHeight(), true).getRoot().getTotalAccountNumbers())
+		AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
+		if(newAccountList.size() == 0) {
+			return true;
+		}
+		else if (!newAccountList.get(0).getID().subtract(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers())
 				.equals(ID.ONE)) {
 			return false;
 		}else {
@@ -611,7 +549,7 @@ public class Transactions implements EQCTypable {
 					Account account = new AssetAccount();
 					account.getKey().setAddress(newAccountList.get(i));
 					account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
-					Asset asset = new Asset();
+					Asset asset = new CoinAsset();
 					asset.setAssetID(Asset.EQCOIN);
 					asset.setBalanceUpdateHeight(account.getKey().getAddressCreateHeight());
 					asset.setNonce(ID.ZERO);
@@ -685,5 +623,11 @@ public class Transactions implements EQCTypable {
 		}
 		return initID;
 	}
-	
+
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

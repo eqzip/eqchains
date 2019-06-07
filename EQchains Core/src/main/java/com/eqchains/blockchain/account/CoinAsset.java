@@ -27,72 +27,60 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.transaction;
+package com.eqchains.blockchain.account;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Comparator;
 
-import com.eqchains.blockchain.transaction.Address.AddressShape;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
-import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Sep 28, 2018
+ * @date Jun 6, 2019
  * @email 10509759@qq.com
  */
-public class TxOut extends Tx {
-	private boolean isNew;
-	
-	public TxOut(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
-		super(bytes, addressShape);
+public class CoinAsset extends Asset {
+
+	public CoinAsset() {
+		super(AssetType.COIN);
 	}
-	
-	public TxOut(ByteArrayInputStream is, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
-		super(is, addressShape);
+
+	public CoinAsset(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+		super(is);
 	}
-	
-	public TxOut() {
-		super();
-	}
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
-	public String toString() {
-		return 
-		"{\n" +
-		toInnerJson() +
-		"\n}";
+	public boolean isSanity() {
+		if(assetType == null || version == null || assetID == null || assetCreateHeight == null || balance == null || balanceUpdateHeight == null || nonce == null) {
+			return false;
+		}
+		if(!version.isSanity() || !assetID.isSanity() || !assetCreateHeight.isSanity() || !balanceUpdateHeight.isSanity() || !nonce.isSanity()) {
+			return false;
+		}
+		if(assetType != AssetType.COIN) {
+			return false;
+		}
+		if(assetID.equals(Asset.EQCOIN)) {
+			if(balance.compareTo(new ID(Util.MIN_EQC)) < 0) {
+				return false;
+			}
+		}
+		else {
+			if(!balance.isSanity()) {
+				return false;
+			}
+		}
+		return true;
 	}
-	
+	@Override
 	public String toInnerJson() {
 		return 
-		"\"TxOut\":" + 
-		"\n{" +
-			address.toInnerJson() + ",\n" +
-			"\"Value\":" + "\"" +  Long.toString(value) + "\"" + "\n" +
-		"}";
+				"\"CoinAsset\":" + 
+				"\n{\n" +
+					"\"AssetID\":" + "\"" + assetID + "\"" + ",\n" +
+					"\"Balance\":" + "\"" + balance + "\"" + ",\n" +
+					"\"BalanceUpdateHeight\":" + "\"" + balanceUpdateHeight + "\"" + ",\n" +
+					"\"Nonce\":" + "\"" + nonce + "\"" + "\n" +
+				"}";
 	}
-
-	/**
-	 * @return the isNew
-	 */
-	public boolean isNew() {
-		return isNew;
-	}
-
-	/**
-	 * @param isNew the isNew to set
-	 */
-	public void setNew(boolean isNew) {
-		this.isNew = isNew;
-	}
-	
 }

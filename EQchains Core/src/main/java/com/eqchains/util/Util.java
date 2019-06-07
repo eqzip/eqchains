@@ -29,8 +29,6 @@
  */
 package com.eqchains.util;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import java.awt.image.Raster;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -106,9 +104,12 @@ import com.eqchains.blockchain.Root;
 import com.eqchains.blockchain.TransactionsHeader;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Account.Asset;
-import com.eqchains.blockchain.account.Account.Key;
+import com.eqchains.blockchain.account.AssetSubchainAccount;
+import com.eqchains.blockchain.account.CoinAsset;
+import com.eqchains.blockchain.account.Asset.AssetType;
+import com.eqchains.blockchain.account.SmartContractAccount.LanguageType;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
@@ -155,23 +156,27 @@ public final class Util {
 	
 //	public final static long SINGULARITY_TOTAL_SUPPLY = 16800000 * ABC;
 
-	public final static long MINER_TOTAL_SUPPLY = 42000000000L * ABC;
-	
-	public final static long EQCOIN_FOUNDATION_TOTAL_SUPPLY = 168000000000L * ABC;
+//	public final static long MINER_TOTAL_SUPPLY = 42000000000L * ABC;
+//	
+//	public final static long EQCOIN_FOUNDATION_TOTAL_SUPPLY = 168000000000L * ABC;
 
 	public final static int BLOCK_INTERVAL = 600000;
 
 	public final static int TARGET_INTERVAL = 10000;
 
-	public final static long MINER_COINBASE_REWARD = 25 * ABC * (BLOCK_INTERVAL / TARGET_INTERVAL);
+	public final static long MINER_COINBASE_REWARD = 5 * ABC * (BLOCK_INTERVAL / TARGET_INTERVAL);
+	
+	public final static long EQZIP_COINBASE_REWARD = 20 * ABC * (BLOCK_INTERVAL / TARGET_INTERVAL);
 	
 	public final static long EQC_FOUNDATION_COINBASE_REWARD = 100 * ABC * (BLOCK_INTERVAL / TARGET_INTERVAL);
 	
-	public final static long COINBASE_REWARD = MINER_COINBASE_REWARD + EQC_FOUNDATION_COINBASE_REWARD;
+	public final static long COINBASE_REWARD = MINER_COINBASE_REWARD + EQZIP_COINBASE_REWARD + EQC_FOUNDATION_COINBASE_REWARD;
 
-	public final static BigInteger MAX_COINBASE_HEIGHT = BigInteger.valueOf(MAX_EQC / COINBASE_REWARD);
+	public final static long MAX_COINBASE_HEIGHT = MAX_EQC / COINBASE_REWARD;
 
-	public final static int TXFEE_UNIT = 10;
+	public final static int TXFEE_RATE = 10;
+	
+	public final static String DEFAULT_TXFEE_RATE = "10";
 
 	public final static int ZERO = 0;
 
@@ -257,8 +262,10 @@ public final class Util {
 
 	public final static int INIT_ADDRESS_SERIAL_NUMBER = 1;
 
-	public final static String PROTOCOL_VERSION = "0.0.1";
-
+	public final static String DEFAULT_PROTOCOL_VERSION = "0.0.1";
+	
+	public final static String PROTOCOL_VERSION = DEFAULT_PROTOCOL_VERSION;
+	
 	private static Cookie cookie = null;
 
 	private static Status status = null;
@@ -282,8 +289,6 @@ public final class Util {
 	public static final byte[] NULL_HASH = UnsignedBiginteger(new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16)).toByteArray();
 	
 	public static final byte[] SINGULARITY = ".".getBytes();
-	
-	public static final IllegalArgumentException DATA_FORMAT_EXCEPTION = new IllegalArgumentException("The data format is invalid.");
 	
 //	public static ID [] FIBONACCI = {
 //			new ID(1597),
@@ -311,6 +316,20 @@ public final class Util {
 			new ID(new BigInteger("3807901929474025356630904134051")), // 148
 			new ID(new BigInteger("1206484255615496768210420703829205488386909032955899056732883572731058504300529011053")) // 404
 	};
+	
+	public static ID[] PRIME101 = { new ID(2), new ID(3), new ID(5), new ID(7), new ID(11), new ID(13), new ID(17),
+			new ID(19), new ID(23), new ID(29), new ID(31), new ID(37), new ID(41), new ID(43), new ID(47), new ID(53),
+			new ID(59), new ID(61), new ID(67), new ID(71), new ID(73), new ID(79), new ID(83), new ID(89), new ID(97),
+			new ID(101), new ID(103), new ID(107), new ID(109), new ID(113), new ID(127), new ID(131), new ID(137),
+			new ID(139), new ID(149), new ID(151), new ID(157), new ID(163), new ID(167), new ID(173), new ID(179),
+			new ID(181), new ID(191), new ID(193), new ID(197), new ID(199), new ID(211), new ID(223), new ID(227),
+			new ID(229), new ID(233), new ID(239), new ID(241), new ID(251), new ID(257), new ID(263), new ID(269),
+			new ID(271), new ID(277), new ID(281), new ID(283), new ID(293), new ID(307), new ID(311), new ID(313),
+			new ID(317), new ID(331), new ID(337), new ID(347), new ID(349), new ID(353), new ID(359), new ID(367),
+			new ID(373), new ID(379), new ID(383), new ID(389), new ID(397), new ID(401), new ID(409), new ID(419),
+			new ID(421), new ID(431), new ID(433), new ID(439), new ID(443), new ID(449), new ID(457), new ID(461),
+			new ID(463), new ID(467), new ID(479), new ID(487), new ID(491), new ID(499), new ID(503), new ID(509),
+			new ID(521), new ID(523), new ID(541), new ID(547) };
 	
 	public enum STATUS {
 		OK, ERROR
@@ -487,37 +506,13 @@ public final class Util {
 //		return result;
 //	}
 	
-	public static byte[] multipleExtend(final byte[] data, final int multiple) {
+	public static byte[] multipleExtendMix(final byte[] data, final int multiple) {
 		byte[] result = null;
-		
+
 		BigDecimal begin = new BigDecimal(new BigInteger(1, data));
-		MathContext mc = new MathContext(141, RoundingMode.HALF_EVEN);
+		MathContext mc = new MathContext(Util.THOUSANDPLUS, RoundingMode.HALF_EVEN);
 		BigDecimal a = null, b = null, c = null, d = null;
-//		Log.info("data Len: " + data.length);
-//		BigDecimal begin0 = null;
-//		BigInteger begin1 = null;
-//		BigInteger begin2 = null;
-//		int nLen = 0;
-//		if(data.length <=32) {
-//			begin0 = new BigDecimal(begin).divide(new BigDecimal(FIBONACCI[2]), mc);
-//		}
-//		else {
-//			begin0 = new BigDecimal(begin).divide(new BigDecimal(FIBONACCI[10]), mc);
-//		}
-////		Log.info(b.toPlainString());
-//		String[] abcd = begin0.toPlainString().split("\\.");
-//		if(abcd.length == 2) {
-//			begin1 = new BigInteger(abcd[0]);
-//			begin2 = new BigInteger(abcd[1]);
-//			nLen = begin.toByteArray().length + begin1.toByteArray().length + begin2.toByteArray().length;
-//		}
-//		else {
-//			begin1 = new BigInteger(abcd[0]);
-//			nLen = begin.toByteArray().length + begin1.toByteArray().length;
-//		}
-		
-		int bufferLen = 2000 * multiple; 
-//		Log.info("bfl: " + bufferLen);
+		int bufferLen = 2000 * multiple;
 		ByteBuffer byteBuffer = ByteBuffer.allocate(bufferLen);
 		// Put the original raw data
 		byteBuffer.put(data);
@@ -525,54 +520,47 @@ public final class Util {
 		// Put the multiple extended data
 		for (int i = 1; i <= multiple; ++i) {
 //			Log.info("Begin: " + begin.toPlainString());
-			a = begin.divide(new BigDecimal(FIBONACCI[5]), mc);
-//			if(data.length <=32) {
-				b = a.divide(new BigDecimal(FIBONACCI[2]), mc);
-//			}
-//			else {
-				c = a.divide(new BigDecimal(FIBONACCI[10]), mc);
-//			}
-			d = b.subtract(c).abs().multiply(new BigDecimal(FIBONACCI[5]), mc);
-				
+			a = begin.divide(new BigDecimal(PRIME101[i - 1]), mc);
+			b = a.divide(new BigDecimal(FIBONACCI[2]), mc);
+			c = a.divide(new BigDecimal(FIBONACCI[10]), mc);
+			d = b.subtract(c).abs().multiply(new BigDecimal(PRIME101[i - 1]), mc);
+
 			begin = begin.add(a).add(b).add(c).add(d);
 //			Log.info("i: " + i + " " + begin.toPlainString());
 			String[] abc = begin.toPlainString().split("\\.");
-			if(abc.length == 2) {
+			if (abc.length == 2) {
+//				Log.info("...");
 				BigInteger e = new BigInteger(abc[0]);
 				BigInteger f = new BigInteger(abc[1]);
-//				Log.info(" " + begin.add(a).add(d.multiply(e)).subtract(FIBONACCI[i%10]).toString());
 				byteBuffer.put(e.toByteArray());
-//				Log.info("L0: " + begin.add(a).toByteArray().length);
 				byteBuffer.put(SINGULARITY);
 				byteBuffer.put(f.toByteArray());
 				byteBuffer.put(SINGULARITY);
-//				Log.info("L1: " + c.toByteArray().length);
-//				Log.info("L2: " + d.toByteArray().length);
-//				Log.info("2");
-			}
-			else {
-//				Log.info("1");
+			} else {
 				BigInteger e = new BigInteger(abc[0]);
 				byteBuffer.put(e.toByteArray());
 				byteBuffer.put(SINGULARITY);
 			}
 		}
 		byteBuffer.flip();
-		if(byteBuffer.remaining() == bufferLen) {
-//			Log.info("multipleExtend equal: " + bufferLen);
+		if (byteBuffer.remaining() == bufferLen) {
 			result = byteBuffer.array();
-		}
-		else {
-//			Log.info("multipleExtend not equal");
+		} else {
 			result = new byte[byteBuffer.remaining()];
 			byteBuffer.get(result);
-//			Log.info(Util.dumpBytes(Util.CRC32C(result), 16));
-//			Log.info("Len: " + result.length);
 		}
-//		Log.info("multipleExtend equal: " + bufferLen);
-//		Log.info("Lenresult: " + result.length);
-			
 		return result;
+	}
+	
+	public static byte[] multipleExtend(final byte[] data, final int multiple) {
+		ByteBuffer byteBuffer = ByteBuffer.allocate((data.length + SINGULARITY.length) * multiple);
+		// Put the multiple extended data
+		for (int i = 0; i < multiple; ++i) {
+				byteBuffer.put(data);
+				byteBuffer.put(SINGULARITY);
+		}
+		byteBuffer.flip();
+		return byteBuffer.array();
 	}
 
 	public static byte[] updateNonce(final byte[] bytes, final int nonce) {
@@ -826,6 +814,39 @@ public final class Util {
 			// Due to this is an address or signature so here use SHA3-256 reduce the size of it
 			if (isCompress) {
 				hash = SHA3_256(multipleExtend(hash, multiple));
+			}
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return hash;
+	}
+	
+	/**
+	 * EQCCHA_MULTIPLE_DUAL_MIX - EQchains complex hash algorithm used for calculate the hash
+	 * of EQC block chain's header. Each input data will be expanded by
+	 * a factor of multiple.
+	 * 
+	 * @param bytes      The raw data for example EQC block chain's header or
+	 *                   address
+	 * @param multiple   The input data will be expanded by a factor of multiple
+	 * @param isDual 	 If use SHA3-512 handle the input data
+	 * @param isCompress If this is an address or signatures. Then at the end use
+	 *                   SHA3-256 to reduce the size of it
+	 * @return Hash value processed by EQCCHA
+	 */
+	public static byte[] EQCCHA_MULTIPLE_DUAL_MIX(final byte[] bytes, int multiple, boolean isDual, boolean isCompress) {
+		byte[] hash = bytes;
+//		Log.info("Len: " + bytes.length);
+		try {
+//			hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtend(hash, multiple));
+			if(isDual) {
+				hash = MessageDigest.getInstance("SHA3-512").digest(multipleExtendMix(hash, multiple));
+			}
+			// Due to this is an address or signature so here use SHA3-256 reduce the size of it
+			if (isCompress) {
+				hash = SHA3_256(multipleExtendMix(hash, multiple));
 			}
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
@@ -1234,7 +1255,8 @@ public final class Util {
 			return os.toByteArray();
 		}
 
-		public static String AIToAddress(byte[] bytes) {
+		public static String AIToAddress(byte[] bytes) throws NoSuchFieldException {
+			EQCType.assertNotNull(bytes);
 			AddressType addressType = AddressType.T1;
 			if (bytes[0] == 0) {
 				addressType = AddressType.T1;
@@ -1510,16 +1532,16 @@ public final class Util {
 			}
 			
 			public P2SHAddress(byte[] code) throws NoSuchFieldException, IOException {
-				init();
-				this.code = code;
-				ARRAY peers = null;
-				peers = EQCType.parseARRAY(code);
-				for(byte[] peer : peers.elements) {
-					peerList.add(new Peer(peer));
-				}
-				if(!isValid()) {
-					return;
-				}
+//				init();
+//				this.code = code;
+//				ARRAY peers = null;
+//				peers = EQCType.parseARRAY(code);
+//				for(byte[] peer : peers.elements) {
+//					peerList.add(new Peer(peer));
+//				}
+//				if(!isValid()) {
+//					return;
+//				}
 			}
 			
 			public void addPeer(Peer ...peers) {
@@ -1650,21 +1672,21 @@ public final class Util {
 					}
 
 					// Parse Array
-					ARRAY array = null;
-					if ((array = EQCType.parseARRAY(is)) != null) {
-						// Parse Peers
-						ARRAY peers = EQCType.parseARRAY(array.elements.get(0));
-						for(byte[] peer:peers.elements) {
-							addressList.add(AddressTool.AIToAddress(peer));
-						}
-						// Parse Timestamp
-						if(!EQCType.isNULL(array.elements.get(1))) {
-							timestamp = Util.bytesToLong(array.elements.get(1));
-						}
-						else {
-							timestamp = 0;
-						}
-					}
+//					ARRAY array = null;
+//					if ((array = EQCType.parseARRAY(is)) != null) {
+//						// Parse Peers
+//						ARRAY peers = EQCType.parseARRAY(array.elements.get(0));
+//						for(byte[] peer:peers.elements) {
+//							addressList.add(AddressTool.AIToAddress(peer));
+//						}
+//						// Parse Timestamp
+//						if(!EQCType.isNULL(array.elements.get(1))) {
+//							timestamp = Util.bytesToLong(array.elements.get(1));
+//						}
+//						else {
+//							timestamp = 0;
+//						}
+//					}
 				}
 				
 				public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
@@ -1681,18 +1703,18 @@ public final class Util {
 					}
 
 					// Parse Array
-					ARRAY array = null;
-					if ((array = EQCType.parseARRAY(is)) != null) {
-						// Parse Peers
-						ARRAY peers = EQCType.parseARRAY(array.elements.get(0));
-						if((peers.length == peers.elements.size()) && (peers.elements.size() > 0 && peers.elements.size() <= MAX_PEER_NUMBERS)) {
-							++validCount;
-						}
-						// Parse Timestamp
-						if(EQCType.isNULL(array.elements.get(1)) || (array.elements.get(1).length > 0)) {
-							++validCount;
-						}
-					}
+//					ARRAY array = null;
+//					if ((array = EQCType.parseARRAY(is)) != null) {
+//						// Parse Peers
+//						ARRAY peers = EQCType.parseARRAY(array.elements.get(0));
+//						if((peers.length == peers.elements.size()) && (peers.elements.size() > 0 && peers.elements.size() <= MAX_PEER_NUMBERS)) {
+//							++validCount;
+//						}
+//						// Parse Timestamp
+//						if(EQCType.isNULL(array.elements.get(1)) || (array.elements.get(1).length > 0)) {
+//							++validCount;
+//						}
+//					}
 					
 					return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
 				}
@@ -1783,21 +1805,15 @@ public final class Util {
 				}
 
 				@Override
-				public boolean isSanity(AddressShape... addressShape) {
+				public boolean isSanity() {
 					// TODO Auto-generated method stub
 					return false;
 				}
 
 				@Override
-				public byte[] getBytes(AddressShape addressShape) {
+				public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 					// TODO Auto-generated method stub
-					return null;
-				}
-
-				@Override
-				public byte[] getBin(AddressShape addressShape) {
-					// TODO Auto-generated method stub
-					return null;
+					return false;
 				}
 
 			}
@@ -1825,12 +1841,12 @@ public final class Util {
 					}
 
 					// Parse Publickeys
-					ARRAY array = null;
-					if ((array = EQCType.parseARRAY(is)) != null) {
-						for(byte[] publickey:array.elements) {
-							publickeyList.add(publickey);
-						}
-					}
+//					ARRAY array = null;
+//					if ((array = EQCType.parseARRAY(is)) != null) {
+//						for(byte[] publickey:array.elements) {
+//							publickeyList.add(publickey);
+//						}
+//					}
 				}
 				
 				public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
@@ -1847,12 +1863,12 @@ public final class Util {
 					}
 
 					// Parse Publickeys
-					ARRAY array = null;
-					if ((array = EQCType.parseARRAY(is)) != null) {
-						if((array.length == array.elements.size()) && (array.elements.size() > 0 && array.elements.size() <= MAX_PEER_NUMBERS)) {
-							++validCount;
-						}
-					}
+//					ARRAY array = null;
+//					if ((array = EQCType.parseARRAY(is)) != null) {
+//						if((array.length == array.elements.size()) && (array.elements.size() > 0 && array.elements.size() <= MAX_PEER_NUMBERS)) {
+//							++validCount;
+//						}
+//					}
 					
 					return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
 				}
@@ -1913,24 +1929,6 @@ public final class Util {
 					return publickeyList;
 				}
 
-				@Override
-				public boolean isSanity(AddressShape... addressShape) {
-					// TODO Auto-generated method stub
-					return false;
-				}
-
-				@Override
-				public byte[] getBytes(AddressShape addressShape) {
-					// TODO Auto-generated method stub
-					return null;
-				}
-
-				@Override
-				public byte[] getBin(AddressShape addressShape) {
-					// TODO Auto-generated method stub
-					return null;
-				}
-
 				public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 					// TODO Auto-generated method stub
 					return false;
@@ -1944,6 +1942,12 @@ public final class Util {
 				public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 					// TODO Auto-generated method stub
 					
+				}
+
+				@Override
+				public boolean isSanity() {
+					// TODO Auto-generated method stub
+					return false;
 				}
 				
 			}
@@ -1971,12 +1975,12 @@ public final class Util {
 					}
 
 					// Parse Signatures
-					ARRAY array = null;
-					if ((array = EQCType.parseARRAY(is)) != null) {
-						for(byte[] signature : array.elements) {
-							signatureList.add(signature);
-						}
-					}
+//					ARRAY array = null;
+//					if ((array = EQCType.parseARRAY(is)) != null) {
+//						for(byte[] signature : array.elements) {
+//							signatureList.add(signature);
+//						}
+//					}
 				}
 				
 				public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
@@ -1993,12 +1997,12 @@ public final class Util {
 					}
 
 					// Parse Signatures
-					ARRAY array = null;
-					if ((array = EQCType.parseARRAY(is)) != null) {
-						if((array.length == array.elements.size()) && (array.elements.size() > 0 && array.elements.size() <= MAX_PEER_NUMBERS)) {
-							++validCount;
-						}
-					}
+//					ARRAY array = null;
+//					if ((array = EQCType.parseARRAY(is)) != null) {
+//						if((array.length == array.elements.size()) && (array.elements.size() > 0 && array.elements.size() <= MAX_PEER_NUMBERS)) {
+//							++validCount;
+//						}
+//					}
 					
 					return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
 				}
@@ -2060,21 +2064,15 @@ public final class Util {
 				}
 
 				@Override
-				public boolean isSanity(AddressShape... addressShape) {
+				public boolean isSanity() {
 					// TODO Auto-generated method stub
 					return false;
 				}
 
 				@Override
-				public byte[] getBytes(AddressShape addressShape) {
+				public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 					// TODO Auto-generated method stub
-					return null;
-				}
-
-				@Override
-				public byte[] getBin(AddressShape addressShape) {
-					// TODO Auto-generated method stub
-					return null;
+					return false;
 				}
 
 			}
@@ -2110,24 +2108,6 @@ public final class Util {
 				return isValid;
 			}
 
-			@Override
-			public boolean isSanity(AddressShape... addressShape) {
-				// TODO Auto-generated method stub
-				return false;
-			}
-
-			@Override
-			public byte[] getBytes(AddressShape addressShape) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public byte[] getBin(AddressShape addressShape) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
 			public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 				// TODO Auto-generated method stub
 				return false;
@@ -2142,46 +2122,64 @@ public final class Util {
 				// TODO Auto-generated method stub
 				
 			}
+
+			@Override
+			public boolean isSanity() {
+				// TODO Auto-generated method stub
+				return false;
+			}
 			
 		}
 		
 	}
 
-	public static Transaction generateCoinBaseTransaction(Address address, ID height, AccountsMerkleTree accountsMerkleTree) {
+	public static Transaction generateCoinBaseTransaction(Address address, ID height,
+			AccountsMerkleTree accountsMerkleTree) {
 		TransferTransaction transaction = new CoinbaseTransaction();
 		TxOut eqcFoundationTxOut = new TxOut();
+		TxOut eqzipTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
-		minerTxOut.setAddress(address);
-		eqcFoundationTxOut.setAddress(Util.DB().getAddress(ID.ONE));
-		if (height.compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
-			if(accountsMerkleTree.isAccountExists(address, true)) {
-				transaction.setNonce(accountsMerkleTree.getAccount(address).getAsset(Asset.EQCOIN).getNonce().getNextID());
+		try {
+			eqcFoundationTxOut.setAddress(Util.DB().getAddress(ID.ONE));
+			eqzipTxOut.setAddress(Util.DB().getAddress(ID.TWO));
+			minerTxOut.setAddress(address);
+			if (height.compareTo(getMaxCoinbaseHeight(height)) < 0) {
+//				if (accountsMerkleTree.isAccountExists(address, true)) {
+//					transaction.setNonce(
+//							accountsMerkleTree.getAccount(address).getAsset(Asset.EQCOIN).getNonce().getNextID());
+//				} else {
+//					transaction.setNonce(ID.ONE);
+//				}
+				eqcFoundationTxOut.setValue(Util.EQC_FOUNDATION_COINBASE_REWARD);
+				eqzipTxOut.setValue(EQZIP_COINBASE_REWARD);
+				minerTxOut.setValue(Util.MINER_COINBASE_REWARD);
+			} else {
+				transaction
+						.setNonce(accountsMerkleTree.getAccount(ID.ONE).getAsset(Asset.EQCOIN).getNonce().getNextID());
+				eqcFoundationTxOut.setValue(0);
+				minerTxOut.setValue(0);
 			}
-			else {
-				transaction.setNonce(ID.ONE);
-			}
-			eqcFoundationTxOut.setValue(Util.EQC_FOUNDATION_COINBASE_REWARD);
-			minerTxOut.setValue(Util.MINER_COINBASE_REWARD);
-		} else {
-			transaction.setNonce(accountsMerkleTree.getAccount(ID.ONE).getAsset(Asset.EQCOIN).getNonce().getNextID());
-			eqcFoundationTxOut.setValue(0);
-			minerTxOut.setValue(0);
+			transaction.addTxOut(eqcFoundationTxOut);
+			transaction.addTxOut(eqzipTxOut);
+			transaction.addTxOut(minerTxOut);
+		} catch (Exception e) {
+			Log.Error(e.getMessage());
 		}
-		transaction.addTxOut(eqcFoundationTxOut);
-		transaction.addTxOut(minerTxOut);
 		return transaction;
 	}
 
 	public static EQCHive gestationSingularityBlock() {
+		EQCHive eqcBlock = null;
 		saveEQCBlockTailHeight(ID.ZERO);
 		// Create AccountsMerkleTree
-		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO, new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-		
+		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO,
+				new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+
 		// Create EQC block
-		EQCHive eqcBlock = new EQCHive();
+		eqcBlock = new EQCHive();
 
 		// Create TransactionsHeader
-		TransactionsHeader transactionsHeader = new TransactionsHeader();
+//		TransactionsHeader transactionsHeader = new TransactionsHeader();
 //		transactionsHeader.setSignaturesHash(null);
 //		eqcBlock.getTransactions().setTransactionsHeader(transactionsHeader);
 
@@ -2193,38 +2191,72 @@ public final class Util {
 		txOut.setValue(EQC_FOUNDATION_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
-		AssetAccount account = new AssetAccount();
+		AssetSubchainAccount account = new AssetSubchainAccount();
+		account.setLeasePeriod(ID.ZERO);
+		account.setLanguageType(LanguageType.JAVA);
 		account.getKey().setAddress(txOut.getAddress());
 		account.getKey().setAddressCreateHeight(ID.ZERO);
-		Asset asset = new Asset();
-		asset.setAssetID(Asset.EQCOIN);
-		asset.setBalance(EQC_FOUNDATION_COINBASE_REWARD);
+		Asset asset = new CoinAsset();
+		asset.setAssetCreateHeight(ID.ZERO);
+		asset.setBalance(new ID(EQC_FOUNDATION_COINBASE_REWARD));
 		asset.setBalanceUpdateHeight(ID.ZERO);
 		asset.setNonce(ID.ZERO);
 		account.setAsset(asset);
+		account.getAssetSubchainHeader().setFounderID(ID.ONE);
+		account.getAssetSubchainHeader().setDecimals("0.0001");
+		account.getAssetSubchainHeader().setIfCanBurn(false);
+		account.getAssetSubchainHeader().setIfCanChangeMaxSupply(false);
+		account.getAssetSubchainHeader().setIfCanChangeTotalSupply(true);
+		account.getAssetSubchainHeader().setMaxSupply(new ID(Util.MAX_EQC));
+		account.getAssetSubchainHeader().setSubchainID(ID.ONE);
+		account.getAssetSubchainHeader().setSubchainName("EQcoin");
+		account.getAssetSubchainHeader().setSymbol("EQC");
+		account.getAssetSubchainHeader().setTotalSupply(new ID(cypherTotalSupply(ID.ZERO)));
+		account.getAssetSubchainHeader().setTotalAccountNumbers(new ID(3));
+		account.getAssetSubchainHeader().setTotalTransactionNumbers(ID.ONE);
+		account.getAssetSubchainHeader().setUrl("www.eqchains.com");
+		account.getAssetSubchainHeader().setLogo(getSecureRandomBytes());
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumbers();
-		
+
 		txOut = new TxOut();
 		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
 		txOut.getAddress().setID(ID.TWO);
+		txOut.setValue(EQZIP_COINBASE_REWARD);
+		txOut.setNew(true);
+		transaction.addTxOut(txOut);
+		AssetAccount account1 = new AssetAccount();
+		account1.getKey().setAddress(txOut.getAddress());
+		account1.getKey().setAddressCreateHeight(ID.ZERO);
+		asset = new CoinAsset();
+		asset.setAssetCreateHeight(ID.ZERO);
+		asset.setBalance(new ID(EQZIP_COINBASE_REWARD));
+		asset.setBalanceUpdateHeight(ID.ZERO);
+		asset.setNonce(ID.ZERO);
+		account1.setAsset(asset);
+		accountsMerkleTree.saveAccount(account1);
+		accountsMerkleTree.increaseTotalAccountNumbers();
+		
+		txOut = new TxOut();
+		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
+		txOut.getAddress().setID(new ID(3));
 		txOut.setValue(MINER_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
-		account = new AssetAccount();
-		account.getKey().setAddress(txOut.getAddress());
-		account.getKey().setAddressCreateHeight(ID.ZERO);
-		asset = new Asset();
-		asset.setAssetID(Asset.EQCOIN);
-		asset.setBalance(MINER_COINBASE_REWARD);
+		account1 = new AssetAccount();
+		account1.getKey().setAddress(txOut.getAddress());
+		account1.getKey().setAddressCreateHeight(ID.ZERO);
+		asset = new CoinAsset();
+		asset.setAssetCreateHeight(ID.ZERO);
+		asset.setBalance(new ID(MINER_COINBASE_REWARD));
 		asset.setBalanceUpdateHeight(ID.ZERO);
 		asset.setNonce(ID.ONE);
-		account.setAsset(asset);
-		accountsMerkleTree.saveAccount(account);
+		account1.setAsset(asset);
+		accountsMerkleTree.saveAccount(account1);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		transaction.setNonce(ID.ONE);
 		eqcBlock.getTransactions().addTransaction(transaction);
-		
+
 		// Add new address in address list
 //		if (!eqcBlock.getTransactions().isAddressExists(address.getAddress())) {
 //			eqcBlock.getTransactions().getAddressList().addElement(address);
@@ -2245,9 +2277,10 @@ public final class Util {
 		// Create Root
 		Root root = new Root();
 //		root.setIndexHash(index.getHash());
-		root.setTotalSupply(cypherTotalSupply(ID.ZERO));
-		root.setTotalAccountNumbers(ID.TWO);
-		root.setTotalTransactionNumbers(ID.ONE);
+//		root.setTotalSupply(new ID(cypherTotalSupply(ID.ZERO)));
+//		root.setTotalAccountNumbers(ID.TWO);
+//		root.setTotalTransactionNumbers(ID.ONE);
+		root.setTxFeeRate(DEFAULT_TXFEE_RATE);
 		root.setAccountsMerkelTreeRoot(accountsMerkleTree.getRoot());
 		root.setTransactionsMerkelTreeRoot(eqcBlock.getTransactionsMerkelTreeRoot());
 
@@ -2263,13 +2296,12 @@ public final class Util {
 
 //		eqcBlock.setIndex(index);
 		eqcBlock.setRoot(root);
-
 		return eqcBlock;
 	}
 
 	public static long cypherTotalSupply(ID height) {
-		if (height.compareTo(MAX_COINBASE_HEIGHT) < 0) {
-			return (EQC_FOUNDATION_COINBASE_REWARD + MINER_COINBASE_REWARD) * (height.longValue() + 1);
+		if (height.compareTo(getMaxCoinbaseHeight(height)) < 0) {
+			return (COINBASE_REWARD) * (height.longValue() + 1);
 		} else {
 			return MAX_EQC;
 		}
@@ -2622,6 +2654,14 @@ public final class Util {
 	public static void saveEQCBlockTailHeight(ID height) {
 		EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(height);
 		EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(height);
+	}
+	
+	public static ID getMaxCoinbaseHeight(ID height){
+		ID maxCoinbaseHeight = null;
+		if(PROTOCOL_VERSION.equals(DEFAULT_PROTOCOL_VERSION)) {
+			maxCoinbaseHeight = new ID(MAX_EQC / COINBASE_REWARD);
+		}
+		return maxCoinbaseHeight;
 	}
 	
 }

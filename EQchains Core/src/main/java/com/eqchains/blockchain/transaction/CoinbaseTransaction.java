@@ -36,10 +36,10 @@ import java.util.Vector;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Account.Asset;
+import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
-import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -52,12 +52,11 @@ import com.eqchains.util.Util.AddressTool;
  * @email 10509759@qq.com
  */
 public class CoinbaseTransaction extends TransferTransaction {
-	
 	private long txFee;
 	public final static int MIN_TXOUT = 1;
 	public final static int MAX_TXOUT = 3;
-	protected final static byte BODY_VERIFICATION_MIN_COUNT = MIN_TXOUT + 1;
-	protected final static byte BODY_VERIFICATION_MAX_COUNT = MAX_TXOUT + 1;
+//	protected final static byte BODY_VERIFICATION_MIN_COUNT = MIN_TXOUT + 1;
+//	protected final static byte BODY_VERIFICATION_MAX_COUNT = MAX_TXOUT + 1;
 	
 	private void init() {
 		txIn = null;
@@ -71,20 +70,14 @@ public class CoinbaseTransaction extends TransferTransaction {
 	}
 
 	public CoinbaseTransaction(byte[] bytes, Address.AddressShape addressShape)
-			throws NoSuchFieldException, IOException {
+			throws NoSuchFieldException, IOException, IllegalStateException {
 		super(TransactionType.COINBASE);
-		if(!isValid(bytes, addressShape)) {
-			throw Util.DATA_FORMAT_EXCEPTION;
-		}
+		EQCType.assertNotNull(bytes);
 		init();
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		parseHeader(is);
+		parseHeader(is, addressShape);
 		parseBody(is, addressShape);
-	}
-
-	public static boolean isValid(byte[] bytes, AddressShape addressShape) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		return isHeaderValid(is) && isBodyValid(is, addressShape) && EQCType.isInputStreamEnd(is);
+		EQCType.assertNoRedundantData(is);
 	}
 
 	/*
@@ -99,7 +92,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Header
-			os.write(getHeaderBytes());
+			os.write(getHeaderBytes(addressShape));
 			// Serialization Body
 			os.write(getBodyBytes(addressShape));
 		} catch (IOException e) {
@@ -108,16 +101,6 @@ public class CoinbaseTransaction extends TransferTransaction {
 			Log.Error(e.getMessage());
 		}
 		return os.toByteArray();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.eqzip.eqcoin.blockchain.Transaction#getBytes()
-	 */
-	@Override
-	public byte[] getBytes() {
-		return getBytes(Address.AddressShape.ID);
 	}
 
 	/*
@@ -135,38 +118,31 @@ public class CoinbaseTransaction extends TransferTransaction {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see com.eqzip.eqcoin.blockchain.Transaction#getBin()
-	 */
-	@Override
-	public byte[] getBin() {
-		return EQCType.bytesToBIN(getBytes());
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
 	 * @see
 	 * com.eqzip.eqcoin.blockchain.Transaction#isValid(com.eqzip.eqcoin.blockchain.
 	 * AccountsMerkleTree)
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
-			throws NoSuchFieldException, IOException, IllegalArgumentException {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
 		long eqcFoundationCoinBaseValue = 0;
+		long eqzipCoinBaseValue = 0;
 		long minerCoinBaseValue = 0;
-		if(!isSanity()) {
+		if(!isSanity(addressShape)) {
 			return false;
 		}
-		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
+		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
 			if(txOutList.size() != MAX_TXOUT) {
 				return false;
 			}
 			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
 				return false;
 			}
-			if (accountsMerkleTree.isAccountExists(txOutList.get(1).getAddress(), false)) {
+			if(!txOutList.get(1).getAddress().getID().equals(ID.TWO)) {
+				return false;
+			}
+			if (accountsMerkleTree.isAccountExists(txOutList.get(2).getAddress(), false)) {
 				if (nonce.getPreviousID().compareTo(
-						accountsMerkleTree.getAccount(txOutList.get(1).getAddress().getID()).getAsset(Asset.EQCOIN).getNonce()) != 0) {
+						accountsMerkleTree.getAccount(txOutList.get(2).getAddress().getID()).getAsset(getAssetID()).getNonce()) != 0) {
 					return false;
 				}
 			} else {
@@ -175,8 +151,12 @@ public class CoinbaseTransaction extends TransferTransaction {
 				}
 			}
 			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
-			minerCoinBaseValue =  txOutList.get(1).getValue();
+			eqzipCoinBaseValue = txOutList.get(1).getValue();
+			minerCoinBaseValue =  txOutList.get(2).getValue();
 			if(eqcFoundationCoinBaseValue != Util.EQC_FOUNDATION_COINBASE_REWARD + txFee) {
+				return false;
+			}
+			if(eqzipCoinBaseValue != Util.EQZIP_COINBASE_REWARD) {
 				return false;
 			}
 			if(minerCoinBaseValue != Util.MINER_COINBASE_REWARD) {
@@ -210,7 +190,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	}
 
 	@Override
-	public boolean isSanity(AddressShape ...addressShape) {
+	public boolean isSanity(AddressShape addressShape) {
 		if(transactionType == null || txIn != null || nonce == null || txOutList == null) {
 			return false;
 		}
@@ -246,9 +226,9 @@ public class CoinbaseTransaction extends TransferTransaction {
 			}
 		}
 		// Set Nonce
-		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
-			if (accountsMerkleTree.isAccountExists(txOutList.get(1).getAddress(), true)) {
-				nonce = accountsMerkleTree.getAccount(txOutList.get(1).getAddress()).getAsset(Asset.EQCOIN).getNonce().getNextID();
+		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
+			if (accountsMerkleTree.isAccountExists(txOutList.get(2).getAddress(), true)) {
+				nonce = accountsMerkleTree.getAccount(txOutList.get(2).getAddress()).getAsset(Asset.EQCOIN).getNonce().getNextID();
 			} else {
 				nonce = ID.ONE;
 			}
@@ -258,7 +238,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	}
 	
 	public void updateTxFee(long txFee) {
-		txOutList.get(0).updateValue(txFee);
+		txOutList.get(0).addValue(txFee);
 	}
 	
 	public void update(AccountsMerkleTree accountsMerkleTree) {
@@ -269,7 +249,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 				account = new AssetAccount();
 				account.getKey().setAddress(txOut.getAddress());
 				account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
-				Asset asset = new Asset();
+				Asset asset = new CoinAsset();
 				asset.setAssetID(getAssetID());
 				asset.setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 				asset.setNonce(ID.ZERO);
@@ -277,10 +257,10 @@ public class CoinbaseTransaction extends TransferTransaction {
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
 			}
-			account.getAsset(getAssetID()).updateBalance(txOut.getValue()); 
+			account.getAsset(getAssetID()).getBalance().add(new ID(txOut.getValue())); 
 			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 			// Update Nonce
-			if(accountsMerkleTree.getHeight().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
+			if(accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
 				if(account.getKey().getAddress().getID().compareTo(ID.ONE) > 0) {
 					account.getAsset(getAssetID()).increaseNonce();
 				}
@@ -325,7 +305,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 		int size = 0;
 
 		// Transaction's ID format's size which storage in the EQC Blockchain
-		size += getBin().length;
+		size += getBin(AddressShape.ID).length;
 		Log.info("ID size: " + size);
 
 		// Transaction's AddressList size which storage the new Address
@@ -353,134 +333,39 @@ public class CoinbaseTransaction extends TransferTransaction {
 	public void setTxFee(long txFee) {
 		this.txFee = txFee;
 	}
-	
-	public static boolean isValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException{
-		return false;
-	};
-
-	public static boolean isBodyValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException{
-		byte validCount = 0;
-		byte[] data = null;
-		boolean isTxOutValid = false;
-		if (addressShape == Address.AddressShape.ID) {
-			// Parse nonce
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-			
-			// Parse TxOut
-			data = null;
-			while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				// Parse TxOut address
-				isTxOutValid = false;
-				// Parse TxOut value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxOutValid = true;
-					++validCount;
-				}
-				// Add TxOut
-				data = null;
-			}
-		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
-			// Parse nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-
-			// Parse TxOut
-			data = null;
-			while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				// Parse TxOut address
-				isTxOutValid = false;
-				// Parse TxOut value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxOutValid = true;
-					++validCount;
-				}
-				// Add TxOut
-				data = null;
-			}
-		}
-		return isTxOutValid && (validCount >= BODY_VERIFICATION_MIN_COUNT) && (validCount <= BODY_VERIFICATION_MAX_COUNT);
-	};
 
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 	}
+
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
-		byte[] data = null;
+		byte txOutValidCount = 0;
 		if (addressShape == Address.AddressShape.ID) {
 			// Parse nonce
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				nonce = new ID(data);
-			}
-			
+			nonce = new ID(EQCType.parseEQCBits(is));
 			// Parse TxOut
-			data = null;
-			while ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
+			while (txOutValidCount < MAX_TXOUT) {
 				TxOut txOut = new TxOut();
 				// Parse TxOut address
-				txOut.getAddress().setID(new ID(data));
+				txOut.getAddress().setID(new ID(EQCType.parseEQCBits(is)));
 				// Parse TxOut value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					txOut.setValue(EQCType.eqcBitsToLong(data));
-				}
-
+				txOut.setValue(EQCType.eqcBitsToLong(EQCType.parseEQCBits(is)));
 				// Add TxOut
 				txOutList.add(txOut);
-				data = null;
+				++txOutValidCount;
 			}
 		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
 			// Parse nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				nonce = new ID(data);
-			}
-
+			nonce = new ID(EQCType.parseEQCBits(is));
 			// Parse TxOut
-			data = null;
-			while ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				TxOut txOut = new TxOut();
-				// Parse TxOut address
-				if (addressShape == Address.AddressShape.READABLE) {
-					txOut.getAddress().setReadableAddress(EQCType.bytesToASCIISting(data));
-				} else if (addressShape == Address.AddressShape.AI) {
-					txOut.getAddress().setReadableAddress(AddressTool.AIToAddress(data));
-				}
-
-				// Parse TxOut value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					txOut.setValue(EQCType.eqcBitsToLong(data));
-				}
-
+			while (txOutValidCount < MAX_TXOUT) {
+				TxOut txOut = new TxOut(EQCType.parseBIN(is), addressShape);
 				// Add TxOut
 				txOutList.add(txOut);
-				data = null;
+				++txOutValidCount;
 			}
 		}
 	}
 	
-	public byte[] getHeaderBytes() {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			// Serialization Solo
-			os.write(solo.getEQCBits());
-			// Serialization Transaction type
-			os.write(transactionType.getEQCBits());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		return os.toByteArray();
-	}
-	public byte[] getBodyBytes() {
-		return null;
-	}
 	public byte[] getBodyBytes(AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {

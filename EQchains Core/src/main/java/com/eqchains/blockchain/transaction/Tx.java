@@ -34,7 +34,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Comparator;
 
+import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.serialization.EQCAddressShapeInheritable;
+import com.eqchains.serialization.EQCAddressShapeTypable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -47,72 +50,23 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @date Mar 27, 2019
  * @email 10509759@qq.com
  */
-public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCTypable {
+public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypable, EQCAddressShapeInheritable {
 	protected Address address;
 	protected long value;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 */
-	private final static byte VERIFICATION_COUNT = 2;
 	
 	public Tx() {
 		address = new Address();
 	}
 
-	public Tx(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException {
-		super();
-		address = new Address();
+	public Tx(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		
-		// Parse Address
-		if(addressShape == Address.AddressShape.READABLE) {
-			if ((data = EQCType.parseBIN(is)) != null) {
-				address.setReadableAddress(EQCType.bytesToASCIISting(data));
-			}
-		}
-		else if(addressShape == Address.AddressShape.ID) {
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				address.setID(new ID(data));
-			}
-		}
-		
-		// Parse Value
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			value = EQCType.eqcBitsToLong(data);
-		}
+		parseBody(is, addressShape);
+		EQCType.assertNoRedundantData(is);
 	}
 
-	public static boolean isValid(byte[] bytes, AddressShape addressShape) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		return isValid(is, addressShape) && EQCType.isInputStreamEnd(is);
-	}
-	
-	public static boolean isValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
-		byte[] data = null;
-		byte validCount = 0;
-		
-		// Parse Address
-		if(addressShape == Address.AddressShape.READABLE || addressShape == AddressShape.AI) {
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-		}
-		else if(addressShape == Address.AddressShape.ID) {
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-		}
-		
-		// Parse Value
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-			++validCount;
-		}
-		
-		return (validCount == VERIFICATION_COUNT);
+	public Tx(ByteArrayInputStream is, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+		parseBody(is, addressShape);
 	}
 	
 	/**
@@ -138,54 +92,31 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCTypable {
 
 	/**
 	 * @param value the value to set
+	 * @throws NoSuchFieldException 
 	 */
 	public void setValue(long value) {
 		this.value = value;
 	}
 	
-	public void updateValue(long value) {
+	public void addValue(long value) {
 		this.value += value;
 	}
+	
+	public void subtractValue(long value) {
+		this.value -= value;
+	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
+	/**
+	 * When AddressShpae is ID
+	 * Get the Txin's bytes for storage it in the EQC block chain
+	 * For save the space the Address' shape is Serial Number which is the EQCBits type.
+	 * 
+	 * @return byte[]
 	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((address == null) ? 0 : address.hashCode());
-		result = prime * result + (int) (value ^ (value >>> 32));
-		return result;
-	}
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Tx other = (Tx) obj;
-		if (address == null) {
-			if (other.address != null)
-				return false;
-		} else if (!address.equals(other.address))
-			return false;
-		if (value != other.value)
-			return false;
-		return true;
-	}
-	
-	public byte[] getBytes(Address.AddressShape addressShape) {
+	public byte[] getBytes(AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(address.getAddressShapeBin(addressShape));
-			os.write(EQCType.longToEQCBits(value));
+			os.write(getBodyBytes(addressShape));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -194,21 +125,47 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCTypable {
 		return os.toByteArray();
 	}
 	
-	/**
-	 * Get the Txin's bytes for storage it in the EQC block chain
-	 * For save the space the Address' shape is Serial Number which is the EQCBits type.
-	 * 
-	 * @return byte[]
-	 */
-	@Override
-	public byte[] getBytes() {
-		// TODO Auto-generated method stub
-		return getBytes(Address.AddressShape.ID);
-	}
-	
+//	/* (non-Javadoc)
+//	 * @see java.lang.Object#hashCode()
+//	 */
+//	@Override
+//	public int hashCode() {
+//		final int prime = 31;
+//		int result = 1;
+//		result = prime * result + ((address == null) ? 0 : address.hashCode());
+//		result = prime * result + ((value == null) ? 0 : value.hashCode());
+//		return result;
+//	}
+//
+//	/* (non-Javadoc)
+//	 * @see java.lang.Object#equals(java.lang.Object)
+//	 */
+//	@Override
+//	public boolean equals(Object obj) {
+//		if (this == obj)
+//			return true;
+//		if (obj == null)
+//			return false;
+//		if (getClass() != obj.getClass())
+//			return false;
+//		Tx other = (Tx) obj;
+//		if (address == null) {
+//			if (other.address != null)
+//				return false;
+//		} else if (!address.equals(other.address))
+//			return false;
+//		if (value == null) {
+//			if (other.value != null)
+//				return false;
+//		} else if (!value.equals(other.value))
+//			return false;
+//		return true;
+//	}
+
 	@Override
 	public byte[] getBin(AddressShape addressShape) {
 		byte[] bin = null;
+		// Due to the EQCBits itself is embedded in the key-value pair so here need use getBytes
 		if(addressShape == AddressShape.ID) {
 			bin = getBytes(addressShape);
 		}
@@ -218,24 +175,12 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCTypable {
 		return bin;
 	}
 	
-	/**
-	 * Get the TxOut's BIN for storage it in the EQC block chain.
-	 * For save the space the Address' shape is Serial Number which is the EQCBits type.
-	 * 
-	 * @return byte[]
-	 */
 	@Override
-	public byte[] getBin() {
-		// TODO Auto-generated method stub
-		return EQCType.bytesToBIN(getBytes());
-	}
-	
-	@Override
-	public boolean isSanity(AddressShape... addressShape) {
+	public boolean isSanity(AddressShape addressShape) {
 		if(address == null) {
 			return false;
 		}
-		if(this instanceof TxOut && value < Util.MIN_EQC) {
+		if(value < Util.MIN_EQC) {
 			return false;
 		}
 		if(!address.isSanity(addressShape)) {
@@ -259,6 +204,55 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCTypable {
 	public int compare(Tx o1, Tx o2) {
 		// TODO Auto-generated method stub
 		return o1.getAddress().getReadableAddress().compareTo(o2.getAddress().getReadableAddress());
+	}
+
+	@Override
+	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+		// Parse Address
+		if(addressShape == Address.AddressShape.READABLE) {
+			address = new Address(EQCType.parseBIN(is));
+		}
+		else if(addressShape == Address.AddressShape.ID) {
+			address = new Address();
+			address.setID(new ID(EQCType.parseEQCBits(is)));
+		}
+		
+		// Parse Value
+		value = EQCType.eqcBitsToLong(EQCType.parseEQCBits(is));
+		
+	}
+
+	@Override
+	public byte[] getHeaderBytes(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getBodyBytes(AddressShape addressShape) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(address.getBin(addressShape));
+			os.write(EQCType.longToEQCBits(value));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape)
+			throws NoSuchFieldException, IOException, IllegalArgumentException {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

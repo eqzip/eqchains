@@ -127,6 +127,24 @@ public class ID extends BigInteger {
 		return new ID(super.subtract(val));
 	}
 	
+	/* (non-Javadoc)
+	 * @see java.math.BigInteger#multiply(java.math.BigInteger)
+	 */
+	@Override
+	public ID multiply(BigInteger val) {
+		// TODO Auto-generated method stub
+		return new ID(super.multiply(val));
+	}
+
+	/* (non-Javadoc)
+	 * @see java.math.BigInteger#divide(java.math.BigInteger)
+	 */
+	@Override
+	public ID divide(BigInteger val) {
+		// TODO Auto-generated method stub
+		return new ID(super.divide(val));
+	}
+
 	public boolean isSanity() {
 		if(this.compareTo(ID.ZERO) < 0) {
 			return false;

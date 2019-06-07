@@ -57,77 +57,10 @@ public class UpdateAddressOperation extends Operation {
 		super(OP.ADDRESS);
 	}
 
-	public UpdateAddressOperation(byte[] bytes, AddressShape addressShape) {
+	public UpdateAddressOperation(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
 		super(OP.ADDRESS);
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-
-		try {
-			// Parse OP
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				op = OP.get(EQCType.eqcBitsToInt(data));
-			}
-			// Parse Address
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				if (addressShape == AddressShape.READABLE) {
-					address = new Address(EQCType.bytesToASCIISting(data));
-				} else if (addressShape == AddressShape.ID || addressShape == AddressShape.AI) {
-					address = new Address(AddressTool.AIToAddress(data));
-				}
-			}
-		} catch (NoSuchFieldException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-	}
-
-	public static boolean isValid(byte[] bytes, AddressShape addressShape) {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		OP op = OP.INVALID;
-		byte validCount = 0;
-
-		try {
-			// Parse OP
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				op = OP.get(EQCType.eqcBitsToInt(data));
-				if (op == OP.ADDRESS) {
-					++validCount;
-				}
-			}
-			// Parse Address
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-		} catch (NoSuchFieldException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.eqzip.eqcoin.blockchain.OperationTransaction.Operation#getBytes()
-	 */
-	@Override
-	public byte[] getBytes() {
-		return getBytes(AddressShape.AI);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.eqzip.eqcoin.blockchain.OperationTransaction.Operation#getBin()
-	 */
-	@Override
-	public byte[] getBin() {
-		return getBin(AddressShape.AI);
+		parseHeader(is, addressShape);
+		parseBody(is, addressShape);
 	}
 
 	/*
@@ -141,15 +74,10 @@ public class UpdateAddressOperation extends Operation {
 	public byte[] getBytes(AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			// Serialization OP
-			os.write(EQCType.longToEQCBits(op.ordinal()));
-			// Serialization Address
-			if(addressShape == AddressShape.ID || addressShape == AddressShape.AI) {
-				os.write(address.getAddressShapeBin(AddressShape.AI));
-			}
-			else {
-				os.write(address.getAddressShapeBin(addressShape));
-			}
+			// Serialization Header
+			os.write(getHeaderBytes(addressShape));
+			// Serialization Body
+			os.write(getBodyBytes(addressShape));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -168,16 +96,6 @@ public class UpdateAddressOperation extends Operation {
 	@Override
 	public byte[] getBin(AddressShape addressShape) {
 		return EQCType.bytesToBIN(getBytes(addressShape));
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.eqzip.eqcoin.blockchain.OperationTransaction.Operation#isValid()
-	 */
-	@Override
-	public boolean isValid() {
-		return (op == OP.ADDRESS) && address.isGood();
 	}
 
 	/* (non-Javadoc)
@@ -226,7 +144,7 @@ public class UpdateAddressOperation extends Operation {
 	 * @see com.eqzip.eqcoin.blockchain.transaction.operation.Operation#isSanity(com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape[])
 	 */
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
+	public boolean isSanity(AddressShape addressShape) {
 		if(op != OP.ADDRESS || address == null) {
 			return false;
 		}
@@ -243,6 +161,73 @@ public class UpdateAddressOperation extends Operation {
 		"\n{" +
 			address.toInnerJson() + "\n" +
 		"}";
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.transaction.operation.Operation#parseBody(java.io.ByteArrayInputStream, com.eqchains.blockchain.transaction.Address.AddressShape)
+	 */
+	@Override
+	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+			throws NoSuchFieldException, IOException, IllegalArgumentException {
+		// Parse Address
+		if (addressShape == AddressShape.READABLE) {
+			address = new Address(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
+		} else if (addressShape == AddressShape.ID || addressShape == AddressShape.AI) {
+			address = new Address(AddressTool.AIToAddress(EQCType.parseBIN(is)));
+		}
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.transaction.operation.Operation#getBodyBytes(com.eqchains.blockchain.transaction.Address.AddressShape)
+	 */
+	@Override
+	public byte[] getBodyBytes(AddressShape addressShape) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			// Serialization Address
+			if(addressShape == AddressShape.ID || addressShape == AddressShape.AI) {
+				os.write(address.getBin(AddressShape.AI));
+			}
+			else {
+				os.write(address.getBin(addressShape));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((address == null) ? 0 : address.hashCode());
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		UpdateAddressOperation other = (UpdateAddressOperation) obj;
+		if (address == null) {
+			if (other.address != null)
+				return false;
+		} else if (!address.equals(other.address))
+			return false;
+		return true;
 	}
 	
 }

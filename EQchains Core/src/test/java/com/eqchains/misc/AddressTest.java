@@ -83,6 +83,11 @@ public class AddressTest {
 	   void verifyAI2Address() {
 		   Address address = new Address();
 		   address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		   assertEquals(AddressTool.AIToAddress(address.getAddressAI()), address.getReadableAddress());
+		   try {
+			assertEquals(AddressTool.AIToAddress(address.getAddressAI()), address.getReadableAddress());
+		} catch (NoSuchFieldException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	   }
 }

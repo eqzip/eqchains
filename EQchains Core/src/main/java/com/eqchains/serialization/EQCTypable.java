@@ -41,9 +41,8 @@ import com.eqchains.blockchain.transaction.Address.AddressShape;
  * @email 10509759@qq.com
  */
 public interface EQCTypable {
-	public byte[] getBytes(AddressShape addressShape);
 	public byte[] getBytes();
-	public byte[] getBin(AddressShape addressShape);
 	public byte[] getBin();
-	public boolean isSanity(AddressShape ...addressShape);
+	public boolean isSanity();
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree);
 }

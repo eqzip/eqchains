@@ -347,23 +347,15 @@ public class Index implements EQCTypable {
 	}
 
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
+	public boolean isSanity() {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
-		return null;
+		return false;
 	}
-
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	
 	
 }

@@ -47,8 +47,12 @@ import com.eqchains.util.Util;
  */
 public class TxIn extends Tx {
 	
-	public TxIn(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException {
+	public TxIn(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		super(bytes, addressShape);
+	}
+	
+	public TxIn(ByteArrayInputStream is, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+		super(is, addressShape);
 	}
 	
 	public TxIn() {

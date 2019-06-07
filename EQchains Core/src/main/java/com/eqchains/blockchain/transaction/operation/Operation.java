@@ -30,12 +30,17 @@
 package com.eqchains.blockchain.transaction.operation;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.blockchain.transaction.operation.Operation.OP;
+import com.eqchains.serialization.EQCAddressShapeInheritable;
+import com.eqchains.serialization.EQCAddressShapeTypable;
+import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -46,7 +51,7 @@ import com.eqchains.util.Log;
  * @date Mar 27, 2019
  * @email 10509759@qq.com
  */
-public class Operation implements EQCTypable {
+public abstract class Operation implements EQCAddressShapeTypable, EQCAddressShapeInheritable {
 
 	public enum OP {
 		ADDRESS, TXFEERATE, EMAIL, RENEW, INVALID;
@@ -75,12 +80,8 @@ public class Operation implements EQCTypable {
 
 	public final static int MAX_OP = OP.EMAIL.ordinal();
 	protected OP op;
-	protected Object parameter;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 */
-	protected final static byte VERIFICATION_COUNT = 2;
+//	protected ID version;
+//	protected Object parameter;
 
 	public Operation(OP op) {
 		this.op = op;
@@ -104,62 +105,26 @@ public class Operation implements EQCTypable {
 		this.op = op;
 	}
 
-	@Override
-	public byte[] getBytes() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBin() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public byte[] getBytes(Address.AddressShape addressShape) {
-		return null;
-	}
-
-	public byte[] getBin(Address.AddressShape addressShape) {
-		return null;
-	}
-
-	public static boolean isValid(byte[] bytes) {
-		return false;
-	}
-
-	public boolean isValid() {
-		return false;
-	}
-	
 	public boolean isMeetPreconditions(Object ...objects) {
 		return false;
 	}
 
-	public static OP parseOP(byte[] bytes) {
+	public static OP parseOP(ByteArrayInputStream is) throws NoSuchFieldException, IllegalStateException, IOException {
+		is.mark(0);
 		OP op = OP.INVALID;
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		int opCode = -1;
-		try {
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				opCode = EQCType.eqcBitsToInt(data);
-			}
-			op = OP.get(opCode);
-		} catch (NoSuchFieldException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
+		int opCode = OP.INVALID.ordinal();
+		opCode = EQCType.eqcBitsToInt(EQCType.parseEQCBits(is));
+		op = OP.get(opCode);
+		is.reset();
 		return op;
 	}
 
-	public static Operation parseOperation(byte[] bytes, AddressShape addressShape) {
+	public static Operation parseOperation(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
 		Operation operation = null;
-		OP op = parseOP(bytes);
+		OP op = parseOP(is);
 
 		if (op == OP.ADDRESS) {
-			operation = new UpdateAddressOperation(bytes, addressShape);
+			operation = new UpdateAddressOperation(is, addressShape);
 		} else if (op == OP.EMAIL) {
 
 		} else if (op == OP.RENEW) {
@@ -168,12 +133,6 @@ public class Operation implements EQCTypable {
 		return operation;
 	}
 
-	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
@@ -189,4 +148,90 @@ public class Operation implements EQCTypable {
 		return null;
 	}
 
+	@Override
+	public byte[] getBytes(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getBin(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isSanity(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+			throws NoSuchFieldException, IOException, IllegalArgumentException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public byte[] getHeaderBytes(AddressShape addressShape) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			// Serialization OP
+			os.write(EQCType.longToEQCBits(op.ordinal()));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
+	@Override
+	public byte[] getBodyBytes(AddressShape addressShape) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape)
+			throws NoSuchFieldException, IOException, IllegalArgumentException {
+		// Parse OP
+		op = OP.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((op == null) ? 0 : op.hashCode());
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Operation other = (Operation) obj;
+		if (op != other.op)
+			return false;
+		return true;
+	}
+	
 }

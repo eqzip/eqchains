@@ -27,72 +27,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.transaction;
+package com.eqchains.serialization;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Comparator;
-
+import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.serialization.EQCType;
-import com.eqchains.util.ID;
-import com.eqchains.util.Log;
-import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Sep 28, 2018
+ * @date May 19, 2019
  * @email 10509759@qq.com
  */
-public class TxOut extends Tx {
-	private boolean isNew;
-	
-	public TxOut(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
-		super(bytes, addressShape);
-	}
-	
-	public TxOut(ByteArrayInputStream is, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
-		super(is, addressShape);
-	}
-	
-	public TxOut() {
-		super();
-	}
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		return 
-		"{\n" +
-		toInnerJson() +
-		"\n}";
-	}
-	
-	public String toInnerJson() {
-		return 
-		"\"TxOut\":" + 
-		"\n{" +
-			address.toInnerJson() + ",\n" +
-			"\"Value\":" + "\"" +  Long.toString(value) + "\"" + "\n" +
-		"}";
-	}
-
-	/**
-	 * @return the isNew
-	 */
-	public boolean isNew() {
-		return isNew;
-	}
-
-	/**
-	 * @param isNew the isNew to set
-	 */
-	public void setNew(boolean isNew) {
-		this.isNew = isNew;
-	}
-	
+public interface EQCAddressShapeTypable {
+	public byte[] getBytes(AddressShape addressShape);
+	public byte[] getBin(AddressShape addressShape);
+	public boolean isSanity(AddressShape addressShape);
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape);
 }

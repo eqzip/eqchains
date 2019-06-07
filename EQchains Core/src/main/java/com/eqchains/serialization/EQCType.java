@@ -89,7 +89,7 @@ public class EQCType {
 	 */
 	public final static byte MIN_BINX_LEN = 9;
 	public final static short MAX_BINX_LEN = 255;
-	public final static byte EOF = -1;
+	public final static int EOF = -1;
 
 	/**
 	 * For any BIN or ARRAY EQCType in case which represents the Object is null just
@@ -182,6 +182,16 @@ public class EQCType {
 	 */
 	public final static byte EQCBITS = (byte) 128;
 	public final static byte EQCBITS_BUFFER_LEN = 11;
+	
+	public static final NoSuchFieldException ZERO_EXCEPTION = new NoSuchFieldException("The ID shouldn't be zero.");
+	
+	public static final NoSuchFieldException NULL_OBJECT_EXCEPTION = new NoSuchFieldException("The Object shouldn't be null.");
+	
+	public static final IllegalStateException REDUNDANT_DATA_EXCEPTION = new IllegalStateException("Exists redundant data in current Object.");
+
+	public static final IllegalStateException ARRAY_LENGTH_EXCEPTION = new IllegalStateException("ARRAY's length doesn't equal to it's actual length.");
+
+	public static final IllegalStateException EOF_EXCEPTION = new IllegalStateException("The ByteArrayInputStream shouldn't end but read EOF.");
 
 //	/**
 //	 * Convert String to BINX using StandardCharsets.US_ASCII charset
@@ -258,7 +268,7 @@ public class EQCType {
 
 	public static boolean isARRAY(final int type) {
 		byte foo = (byte) type;
-		return isBINX(type) || ((foo == ARRAY16) || (foo == ARRAY24) || (foo == ARRAY32) || (foo == ARRAY8));
+		return (foo == ARRAY16) || (foo == ARRAY8) || (foo == ARRAY24) || (foo == ARRAY32) || isBINX(type);
 	}
 
 	public static int getBINTypeLen(final int type) {
@@ -336,7 +346,7 @@ public class EQCType {
 			if ((vector == null) || vector.size() == 0) {
 				os.write(NULL);
 			} else {
-				bytes = bytesArrayToBins(vector);
+				bytes = bytesArrayToBytes(vector);
 				if (bytes.length <= MAX_BIN8_LEN) {
 					os.write(ARRAY8);
 					os.write(longToEQCBits(vector.size()));
@@ -371,11 +381,11 @@ public class EQCType {
 		return os.toByteArray();
 	}
 
-	public static byte[] bytesArrayToBins(Vector<byte[]> vec) {
+	public static byte[] bytesArrayToBytes(Vector<byte[]> vec) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		for (byte[] bytes : vec) {
 			try {
-				os.write(bytesToBIN(bytes));
+				os.write(bytes);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -419,7 +429,7 @@ public class EQCType {
 		return os.toByteArray();
 	}
 
-	public static byte[] parseBIN(ByteArrayInputStream is) throws IOException, NoSuchFieldException {
+	public static byte[] parseBIN(ByteArrayInputStream is) throws IOException, NoSuchFieldException, IllegalStateException {
 		int type;
 		byte[] data = null;
 		byte[] bytes = null;
@@ -428,6 +438,7 @@ public class EQCType {
 
 		// Parse type
 		type = is.read();
+		assertNotEOF(type);
 //		Log.info(Util.dumpBytesBigEndianBinary(new byte[] {(byte) type}));
 		if (isNULL(type)) {
 			bytes = new byte[] { NULL };
@@ -464,11 +475,10 @@ public class EQCType {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		ARRAY array = null;
 		array = parseARRAY(is);
-		is.close();
 		return array;
 	}
 
-	public static ARRAY parseARRAY(ByteArrayInputStream is) throws IOException, NoSuchFieldException {
+	public static ARRAY parseARRAY(ByteArrayInputStream is) throws IOException, NoSuchFieldException, IllegalStateException {
 		int type;
 		byte[] data = null;
 		byte[] bytes = null;
@@ -477,14 +487,11 @@ public class EQCType {
 		ARRAY array = new ARRAY();
 		// Parse type
 		type = is.read();
+		assertNotEOF(type);
 		if(isNULL(type)) {
-			array = null;
 		} else if (isBINX(type)) {
 			// Get element's length
 			elementLen = parseEQCBits(is);
-			if (elementLen == null) {
-				throw new NoSuchFieldException("parseARRAY Get element's length error occur record len != real len.");
-			}
 			// Get BIN data's len
 			data = new byte[type];
 			iLen = is.read(data);
@@ -492,16 +499,10 @@ public class EQCType {
 				throw new NoSuchFieldException("parseARRAY Get BIN data's len error occur record len != real len.");
 			}
 			array.length = eqcBitsToLong(elementLen);
-			array.elements = parseVector(data);
-			if (array.length != array.elements.size()) {
-				throw new IllegalStateException("parseARRAY error occur array.length != array.elements.size().");
-			}
+			array.elements = data;
 		} else if (isARRAY(type)) {
 			// Get element's length
 			elementLen = parseEQCBits(is);
-			if (elementLen == null) {
-				throw new NoSuchFieldException("parseARRAY Parse element's length error occur record len is null.");
-			}
 			// Get ARRAY type len
 			iLen = getARRAYTypeLen(type);
 			data = new byte[iLen];
@@ -519,15 +520,12 @@ public class EQCType {
 			}
 			bytes = data;
 			array.length = eqcBitsToLong(elementLen);
-			array.elements = parseVector(data);
-			if (array.length != array.elements.size()) {
-				throw new IllegalStateException("parseARRAY error occur array.length != array.elements.size().");
-			}
+			array.elements = data;
 		}
 		return array;
 	}
 
-	public static byte[] parseEQCBits(ByteArrayInputStream is) throws IOException, NoSuchFieldException {
+	public static byte[] parseEQCBits(ByteArrayInputStream is) throws IOException, NoSuchFieldException, IllegalStateException {
 		int type;
 		byte[] bytes = null;
 		// Parse EQCBits
@@ -540,13 +538,16 @@ public class EQCType {
 			buff.flip();
 			bytes = buff.array();
 		}
+		else {
+			throw EOF_EXCEPTION;
+		}
 		return bytes;
 	}
 
 	public static boolean isInputStreamEnd(ByteArrayInputStream is) {
 		return is.available() == 0;
 	}
-
+	
 	public static boolean isNULL(ByteArrayInputStream is) {
 		boolean boolisNULL = false;
 		int type;
@@ -576,19 +577,17 @@ public class EQCType {
 	public static class ARRAY {
 		/**
 		 * Due to the unsigned integer in java doesn't support very good and
-		 * Vector&Array's size is java is integer type. But in EQCType Array's size type
+		 * Vector&Array's size in java is integer type. But in EQCType Array's size type
 		 * is unsigned integer So here use long to present unsigned integer.
 		 */
 		public long length;
-		public Vector<byte[]> elements;
+		public byte[] elements;
 
 		public ARRAY() {
-			length = 0;
-			elements = new Vector<byte[]>();
 		}
 
 		public boolean isNULL() {
-			return ((length == 0) && (elements.size() == 0));
+			return ((length == 0) && (elements == null));
 		}
 
 	}
@@ -719,4 +718,46 @@ public class EQCType {
 		return true;
 	}
 	
+	public static void assertNoRedundantData(ByteArrayInputStream is) throws IllegalStateException {
+		if(!isInputStreamEnd(is)) {
+			throw new IllegalStateException("Exists redundant data in current Object.");
+		}
+	}
+	
+	public static void assertNotNull(ByteArrayInputStream is) throws NoSuchFieldException {
+		if(isInputStreamEnd(is)) {
+			throw new NoSuchFieldException("The Object shouldn't be null.");
+		}
+	}
+	
+	public static void assertNotNull(byte[] bytes) throws NoSuchFieldException {
+		if(isNULL(bytes)) {
+			throw new NoSuchFieldException("The Object shouldn't be null.");
+		}
+	}
+	
+	public static void assertNotNull(Object object) throws NoSuchFieldException {
+		if(object == null) {
+			throw new NoSuchFieldException("The Object shouldn't be null.");
+		}
+	}
+	
+	public static void assertNotZero(ID id) throws NoSuchFieldException {
+		if(id.compareTo(ID.ZERO) == 0) {
+			throw new NoSuchFieldException("The ID shouldn't be zero.");
+		}
+	}
+	
+	public static void assertNotZero(long value) throws NoSuchFieldException {
+		if(value == 0) {
+			throw new NoSuchFieldException("The ID shouldn't be zero.");
+		}
+	}
+	
+	public static void assertNotEOF(int type) throws NoSuchFieldException {
+		if(type == EOF) {
+			throw new IllegalStateException("The ByteArrayInputStream shouldn't end but read EOF.");
+		}
+	}
+
 }

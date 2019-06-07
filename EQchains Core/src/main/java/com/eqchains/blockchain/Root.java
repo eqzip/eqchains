@@ -48,9 +48,7 @@ import com.eqchains.util.Util;
  */
 public class Root implements EQCTypable {
 	private ID version;
-	private long totalSupply;
-	private ID totalAccountNumbers;
-	private ID totalTransactionNumbers;
+	private String txFeeRate;
 	/**
 	 * Save the root of Accounts Merkel Tree.
 	 */
@@ -61,11 +59,6 @@ public class Root implements EQCTypable {
 	 * and AddressList's Merkel Tree.
 	 */
 	private byte[] transactionsMerkelTreeRoot;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 */
-	private static byte VERIFICATION_COUNT = 6;
 
 	public Root() {
 		version = ID.ZERO;
@@ -73,83 +66,21 @@ public class Root implements EQCTypable {
 
 	public Root(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-
 		// Parse Version
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			version = new ID(data);
-		}
+		version = new ID(EQCType.parseEQCBits(is));
 
-		// Parse totalSupply
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(bytes)) {
-			totalSupply = EQCType.eqcBitsToLong(data);
-		}
-
-		// Parse totalAccountNumbers
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(bytes)) {
-			totalAccountNumbers = new ID(data);
-		}
-
-		// Parse totalTransactionNumbers
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(bytes)) {
-			totalTransactionNumbers = new ID(data);
-		}
+		// Parse TxFeeRate
+		txFeeRate = EQCType.bytesToASCIISting(EQCType.parseBIN(is));
 
 		// Parse Accounts hash
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(bytes)) {
-			accountsMerkelTreeRoot = data;
-		}
+		accountsMerkelTreeRoot = EQCType.parseBIN(is);
 
 		// Parse TransactionsMerkelTreeRoot hash
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(bytes)) {
-			transactionsMerkelTreeRoot = data;
-		}
-	}
-
-	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		byte validCount = 0;
-
-		// Parse Version
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			++validCount;
-		}
-
-		// Parse totalSupply
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(bytes)) {
-			++validCount;
-		}
-
-		// Parse totalAccountNumbers
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(bytes)) {
-			++validCount;
-		}
-
-		// Parse totalTransactionNumbers
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(bytes)) {
-			++validCount;
-		}
-
-		// Parse Accounts hash
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(bytes)) {
-			++validCount;
-		}
-
-		// Parse TransactionsMerkelTreeRoot hash
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(bytes)) {
-			++validCount;
-		}
-
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+		transactionsMerkelTreeRoot = EQCType.parseBIN(is);
 	}
 
 	public byte[] getHash() {
-		return Util.EQCCHA_MULTIPLE_DUAL(getBytes(), Util.ONE, true, false);
+		return Util.EQCCHA_MULTIPLE_DUAL(getBytes(), Util.HUNDREDPULS, true, false);
 	}
 
 	@Override
@@ -157,9 +88,7 @@ public class Root implements EQCTypable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(version.getEQCBits());
-			os.write(EQCType.longToEQCBits(totalSupply));
-			os.write(totalAccountNumbers.getEQCBits());
-			os.write(totalTransactionNumbers.getEQCBits());
+			os.write(EQCType.stringToBIN(txFeeRate));
 			os.write(EQCType.bytesToBIN(accountsMerkelTreeRoot));
 			os.write(EQCType.bytesToBIN(transactionsMerkelTreeRoot));
 		} catch (IOException e) {
@@ -211,48 +140,6 @@ public class Root implements EQCTypable {
 	}
 
 	/**
-	 * @return the totalSupply
-	 */
-	public long getTotalSupply() {
-		return totalSupply;
-	}
-
-	/**
-	 * @param totalSupply the totalSupply to set
-	 */
-	public void setTotalSupply(long totalSupply) {
-		this.totalSupply = totalSupply;
-	}
-
-	/**
-	 * @return the totalAccountNumbers
-	 */
-	public ID getTotalAccountNumbers() {
-		return totalAccountNumbers;
-	}
-
-	/**
-	 * @param totalAccountNumbers the totalAccountNumbers to set
-	 */
-	public void setTotalAccountNumbers(ID totalAccountNumbers) {
-		this.totalAccountNumbers = totalAccountNumbers;
-	}
-
-	/**
-	 * @return the totalTransactionNumbers
-	 */
-	public ID getTotalTransactionNumbers() {
-		return totalTransactionNumbers;
-	}
-
-	/**
-	 * @param totalTransactionNumbers the totalTransactionNumbers to set
-	 */
-	public void setTotalTransactionNumbers(ID totalTransactionNumbers) {
-		this.totalTransactionNumbers = totalTransactionNumbers;
-	}
-
-	/**
 	 * @param accountsMerkelTreeRoot the accountsMerkelTreeRoot to set
 	 */
 	public void setAccountsMerkelTreeRoot(byte[] accountsMerkelTreeRoot) {
@@ -270,25 +157,20 @@ public class Root implements EQCTypable {
 	}
 
 	public String toInnerJson() {
-		return "\"Root\":" + "\n{\n" + "\"Version\":" + "\"" + version + "\"" + ",\n" + "\"TotalSupply\":" + "\"" + totalSupply + "\"" + ",\n" + "\"TotalAccountNumbers\":"
-				+ "\"" + totalAccountNumbers + "\"" + ",\n" + "\"TotalTransactionNumbers\":" + "\""
-				+ totalTransactionNumbers + "\"" + ",\n" + "\"AccountsMerkelTreeRoot\":" + "\""
+		return "\"Root\":" + "\n{\n" + "\"Version\":" + "\"" + version + "\"" + ",\n" + "\"TxFeeRate\":" + "\"" + txFeeRate + "\"" + ",\n" 
+				+ "\"AccountsMerkelTreeRoot\":" + "\""
 				+ Util.dumpBytes(accountsMerkelTreeRoot, 16) + "\"" + ",\n" + "\"TransactionsMerkelTreeRoot\":" + "\""
 				+ Util.dumpBytes(transactionsMerkelTreeRoot, 16) + "\"" + "\n" + "}";
 	}
 
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		if (addressShape.length != 0) {
+	public boolean isSanity() {
+		if (version == null || txFeeRate == null || accountsMerkelTreeRoot == null || transactionsMerkelTreeRoot == null) {
 			return false;
 		}
-		if (version == null || totalAccountNumbers == null || totalTransactionNumbers == null
-				|| accountsMerkelTreeRoot == null || transactionsMerkelTreeRoot == null) {
-			return false;
-		}
-		if (totalSupply < Util.MIN_EQC || totalSupply > Util.MAX_EQC) {
-			return false;
-		}
+//		if (totalSupply.compareTo(Util.MIN_EQC) < 0 || totalSupply.compareTo(Util.MAX_EQC) > 0) {
+//			return false;
+//		}
 		if (accountsMerkelTreeRoot.length != Util.HASH_LEN || transactionsMerkelTreeRoot.length != Util.HASH_LEN) {
 			return false;
 		}
@@ -296,15 +178,23 @@ public class Root implements EQCTypable {
 	}
 
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
-		return null;
+		return false;
 	}
 
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @return the txFeeRate
+	 */
+	public String getTxFeeRate() {
+		return txFeeRate;
 	}
 
+	/**
+	 * @param txFeeRate the txFeeRate to set
+	 */
+	public void setTxFeeRate(String txFeeRate) {
+		this.txFeeRate = txFeeRate;
+	}
+	
 }

@@ -52,10 +52,8 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class Configuration {
-	private final String CONFIGURATION_PATH = Util.PATH + "/EQCoin.config";
+	private final String CONFIGURATION_PATH = Util.PATH + "/EQchains.config";
 	private static Configuration instance;
-	private final String FALSE = "0";
-	private final String TRUE = "1";
 	private boolean boolIsInitH2;
 	private boolean boolIsInitSingularityBlock;
 	
@@ -78,42 +76,24 @@ public class Configuration {
 		File file = new File(CONFIGURATION_PATH);
 		if (file.exists()) {
 			if (file.length() == 0) {
-				Log.info("EQCoin.config exists but haven't any confuguration just return.");
+				Log.info("EQchains.config exists but haven't any confuguration just return.");
 				return;
 			}
-			Log.info("EQCoin.config exists and not empty just load it.");
+			Log.info("EQchains.config exists and not empty just load it.");
 			InputStream is = null;
 			try {
 				is = new FileInputStream(file);
 				ByteArrayInputStream bis = new ByteArrayInputStream(is.readAllBytes());
-				byte[] bytes = null;
 				
 				// Parse boolIsInitH2
-				if((bytes = EQCType.parseBIN(bis)) != null) {
-					String isInitH2 = EQCType.bytesToASCIISting(bytes);
-					if(isInitH2.equals(TRUE)) {
-						boolIsInitH2 = true;
-					}
-					else if(isInitH2.equals(FALSE)) {
-						boolIsInitH2 = false;
-					}
-				}
+				boolIsInitH2 = EQCType.eqcBitsToBoolean(EQCType.parseEQCBits(bis));
 				
 				// Parse boolIsInitSingularityBlock
-				bytes = null;
-				if((bytes = EQCType.parseBIN(bis)) != null) {
-					String isInitSingularityBlock = EQCType.bytesToASCIISting(bytes);
-					if(isInitSingularityBlock.equals(TRUE)) {
-						boolIsInitSingularityBlock = true;
-					}
-					else if(isInitSingularityBlock.equals(FALSE)) {
-						boolIsInitSingularityBlock = false;
-					}
-				}
+				boolIsInitSingularityBlock = EQCType.eqcBitsToBoolean(EQCType.parseEQCBits(bis));
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				Log.Error("EQCoin.config not found: " + e.getMessage());
+				Log.Error("EQchains.config not found: " + e.getMessage());
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -141,12 +121,12 @@ public class Configuration {
 		try {
 			File file = new File(CONFIGURATION_PATH);
 
-			// Save all configuration to EQCoin.config
+			// Save all configuration to EQchains.config
 			OutputStream os = new FileOutputStream(file);
 			// Save boolIsInitH2
-			os.write(EQCType.stringToBIN(boolIsInitH2?TRUE:FALSE));
+			os.write(EQCType.booleanToEQCBits(boolIsInitH2));
 			// Save boolIsInitSingularityBlock
-			os.write(EQCType.stringToBIN(boolIsInitSingularityBlock?TRUE:FALSE));
+			os.write(EQCType.booleanToEQCBits(boolIsInitSingularityBlock));
 			os.flush();
 			os.close();
 		} catch (IOException e) {

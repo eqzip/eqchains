@@ -33,12 +33,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.acl.Owner;
+import java.util.Collections;
 
 import org.apache.avro.io.parsing.Symbol;
 
 import com.eqchains.blockchain.account.Account.AccountType;
-import com.eqchains.blockchain.account.Account.Asset;
-import com.eqchains.blockchain.account.Account.Key;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.serialization.EQCTypable;
@@ -46,29 +45,18 @@ import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
-import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
  * @date May 13, 2019
  * @email 10509759@qq.com
  */
-abstract class SmartContractAccount extends Account {
-	/**
-	 * Header field include SmartContractType
-	 */
-	private SmartContractType smartContractType;
+public abstract class SmartContractAccount extends Account {
 	/**
 	 * Body field include LanguageType
 	 */
-	private ID version;
 	private LanguageType languageType;
 	private ID leasePeriod;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
-	 */
-	protected final static byte HEADER_VERIFICATION_COUNT = 2; // Super Header + Sub Header verify count
-	protected final static byte BODY_VERIFICATION_COUNT = 4; // Super Body + Sub Body verify count
 	public final static byte MAX_VERSION = 0;
 	
 	public enum LanguageType {
@@ -99,169 +87,57 @@ abstract class SmartContractAccount extends Account {
 		}
 	}
 	
-	public enum SmartContractType {
-		SUBCHAIN, MISC, INVALID;
-		public static SmartContractType get(int ordinal) {
-			SmartContractType smartContractType = null;
-			switch (ordinal) {
-			case 0:
-				smartContractType = SmartContractType.SUBCHAIN;
-				break;
-			case 1:
-				smartContractType = SmartContractType.MISC;
-				break;
-			default:
-				smartContractType = SmartContractType.INVALID;
-				break;
-			}
-			return smartContractType;
-		}
-		public boolean isSanity() {
-			if((this.ordinal() < SUBCHAIN.ordinal()) || (this.ordinal() > INVALID.ordinal())) {
-				return false;
-			}
-			return true;
-		}
-		public byte[] getEQCBits() {
-			return EQCType.intToEQCBits(this.ordinal());
-		}
+//	public enum SmartContractType {
+//		SUBCHAIN, MISC, INVALID;
+//		public static SmartContractType get(int ordinal) {
+//			SmartContractType smartContractType = null;
+//			switch (ordinal) {
+//			case 0:
+//				smartContractType = SmartContractType.SUBCHAIN;
+//				break;
+//			case 1:
+//				smartContractType = SmartContractType.MISC;
+//				break;
+//			default:
+//				smartContractType = SmartContractType.INVALID;
+//				break;
+//			}
+//			return smartContractType;
+//		}
+//		public boolean isSanity() {
+//			if((this.ordinal() < SUBCHAIN.ordinal()) || (this.ordinal() > INVALID.ordinal())) {
+//				return false;
+//			}
+//			return true;
+//		}
+//		public byte[] getEQCBits() {
+//			return EQCType.intToEQCBits(this.ordinal());
+//		}
+//	}
+	
+	protected SmartContractAccount(AccountType accountType) {
+		super(accountType);
 	}
 	
-	protected SmartContractAccount(SmartContractType smartContractType) {
-		super(AccountType.SMARTCONTRACT);
-		this.smartContractType = smartContractType;
-	}
+//	protected SmartContractAccount(byte[] bytes) throws NoSuchFieldException, IOException {
+//		super(AccountType.SMARTCONTRACT);
+//	}
 	
-	protected SmartContractAccount(byte[] bytes) throws NoSuchFieldException, IOException {
-		super(AccountType.SMARTCONTRACT);
-		if(!isValid(bytes)) {
-			throw Util.DATA_FORMAT_EXCEPTION;
-		}
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		
-		// Parse Header
-		parseHeader(is);
-		// Parse Body
-		parseBody(is);
-		
-	}
 	
-	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		return isHeaderValid(is) && isBodyValid(is) && EQCType.isInputStreamEnd(is);
-	}
-	
-	public static boolean isHeaderValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		byte[] data = null;
-		byte validCount = 0;
-		
-		// Parse Super Header
-		if(Account.isHeaderValid(is)) {
-			++validCount;
-		}
-		
-		// Parse Sub Header
-		// Parse SmartContractType
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			++validCount;
-		}
-		
-		return (validCount == HEADER_VERIFICATION_COUNT);
-	}
-
-	public static boolean isBodyValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		byte[] data = null;
-		byte validCount = 0;
-		
-		// Parse Super Body
-		if(Account.isBodyValid(is)) {
-			++validCount;
-		}
-		
-		// Parse Sub Body
-		// Parse LanguageType
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			++validCount;
-		}
-		// Parse leasePeriod
-		data = null;
-		if (((data = EQCType.parseEQCBits(is)) != null)) {
-			++validCount;
-		}
-		
-		return (validCount == BODY_VERIFICATION_COUNT);
-	}
-	
-	public static SmartContractType parseSubchainType(ByteArrayInputStream is) {
-		SmartContractType subchainType = SmartContractType.INVALID;
-		byte[] data = null;
-		try {
-			if ((data = EQCType.parseEQCBits(is)) != null) {
-				subchainType = SmartContractType.get(EQCType.eqcBitsToInt(data));
-			}
-		} catch (NoSuchFieldException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		return subchainType;
-	}
-
-//	public static SmartContractAccount parseSubchainAccount(byte[] bytes) {
-//		SmartContractAccount subchainAccount = null;
-//		SmartContractType smartContractType = parseSubchainType(bytes);
-//
+//	public static SmartContractType parseSubchainType(ByteArrayInputStream is) {
+//		SmartContractType subchainType = SmartContractType.INVALID;
+//		byte[] data = null;
 //		try {
-//			if (subchainType == SmartContractType.ASSET) {
-//				subchainAccount = new AssetSubchainAccount(bytes);
-//			} 
-////			else if (subchainType == subchainType.SUBCHAIN) {
-////				account = null;
-////			} else if (subchainType == subchainType.SMARTCONTRACT) {
-////				account = null;
-////			} 
-//		} catch (UnsupportedOperationException e) {
+//			if ((data = EQCType.parseEQCBits(is)) != null) {
+//				subchainType = SmartContractType.get(EQCType.eqcBitsToInt(data));
+//			}
+//		} catch (NoSuchFieldException | IOException e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //			Log.Error(e.getMessage());
 //		}
-//		return subchainAccount;
+//		return subchainType;
 //	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.account.Account#getBytes()
-	 */
-	@Override
-	public byte[] getBytes() {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			os.write(super.getBytes());
-			os.write(smartContractType.getEQCBits());
-			os.write(version.getEQCBits());
-			os.write(languageType.getEQCBits());
-			os.write(leasePeriod.getEQCBits());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		return os.toByteArray();
-	}
-	
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.account.Account#parseHeader(java.io.ByteArrayInputStream)
-	 */
-	@Override
-	public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		// Parse Super Header
-		super.parseHeader(is);
-		// Parse Sub Header
-		// Parse SmartContractType
-		byte[] data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			smartContractType = SmartContractType.get(new ID(data).intValue());
-		}
-	}
 
 	/* (non-Javadoc)
 	 * @see com.eqchains.blockchain.account.Account#parseBody(java.io.ByteArrayInputStream)
@@ -272,20 +148,27 @@ abstract class SmartContractAccount extends Account {
 		super.parseBody(is);
 		// Parse Sub Body
 		// Parse LanguageType
-		byte[] data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			version = EQCType.eqcBitsToID(data);
-		}
-		// Parse LanguageType
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			languageType = LanguageType.get(new ID(data).intValue());
-		}
+		languageType = LanguageType.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));
 		// Parse leasePeriod
-		data = null;
-		if (((data = EQCType.parseEQCBits(is)) != null)) {
-			leasePeriod = EQCType.eqcBitsToID(data);
+		leasePeriod = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
+	}
+	
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.account.Account#getBodyBytes()
+	 */
+	@Override
+	public byte[] getBodyBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(super.getBodyBytes());
+			os.write(languageType.getEQCBits());
+			os.write(leasePeriod.getEQCBits());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
 		}
+		return os.toByteArray();
 	}
 
 	/**
@@ -300,6 +183,26 @@ abstract class SmartContractAccount extends Account {
 	 */
 	public void setLeasePeriod(ID leasePeriod) {
 		this.leasePeriod = leasePeriod;
+	}
+
+	/**
+	 * @return the languageType
+	 */
+	public LanguageType getLanguageType() {
+		return languageType;
+	}
+
+	/**
+	 * @param languageType the languageType to set
+	 */
+	public void setLanguageType(LanguageType languageType) {
+		this.languageType = languageType;
+	}
+	
+	public String toInnerJson() {
+		return 
+					"\"LanguageType\":" + "\"" + languageType + "\"" + ",\n" +
+					"\"LeasePeriod\":" + "\"" + leasePeriod + "\"" + ",\n";
 	}
 	
 }

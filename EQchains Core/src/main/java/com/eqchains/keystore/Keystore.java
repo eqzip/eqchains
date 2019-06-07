@@ -146,14 +146,8 @@ public class Keystore {
 			try {
 				is = new FileInputStream(file);
 				ByteArrayInputStream bis = new ByteArrayInputStream(is.readAllBytes());
-				byte[] bytes = null;
-				while((bytes = EQCType.parseBIN(bis)) != null) {
-					if (!UserAccount.isValid(bytes)) {
-						Log.Error("not valid account.");
-					} else {
-						accounts.add(new UserAccount(bytes));
-					}
-					bytes = null;
+				while(!EQCType.isInputStreamEnd(bis)) {
+					accounts.add(new UserAccount(EQCType.parseBIN(bis)));
 				}
 //				int value = 0;
 //				while ((value = is.read()) != -1) {

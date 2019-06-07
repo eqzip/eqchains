@@ -42,6 +42,7 @@ import javax.naming.InitialContext;
 import javax.print.attribute.Size2DSyntax;
 
 import com.eqchains.blockchain.AccountsMerkleTree.Statistics;
+import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -51,9 +52,9 @@ import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.operation.UpdateAddressOperation;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.persistence.avro.EQCBlockAvro;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.rpc.avro.Height;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.service.MinerService;
@@ -77,127 +78,26 @@ public class EQCHive implements EQCTypable {
 	// private txReceipt;
 	// The min size of the EQCHeader's is 142 bytes.
 	private int size = 142;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 */
-	private static byte VERIFICATION_COUNT = 4;
-
-	public EQCHive(EQCBlockAvro eqcBlockAvro) throws NoSuchFieldException, IOException {
-		if (EQCHeader.isValid(eqcBlockAvro.getEQCHeader())) {
-			eqcHeader = new EQCHeader(eqcBlockAvro.getEQCHeader());
-		} else {
-			throw new ClassCastException("EQCHeader's bytes are invalid.");
-		}
-		if (Transactions.isValid(eqcBlockAvro.getTransactions())) {
-			transactions = new Transactions(eqcBlockAvro.getTransactions());
-		} else {
-			throw new ClassCastException("Transactions bytes are invalid.");
-		}
-		if (Signatures.isValid(eqcBlockAvro.getSignatures())) {
-			signatures = new Signatures(eqcBlockAvro.getSignatures());
-		} else {
-			throw new ClassCastException("Signatures bytes are invalid.");
-		}
-	}
-
-	public EQCHive(EQCBlockAvro eqcBlockAvro, boolean isSegwit) throws NoSuchFieldException, IOException {
-		if (EQCHeader.isValid(eqcBlockAvro.getEQCHeader())) {
-			eqcHeader = new EQCHeader(eqcBlockAvro.getEQCHeader());
-		} else {
-			throw new ClassCastException("EQCHeader's bytes are invalid.");
-		}
-		if (Transactions.isValid(eqcBlockAvro.getTransactions())) {
-			transactions = new Transactions(eqcBlockAvro.getTransactions());
-		} else {
-			throw new ClassCastException("Transactions bytes are invalid.");
-		}
-		if (!isSegwit) {
-			if (Signatures.isValid(eqcBlockAvro.getSignatures())) {
-				signatures = new Signatures(eqcBlockAvro.getSignatures());
-			} else {
-				throw new ClassCastException("Signatures bytes are invalid.");
-			}
-		}
-	}
 
 	public EQCHive(byte[] bytes, boolean isSegwit) throws NoSuchFieldException, IOException {
+		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		byte[] data = null;
 		// Parse EqcHeader
-		if ((data = EQCType.parseBIN(is)) != null) {
-			if (!EQCHeader.isValid(data)) {
-				throw new ClassCastException("EQCHeader's bytes are invalid.");
-			}
-			eqcHeader = new EQCHeader(data);
-		}
+		eqcHeader = new EQCHeader(EQCType.parseBIN(is));
 
 		// Parse Root
-		if ((data = EQCType.parseBIN(is)) != null) {
-			if (!Root.isValid(data)) {
-				throw new ClassCastException("Root's bytes are invalid.");
-			}
-			root = new Root(data);
-		}
+		root = new Root(EQCType.parseBIN(is));
 
 		// Parse Transactions
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null) {
-			if (!Transactions.isValid(data)) {
-				throw new ClassCastException("Transactions bytes are invalid.");
-			}
-			transactions = new Transactions(data);
-		}
+		transactions = new Transactions(EQCType.parseBIN(is));
 
 		if (!isSegwit) {
-			// Parse Signatures
-			data = null;
-			if ((data = is.readAllBytes()) != null) {
-				if (!Signatures.isValid(data)) {
-					throw new ClassCastException("Signatures bytes are invalid.");
-				}
-				signatures = new Signatures(data);
-			}
+			signatures = new Signatures(EQCType.parseBIN(is));
+			EQCType.assertNoRedundantData(is);
 		}
 	}
 
-	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		byte validCount = 0;
-
-		// Parse EqcHeader
-		if ((data = EQCType.parseBIN(is)) != null) {
-			if (EQCHeader.isValid(data)) {
-				++validCount;
-			}
-		}
-
-		// Parse Root
-		if ((data = EQCType.parseBIN(is)) != null) {
-			if (Root.isValid(data)) {
-				++validCount;
-			}
-		}
-
-		// Parse Transactions
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null) {
-			if (Transactions.isValid(data)) {
-				++validCount;
-			}
-		}
-
-		// Parse Signatures
-		data = null;
-		if ((data = is.readAllBytes()) != null) {
-			if (Signatures.isValid(data)) {
-				++validCount;
-			}
-		}
-
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
-	}
 
 	public EQCHive() {
 		init();
@@ -385,7 +285,8 @@ public class EQCHive implements EQCTypable {
 			}
 
 			// Check if Transaction is valid here doesn't check Coinbase which will be check later
-			if (!transaction.isCoinBase() && !transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+//			if (!transaction.isCoinBase() && !transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+			if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
 				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
 				Log.Error("Transaction is invalid: " + transaction);
 				continue;
@@ -451,6 +352,8 @@ public class EQCHive implements EQCTypable {
 //		} else {
 //			root.setTotalTransactionNumbers(statistics.totalTransactionNumbers);
 //		}
+		// Need do more job
+		root.setTxFeeRate(Util.DEFAULT_TXFEE_RATE);
 		root.setAccountsMerkelTreeRoot(accountsMerkleTree.getRoot());
 		root.setTransactionsMerkelTreeRoot(getTransactionsMerkelTreeRoot());
 		// Set EQCHeader's Root's hash
@@ -472,7 +375,7 @@ public class EQCHive implements EQCTypable {
 	}
 
 	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IOException {
-
+		AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
 		/**
 		 * Heal Protocol If height equal to a specific height then update the ID No.1's
 		 * Address to a new Address the more information you can reference to
@@ -492,14 +395,7 @@ public class EQCHive implements EQCTypable {
 		}
 
 		// Check if AccountList is valid
-		// here need move to isAccountListValid
-		if(transactions.getNewAccountList().size() == 0) {
-			if(!root.getTotalAccountNumbers().equals(accountsMerkleTree.getEQCBlock(accountsMerkleTree.getHeight(), true).getRoot().getTotalAccountNumbers())) {
-				Log.Error("EQCHeader AccountList is invalid");
-				return false;
-			}
-		}
-		else if (!transactions.isAccountListValid(accountsMerkleTree)) {
+		if (!transactions.isAccountListValid(accountsMerkleTree)) {
 			Log.Error("EQCHeader AccountList is invalid");
 			return false;
 		}
@@ -597,6 +493,12 @@ public class EQCHive implements EQCTypable {
 		accountsMerkleTree.buildAccountsMerkleTree();
 		accountsMerkleTree.generateRoot();
 		Statistics statistics = accountsMerkleTree.getStatistics();
+		
+		// Verify Statistics
+		if(!statistics.isValid(accountsMerkleTree)) {
+			Log.Error("Statistics data is invalid.");
+			return false;
+		}
 
 		// Verify Root
 //		// Check total supply
@@ -612,16 +514,16 @@ public class EQCHive implements EQCTypable {
 		EQCHive previousBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcHeader.getHeight().getPreviousID(),
 				true);
 		// Check total Account numbers
-		if (!previousBlock.getRoot().getTotalAccountNumbers()
-				.add(BigInteger.valueOf(transactions.getNewAccountList().size()))
-				.equals(accountsMerkleTree.getTotalAccountNumbers())) {
-			Log.Error("Total Account numbers is invalid doesn't equal accountsMerkleTree.");
-			return false;
-		}
-		if(!root.getTotalAccountNumbers().equals(accountsMerkleTree.getTotalAccountNumbers())) {
-			Log.Error("Total Account numbers is invalid doesn't equal root.");
-			return false;
-		}
+//		if (!previousBlock.getRoot().getTotalAccountNumbers()
+//				.add(BigInteger.valueOf(transactions.getNewAccountList().size()))
+//				.equals(accountsMerkleTree.getTotalAccountNumbers())) {
+//			Log.Error("Total Account numbers is invalid doesn't equal accountsMerkleTree.");
+//			return false;
+//		}
+//		if(!root.getTotalAccountNumbers().equals(accountsMerkleTree.getTotalAccountNumbers())) {
+//			Log.Error("Total Account numbers is invalid doesn't equal root.");
+//			return false;
+//		}
 		
 //		// Check total Transaction numbers
 //		if (!previousBlock.getRoot().getTotalTransactionNumbers()
@@ -649,7 +551,7 @@ public class EQCHive implements EQCTypable {
 			Log.Error("EQCHeader is invalid!");
 			return false;
 		}
-		
+	
 		// Merge shouldn't be done at here
 //		// Merge AccountsMerkleTree relevant Account's status
 //		if(!accountsMerkleTree.merge()) {
@@ -744,7 +646,7 @@ public class EQCHive implements EQCTypable {
 			totalTxFee += transactinList.get(i).getTxFee();
 		}
 		long coinBaseValue = 0;
-		if (eqcBlock.getHeight().compareTo(Util.MAX_COINBASE_HEIGHT) < 0) {
+		if (eqcBlock.getHeight().compareTo(Util.getMaxCoinbaseHeight(eqcBlock.getHeight())) < 0) {
 			coinBaseValue = Util.COINBASE_REWARD + totalTxFee;
 			if (transactinList.get(0).getTxOutValues() != coinBaseValue) {
 				Log.Error("CoinBase's value: " + transactinList.get(0).getTxOutValues()
@@ -791,15 +693,8 @@ public class EQCHive implements EQCTypable {
 			if (transaction.isCoinBase()) {
 				
 			} else {
-				try {
-					if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
-						Log.Error("Every Transaction should valid");
-						return false;
-					}
-				} catch (NoSuchFieldException | IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					Log.Error("Every Transaction should valid: " + e.getMessage());
+				if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+					Log.Error("Every Transaction should valid");
 					return false;
 				}
 			}
@@ -917,10 +812,7 @@ public class EQCHive implements EQCTypable {
 	}
 
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		if (addressShape.length != 0) {
-			return false;
-		}
+	public boolean isSanity() {
 		if (eqcHeader == null || root == null || transactions == null) {
 			return false;
 		}
@@ -976,15 +868,9 @@ public class EQCHive implements EQCTypable {
 	}
 
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
+		return false;
 	}
 
 //	public boolean isAddressListAddressUnique() {

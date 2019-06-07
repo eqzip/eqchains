@@ -44,9 +44,10 @@ import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Account.Asset;
-import com.eqchains.blockchain.account.Account.Publickey;
+import com.eqchains.blockchain.account.AssetSubchainAccount;
+import com.eqchains.blockchain.account.AssetSubchainHeader;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
@@ -90,8 +91,8 @@ public class AccountsMerkleTree {
 		// so here need special operation
 		if(height.equals(ID.ZERO)) {
 			if(Configuration.getInstance().isInitSingularityBlock()) {
-				EQCHive eqcBlock = Util.DB().getEQCBlock(height, true);
-				totalAccountNumbers = eqcBlock.getRoot().getTotalAccountNumbers();
+				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
+				totalAccountNumbers = assetSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers();
 			}
 			else {
 				totalAccountNumbers = ID.ZERO;
@@ -156,6 +157,7 @@ public class AccountsMerkleTree {
 	 * @return true if save successful
 	 */
 	public synchronized boolean saveAccount(Account account) {
+//		Log.info(account.toString());
 		return filter.saveAccount(account);
 	}
 	
@@ -205,8 +207,8 @@ public class AccountsMerkleTree {
 				if (account == null) {
 					throw new IllegalStateException("Account shouldn't be null");
 				}
-				Log.info(account.toString());
-				Log.info(Util.dumpBytes(account.getHash(), 16));
+//				Log.info(account.toString());
+//				Log.info(Util.dumpBytes(account.getHash(), 16));
 				accountsHash.add(account.getHash());
 			}
 			MerkleTree merkleTree = new MerkleTree(accountsHash);
@@ -351,7 +353,7 @@ public class AccountsMerkleTree {
 			try {
 				bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(0), id);
 				if (bytes != null) {
-					account = new AssetAccount(bytes);
+					account = Account.parseAccount(bytes);
 				} else {
 					if (height.compareTo(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight()) < 0) {
 						account = EQCBlockChainH2.getInstance().getAccountSnapshot(new ID(id), height);
@@ -359,7 +361,7 @@ public class AccountsMerkleTree {
 					if (account == null) {
 						bytes = EQCBlockChainRocksDB.get(TABLE.ACCOUNT, id);
 						if (bytes != null) {
-							account = new AssetAccount(bytes);
+							account = Account.parseAccount(bytes);
 						}
 					} 
 					if (isLoadInFilter && account != null) {
@@ -369,7 +371,7 @@ public class AccountsMerkleTree {
 			} catch (RocksDBException | NoSuchFieldException | IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				Log.Error("During getAccount " + id + " error occur: " + e.getMessage());
+				Log.Error("During getAccount ID No." + new ID(id) + " error occur: " + e.getMessage());
 			}
 			return account;
 		}
@@ -408,7 +410,7 @@ public class AccountsMerkleTree {
 //					Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
 //					writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT), rocksIterator.key(), rocksIterator.value());
 //					EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
-					account = new AssetAccount(rocksIterator.value());
+					account = Account.parseAccount(rocksIterator.value());
 					// At here calculate Account's Hash is faster than retrieve it from HD
 					EQCBlockChainRocksDB.getInstance().saveAccount(account);
 					rocksIterator.next();
@@ -425,12 +427,14 @@ public class AccountsMerkleTree {
 			boolean isSucc = true;
 			RocksIterator rocksIterator = EQCBlockChainRocksDB.getRocksDB().newIterator(columnFamilyHandles.get(0));
 			rocksIterator.seekToFirst();
+			AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
+			
 			while (rocksIterator.isValid()) {
 				try {
-					Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
-					Account account = new AssetAccount(rocksIterator.value());
+//					Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
+					Account account = Account.parseAccount(rocksIterator.value());
 					if (account.getID()
-							.compareTo(Util.DB().getEQCBlock(height, true).getRoot().getTotalAccountNumbers()) <= 0) {
+							.compareTo(assetSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers()) <= 0) {
 						if (!EQCBlockChainH2.getInstance().saveAccountSnapshot(EQCBlockChainRocksDB.getInstance().getAccount(account.getID()), height)) {
 							isSucc = false;
 							Log.Error("During takeSnapshot error occur saveAccountSnapshot failed.");
@@ -464,7 +468,7 @@ public class AccountsMerkleTree {
 					if(bytes != null) {
 							id = new ID(bytes);
 							byte[] data = EQCBlockChainRocksDB.get(TABLE.ACCOUNT, bytes);
-							Account account = new AssetAccount(data);
+							Account account = Account.parseAccount(data);
 							saveAccount(account);
 					}
 				}
@@ -492,7 +496,7 @@ public class AccountsMerkleTree {
 
 		public boolean savePublicKey(PublicKey publicKey, ID height) {
 			Account account = getAccount(publicKey.getID(), true);
-			Publickey publickey2 = new Publickey();
+			com.eqchains.blockchain.account.Publickey publickey2 = new com.eqchains.blockchain.account.Publickey();
 			publickey2.setPublickey(publicKey.getPublicKey());
 			publickey2.setPublickeyCreateHeight(height);
 			account.getKey().setPublickey(publickey2);
@@ -622,7 +626,22 @@ public class AccountsMerkleTree {
 		}
 		
 		public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
-			
+			for(AssetStatistics assetStatistics : assetStatisticsList) {
+				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) accountsMerkleTree.getAccount(assetStatistics.assetID);
+				AssetSubchainHeader assetSubchainHeader = assetSubchainAccount.getAssetSubchainHeader();
+				if(assetSubchainHeader.getTotalAccountNumbers().compareTo(assetStatistics.totalAccountNumbers) != 0) {
+					Log.Error("totalAccountNumbers is invalid.");
+					return false;
+				}
+				if(assetSubchainHeader.getTotalSupply().compareTo(assetStatistics.totalSupply) != 0) {
+					Log.Error("totalSupply is invalid.");
+					return false;
+				}
+				if(assetSubchainHeader.getTotalTransactionNumbers().compareTo(assetStatistics.totalTransactionNumbers) != 0) {
+					Log.Error("totalTransactionNumbers is invalid.");
+					return false;
+				}
+			}
 			return true;
 		}
 		
@@ -638,7 +657,7 @@ public class AccountsMerkleTree {
 					assetStatistics = getAssetStatistics(asset.getAssetID());
 				}
 				assetStatistics.totalAccountNumbers = assetStatistics.totalAccountNumbers.getNextID();
-				assetStatistics.totalSupply += asset.getBalance();
+				assetStatistics.totalSupply = assetStatistics.totalSupply.add(asset.getBalance());
 				assetStatistics.totalTransactionNumbers = assetStatistics.totalTransactionNumbers.add(asset.getNonce());
 			}
 		}
@@ -646,7 +665,7 @@ public class AccountsMerkleTree {
 		public class AssetStatistics{
 			public ID assetID;
 			public ID totalAccountNumbers;
-			public long totalSupply;
+			public ID totalSupply;
 			public ID totalTransactionNumbers;
 		}
 	}

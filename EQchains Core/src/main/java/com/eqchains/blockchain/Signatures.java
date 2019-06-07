@@ -76,9 +76,13 @@ public class Signatures implements EQCTypable {
 	
 	private void parseSignatures(byte[] bytes) throws NoSuchFieldException, IOException{
 		ARRAY array = EQCType.parseARRAY(bytes);
-		if(array != null) {
+		if(!array.isNULL()) {
 			signatureListSize = array.length;
-			signatureList = array.elements;
+			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+			for(int i=0; i<signatureListSize; ++i) {
+				signatureList.addElement(EQCType.parseBIN(is));
+			}
+			EQCType.assertNoRedundantData(is);
 		}
 	}
 
@@ -197,11 +201,9 @@ public class Signatures implements EQCTypable {
 		return signatureList;
 	}
 
+	// Maybe here need check signaute‘s size
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		if(addressShape.length != 0) {
-			return false;
-		}
+	public boolean isSanity() {
 		if(signatureList.size() != signatureListSize) {
 			return false;
 		}
@@ -225,15 +227,9 @@ public class Signatures implements EQCTypable {
 	}
 
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
-		return null;
+		return false;
 	}
-
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 }
+

@@ -60,6 +60,7 @@ import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
@@ -318,8 +319,14 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		}
 		if(bytes != null) {
 			Account account;
-			account = Account.parseAccount(bytes);
-			address = account.getKey().getAddress();
+			try {
+				account = Account.parseAccount(bytes);
+				address = account.getKey().getAddress();
+			} catch (NoSuchFieldException | IllegalStateException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.Error(e.getMessage());
+			}
 		}
 		return address;
 	}
@@ -416,7 +423,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 				writeBatch.delete(addPrefixH(account.getKey().getAddress().getID().getEQCBits()));
 			}
 			rocksDB.write(writeOptions, writeBatch);
-		} catch (RocksDBException e) {
+		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
 			isSucc = false;
 			e.printStackTrace();
 			Log.Error("During deleteAddressFromHeight " + height.toString() + " error occur: " + e.getMessage());
@@ -447,8 +454,8 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		WriteBatch writeBatch = new WriteBatch();
 		try {
 			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getIDEQCBits(), account.getBytes());
-			Log.info(account.toString());
-			Log.info(Util.dumpBytes(account.getKey().getAddress().getAddressAI(), 16));
+//			Log.info(account.toString());
+//			Log.info(Util.dumpBytes(account.getKey().getAddress().getAddressAI(), 16));
 			writeBatch.put(getTableHandle(TABLE.ACCOUNT_AI), account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
 			writeBatch.put(getTableHandle(TABLE.ACCOUNT_HASH), account.getIDEQCBits(), account.getHash());
 			rocksDB.write(writeOptions, writeBatch);
@@ -469,7 +476,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			if(bytes != null) {
 					account = Account.parseAccount(bytes);
 			}
-		} catch (RocksDBException e) {
+		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error("During getAccount " + id + " error occur: " + e.getMessage());
@@ -518,7 +525,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 				writeBatch.delete(getTableHandle(TABLE.ACCOUNT), addPrefixH(serialNumber.getEQCBits()));
 				rocksDB.write(writeOptions, writeBatch);
 			}
-		} catch (RocksDBException e) {
+		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
 			isSucc = false;
 			e.printStackTrace();
 			Log.Error("During deleteAccount " + serialNumber + " error occur: " + e.getMessage());
@@ -726,7 +733,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 					account = Account.parseAccount(bytes);
 				}
 			}
-		} catch (RocksDBException e) {
+		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error("During getAccount " + addressAI + " error occur: " + e.getMessage());
@@ -736,7 +743,8 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 
 	@Override
 	public ID getTotalAccountNumbers(ID height) {
-		return getEQCBlock(height, true).getRoot().getTotalAccountNumbers();
+		AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) getAccount(ID.ONE);
+		return assetSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers();
 	}
 
 	@Override
@@ -819,9 +827,16 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		while (rocksIterator.isValid()) {
 			if (table == TABLE.ACCOUNT) {
 				Log.info("Key: " + new ID(rocksIterator.key()));
-				Account account = Account.parseAccount(rocksIterator.value());
-				Log.info("Value: " + account.toString());
-				Log.info("AddressAI: " + Util.dumpBytes(account.getKey().getAddress().getAddressAI(), 16));
+				Account account;
+				try {
+					account = Account.parseAccount(rocksIterator.value());
+					Log.info("Value: " + account.toString());
+					Log.info("AddressAI: " + Util.dumpBytes(account.getKey().getAddress().getAddressAI(), 16));
+				} catch (NoSuchFieldException | IllegalStateException | IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(e.getMessage());
+				}
 			} else if (table == TABLE.ACCOUNT_AI) {
 				Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16));
 				Log.info("Value: " + new ID(rocksIterator.value()).toString());

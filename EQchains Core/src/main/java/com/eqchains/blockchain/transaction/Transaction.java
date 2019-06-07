@@ -47,14 +47,15 @@ import java.util.Vector;
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Account.Asset;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.serialization.EQCAddressShapeInheritable;
+import com.eqchains.serialization.EQCAddressShapeTypable;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -70,7 +71,7 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @date Mar 21, 2019
  * @email 10509759@qq.com
  */
-public abstract class Transaction implements Comparator<Transaction>, Comparable<Transaction>, EQCTypable, EQCAddressShapeInheritable {
+public abstract class Transaction implements Comparator<Transaction>, Comparable<Transaction>, EQCAddressShapeTypable, EQCAddressShapeInheritable {
 	/**
 	 * Header
 	 */
@@ -84,11 +85,6 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	protected PublicKey publickey;
 	protected byte[] signature;
 	public final static ID SOLO = ID.ZERO;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be verified.
-	 */
-	protected final static byte HEADER_VERIFICATION_COUNT = 2;
-	protected final static byte BODY_VERIFICATION_COUNT = 2;
 	
 	public enum TransactionType {
 		COINBASE, TRANSFER, OPERATION, ASSETSUBCHAIN, MISCSMARTCONTRACT, INVALID;
@@ -110,9 +106,6 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			case 4:
 				transactionType = TransactionType.MISCSMARTCONTRACT;
 				break;
-//			case 5:
-//				transactionType = TransactionType.ASSETSUBCHAIN;
-//				break;
 			default:
 				transactionType = TransactionType.INVALID;
 				break;
@@ -178,13 +171,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		this.transactionType = transactionType;
 	}
 	
-	public Transaction(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException {
-		if(!isValid(bytes, addressShape)) {
-			throw Util.DATA_FORMAT_EXCEPTION;
-		}
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		parseHeader(is);
-		parseBody(is, addressShape);
+	public Transaction(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 	}
 	
 	private ID getSubchainID() {
@@ -246,6 +233,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 
 	/**
 	 * @param nonce the nonce to set
+	 * @throws NoSuchFieldException 
 	 */
 	public void setNonce(ID nonce) {
 		this.nonce = nonce;
@@ -269,10 +257,6 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			nResult = o1.getNonce().compareTo(o2.getNonce());
 		}
 		return nResult;
-	}
-
-	public byte[] getBytes(Address.AddressShape addressShape) {
-		return null;
 	}
 
 	public byte[] getRPCBytes() {
@@ -305,11 +289,11 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	public long getMaxTxFeeLimit() {
-		return (getMaxBillingSize() * TXFEE_RATE.POSTPONE0.getRate() * Util.TXFEE_UNIT);
+		return (getMaxBillingSize() * TXFEE_RATE.POSTPONE0.getRate() * Util.TXFEE_RATE);
 	}
 
 	public long getDefaultTxFeeLimit() {
-		return (getMaxBillingSize() * Util.TXFEE_UNIT);
+		return (getMaxBillingSize() * Util.TXFEE_RATE);
 	}
 
 	public int getMaxBillingSize() {
@@ -321,7 +305,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if (getTxFeeLimit() > getMaxTxFeeLimit()) {
 			txFee = getTxFeeLimit();
 		} else {
-			txFee = getBillingSize() * getQos().getRate() * Util.TXFEE_UNIT;
+			txFee = getBillingSize() * getQos().getRate() * Util.TXFEE_RATE;
 		}
 		return txFee;
 	}
@@ -334,7 +318,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	public long cypherTxFeeLimit(TXFEE_RATE txfee_rate) {
-		return (getMaxBillingSize() * txfee_rate.getRate() * Util.TXFEE_UNIT);
+		return (getMaxBillingSize() * txfee_rate.getRate() * Util.TXFEE_RATE);
 	}
 
 	public void cypherTxInValue(TXFEE_RATE txfee_rate) {
@@ -349,7 +333,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if (getTxFeeLimit() > getMaxTxFeeLimit()) {
 			rate = TXFEE_RATE.POSTPONEVIP.getRate();
 		} else {
-			rate = (int) (getTxFeeLimit() / (getMaxBillingSize() * Util.TXFEE_UNIT));
+			rate = (int) (getTxFeeLimit() / (getMaxBillingSize() * Util.TXFEE_RATE));
 		}
 		return TXFEE_RATE.get(rate);
 	}
@@ -359,84 +343,25 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if (getTxFeeLimit() > getMaxTxFeeLimit()) {
 			rate = TXFEE_RATE.POSTPONEVIP.getRate() + getTxFeeLimit() - getMaxTxFeeLimit();
 		} else {
-			rate = (int) (getTxFeeLimit() / (getMaxBillingSize() * Util.TXFEE_UNIT));
+			rate = (int) (getTxFeeLimit() / (getMaxBillingSize() * Util.TXFEE_RATE));
 		}
 		return rate;
 	}
 
 	public boolean verify(AccountsMerkleTree accountsMerkleTree) {
 		boolean isValid = false;
-		if (accountsMerkleTree.isPublicKeyExists(publickey) || verifyPublickey()) {
+		if (publickey.isValid(accountsMerkleTree)) {
 			isValid = verifySignature(accountsMerkleTree.getEQCHeaderHash(txIn.getAddress().getID()));
 		}
 		return isValid;
 	}
 
-	public boolean verifyPublickey() {
-		boolean isValid = true;
-		if (txIn.getAddress().getType() == AddressType.T1 || txIn.getAddress().getType() == AddressType.T2) {
-			isValid = AddressTool.verifyAddressPublickey(txIn.getAddress().getReadableAddress(), publickey.getPublicKey());
-		}
-		return isValid;
-	}
-
-	/**
-	 * Get the Transaction's bytes for storage it in the EQC block chain For save
-	 * the space the Address' shape is Serial Number which is the EQCBits type.
-	 * 
-	 * @return byte[]
-	 */
-	@Override
-	public byte[] getBytes() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public byte[] getBin(Address.AddressShape addressShape) {
-		return null;
-	}
-
-	/**
-	 * Get the Transaction's BIN for storage it in the EQC block chain. For save the
-	 * space the Address' shape is Serial Number which is the EQCBits type.
-	 * 
-	 * @return byte[]
-	 */
-	@Override
-	public byte[] getBin() {
-		return getBin(Address.AddressShape.ID);
-	}
-
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws NoSuchFieldException, IOException {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
 		return false;
 	}
 
-	public static boolean isValid(byte[] bytes, AddressShape addressShape) throws NoSuchFieldException, IOException {
-//		boolean isValid = false;
-//		TransactionType transactionType = parseTransactionType(bytes);
-//		try {
-//			if (transactionType == TransactionType.COINBASE) {
-//				isValid = CoinbaseTransaction.isValid(bytes, addressShape);
-//			} else if (transactionType == TransactionType.TRANSFER) {
-//				isValid = TransferTransaction.isValid(bytes, addressShape);
-//			} else if (transactionType == TransactionType.OPERATION) {
-//				isValid = OperationTransaction.isValid(bytes, addressShape);
-//			} 
-//		} catch (NoSuchFieldException | UnsupportedOperationException | IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			Log.Error(e.getMessage());
-//		}
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		return isHeaderValid(is) && isBodyValid(is, addressShape) && EQCType.isInputStreamEnd(is);
-	}
-
 	public boolean isCoinBase() {
-		boolean isSucc = false;
-		if (transactionType == TransactionType.COINBASE) {
-			isSucc = true;
-		}
-		return isSucc;
+		return (transactionType == TransactionType.COINBASE);
 	}
 
 	/**
@@ -482,7 +407,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			} else if (transactionType == TransactionType.OPERATION) {
 				transaction = new OperationTransaction(bytes, addressShape);
 			} 
-		} catch (NoSuchFieldException | UnsupportedOperationException | IOException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
@@ -508,10 +433,11 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			eqPublicKey.setECPoint(publickey.getPublicKey());
 //			Log.info(Util.dumpBytesBigEndianBinary(eqPublicKey.getEncoded()));
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			os.write(txIn.getAddress().getIDEQCBits());
 			os.write(TXIN_HEADER_HASH);
 			os.write(publickey.getPublicKey());
-			os.write(Util.EQCCHA_MULTIPLE_DUAL(getBytes(Address.AddressShape.READABLE), Util.ONE, true, false));
-			signature.update(Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.ONE, true, false));
+			os.write(getBytes(AddressShape.READABLE));
+			signature.update(Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.HUNDREDPULS, true, false));
 			isTransactionValid = signature.verify(this.signature);
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | SignatureException | IOException e) {
 			// TODO Auto-generated catch block
@@ -524,10 +450,11 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public byte[] sign(Signature ecdsa, byte[] TXIN_HEADER_HASH) {
 		try {
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			os.write(txIn.getAddress().getIDEQCBits());
 			os.write(TXIN_HEADER_HASH);
 			os.write(publickey.getPublicKey());
-			os.write(Util.EQCCHA_MULTIPLE_DUAL(getBytes(Address.AddressShape.READABLE), Util.ONE, true, false));
-			ecdsa.update(Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.ONE, true, false));
+			os.write(getBytes(AddressShape.READABLE));
+			ecdsa.update(Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.HUNDREDPULS, true, false));
 			signature = ecdsa.sign();
 		} catch (SignatureException | IOException e) {
 			// TODO Auto-generated catch block
@@ -568,11 +495,6 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			return false;
 		}
 		return true;
-	}
-
-	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		return false;
 	}
 
 //	/* (non-Javadoc)
@@ -642,130 +564,26 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
-		account.getAsset(getAssetID()).updateBalance(-getBillingValue());
+		account.getAsset(getAssetID()).getBalance().subtract(new ID(getBillingValue()));
 		accountsMerkleTree.saveAccount(account);
 	}
 
-	public static boolean isValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException{
-		return isHeaderValid(is) && isBodyValid(is, addressShape);
-	};
-	
-	public static boolean isHeaderValid(ByteArrayInputStream is) throws NoSuchFieldException, IOException{
-		byte[] data = null;
-		byte validCount = 0;
+	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
 		// Parse Solo
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			ID solo = EQCType.eqcBitsToID(data);
-			if (solo.equals(SOLO)) {
-				++validCount;
-			}
-		}
+		solo = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
 		// Parse Transaction type
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			++validCount;
-		}
-		return (validCount == HEADER_VERIFICATION_COUNT);
-	};
-	
-	public static boolean isBodyValid(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException{
-		byte validCount = 0;
-		byte[] data = null;
-		boolean isTxInValid = false;
-		if (addressShape == Address.AddressShape.ID) {
-			// Parse nonce
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-
-			// Parse TxIn
-			data = null;
-			// Parse TxIn address
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				// Parse TxIn value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxInValid = true;
-					++validCount;
-				}
-			}
-		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
-			// Parse nonce
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				++validCount;
-			}
-
-			// Parse TxIn
-			// Parse TxIn address
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				// Parse TxIn value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					isTxInValid = true;
-					++validCount;
-				}
-			}
-		}
-		return isTxInValid && (validCount == BODY_VERIFICATION_COUNT);
-	};
-	public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		// Parse Solo
-		byte[] data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			solo = EQCType.eqcBitsToID(data);
-		}
-		// Parse Transaction type
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			transactionType = TransactionType.get(EQCType.eqcBitsToInt(data));
-		}
+		transactionType = TransactionType.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));
 	}
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 	}
 
 	@Override
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
-			throws NoSuchFieldException, IOException {
-		
-		byte[] data = null;
-		if (addressShape == Address.AddressShape.ID) {
-			// Parse nonce
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				nonce = new ID(data);
-			}
-
-			// Parse TxIn
-			data = null;
-			// Parse TxIn address
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				txIn = new TxIn();
-				txIn.getAddress().setID(new ID(data));
-				// Parse TxIn value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					txIn.setValue(EQCType.eqcBitsToLong(data));
-				}
-			}
-		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
-			// Parse nonce
-			data = null;
-			if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-				nonce = new ID(data);
-			}
-
-			// Parse TxIn
-			// Parse TxIn address
-			data = null;
-			if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-				txIn = new TxIn(data, addressShape);
-				// Parse TxIn value
-				data = null;
-				if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-					txIn.setValue(EQCType.eqcBitsToLong(data));
-				}
-			}
-		}
+			throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+		// Parse nonce
+		nonce = new ID(EQCType.parseEQCBits(is));
+		// Parse TxIn
+		txIn = new TxIn(is, addressShape);
 	}
 	
 	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID accountListInitId) {
@@ -786,6 +604,48 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public long getTxOutValues() {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+	
+	public byte[] getBytes(AddressShape addressShape) {
+		return null;
+	}
+	public byte[] getBin(AddressShape addressShape) {
+		return null;
+	}
+	public boolean isSanity(AddressShape addressShape) {
+		return false;
+	}
+	
+	public byte[] getHeaderBytes(AddressShape addressShape) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			// Serialization Solo
+			os.write(solo.getEQCBits());
+			// Serialization Transaction type
+			os.write(transactionType.getEQCBits());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+	
+	public byte[] getBodyBytes(AddressShape addressShape) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			// Serialization nonce
+			os.write(EQCType.bigIntegerToEQCBits(nonce));
+			// Serialization TxIn
+//			Log.info(Util.dumpBytes(txIn.getBin(addressShape), 16));
+//			Log.info("Len: " + txIn.getBin(addressShape).length);
+			os.write(txIn.getBytes(addressShape));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
 	}
 	
 }

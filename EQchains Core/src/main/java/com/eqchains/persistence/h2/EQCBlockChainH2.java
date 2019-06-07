@@ -62,7 +62,6 @@ import com.eqchains.blockchain.Signatures;
 import com.eqchains.blockchain.Transactions;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Account.Publickey;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxOut;
@@ -274,7 +273,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		try {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address='" + address.getAddress() + "'");
 			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ACCOUNT WHERE address=?");
-			preparedStatement.setBytes(1, address.getAddressShapeBytes(AddressShape.AI));
+			preparedStatement.setBytes(1, address.getBytes(AddressShape.AI));
 			ResultSet resultSet = preparedStatement.executeQuery();
 			if (resultSet.next()) {
 				serialNumber = new ID(BigInteger.valueOf(resultSet.getLong("id")));
@@ -714,17 +713,11 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				byte[] bytes = null;
 				// Parse EqcHeader
 				if ((bytes = EQCType.parseBIN(bis)) != null) {
-					if (!EQCHeader.isValid(bytes)) {
-						throw new ClassCastException("getEQCBlock during parse EqcHeader error occur wrong format");
-					}
 					eqcBlock.setEqcHeader(new EQCHeader(bytes));
 				}
 				// Parse Root
 				bytes = null;
 				if ((bytes = EQCType.parseBIN(bis)) != null) {
-					if (!Root.isValid(bytes)) {
-						throw new ClassCastException("getEQCBlock during parse Root error occur wrong format");
-					}
 					eqcBlock.setRoot(new Root(bytes));
 				}
 //				// Parse Index
@@ -738,10 +731,22 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				// Parse Transactions
 				bytes = null;
 				if ((bytes = EQCType.parseBIN(bis)) != null) {
-					if (!Transactions.isValid(bytes)) {
+//					if (!Transactions.isValid(bytes)) {
+//						throw new ClassCastException("getEQCBlock during parse Transactions error occur wrong format");
+//					}
+					Transactions transactions = null;
+					try {
+						transactions = new Transactions(bytes);
+					}
+					catch(Exception e) {
+						Log.info(e.getMessage());
+					}
+					if(transactions != null) {
+						eqcBlock.setTransactions(transactions);
+					}
+					else {
 						throw new ClassCastException("getEQCBlock during parse Transactions error occur wrong format");
 					}
-					eqcBlock.setTransactions(new Transactions(bytes));
 				}
 				if (!isSegwit) {
 					// Parse Signatures
@@ -851,9 +856,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				byte[] bytes = null;
 				// Parse EqcHeader
 				if ((bytes = EQCType.parseBIN(bis)) != null) {
-					if (!EQCHeader.isValid(bytes)) {
-						throw new ClassCastException("getEQCBlock during parse EqcHeader error occur wrong format");
-					}
 					eqcHeader = new EQCHeader(bytes);
 				}
 			} catch (IOException | NoSuchFieldException e) {
@@ -1109,11 +1111,11 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				 ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 				 byte[] data = null;
 				 
-				 // Parse Transaction
-				 if((data = EQCType.parseBIN(is)) != null) {
-					 if(Transaction.isValid(data, Address.AddressShape.READABLE)) {
-						 Transaction transaction = Transaction.parseTransaction(data, Address.AddressShape.READABLE);
-						 transactions.add(transaction);
+				// Parse Transaction
+				if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
+					Transaction transaction = Transaction.parseTransaction(data, Address.AddressShape.READABLE);
+					if(transaction != null) {
+						
 						// Parse PublicKey
 						data = null;
 						if ((data = EQCType.parseBIN(is)) != null) {
@@ -1127,9 +1129,11 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 						if ((data = EQCType.parseBIN(is)) != null) {
 							transaction.setSignature(data);
 						}
-					 }
-				 }
-			 }
+						
+						transactions.add(transaction);
+					}
+				}
+			}
 		} catch (SQLException | NoSuchFieldException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1241,7 +1245,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					+ txOut.getAddress().getID().longValue() + "','"
 					+ txOut.getValue() + "')");
 			}
-			Log.info("result: " + result);
+//			Log.info("result: " + result);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1515,7 +1519,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					account = Account.parseAccount(resultSet.getBytes("account"));
 				}
 			}
-		} catch (SQLException e) {
+		} catch (SQLException | NoSuchFieldException | IllegalStateException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
@@ -1553,7 +1557,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					preparedStatement.setLong(2, height.longValue());
 					preparedStatement.setLong(3, account.getID().longValue());
 					result = preparedStatement.executeUpdate();
-					Log.info("UPDATE: " + result);
+//					Log.info("UPDATE: " + result);
 			}
 			else {
 				preparedStatement = connection.prepareStatement("INSERT INTO ACCOUNT_SNAPSHOT (id, readable_address, account, snapshot_height) VALUES (?, ?, ?, ?)");
@@ -1562,7 +1566,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				preparedStatement.setBytes(3, account.getBytes());
 				preparedStatement.setLong(4, height.longValue());
 				result = preparedStatement.executeUpdate();
-				Log.info("INSERT: " + result);
+//				Log.info("INSERT: " + result);
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block

@@ -32,7 +32,6 @@ package com.eqchains.keystore;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -43,6 +42,7 @@ import java.util.Arrays;
 import org.bouncycastle.asn1.sec.ECPrivateKey;
 
 import com.eqchains.blockchain.transaction.TransferTransaction;
+import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore.ECCTYPE;
@@ -66,11 +66,6 @@ public class UserAccount implements EQCTypable {
 	private byte[] publicKey;
 	private String readableAddress;
 	private long balance;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 */
-	private final static byte VERIFICATION_COUNT = 6;
 
 	public UserAccount() {
 	}
@@ -96,86 +91,25 @@ public class UserAccount implements EQCTypable {
 	public UserAccount(byte[] bytes) throws NoSuchFieldException, IOException {
 		super();
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
 
 		// Parse userName
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			userName = EQCType.bytesToASCIISting(data);
-		}
+		userName = EQCType.bytesToASCIISting(EQCType.parseBIN(is));
 
 		// Parse pwdHash
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			pwdHash = data;
-		}
+		pwdHash = EQCType.parseBIN(is);
 
 		// Parse privateKey
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			privateKey = data;
-		}
+		privateKey = EQCType.parseBIN(is);
 
 		// Parse publicKey
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			publicKey = data;
-		}
-		
-		// Parse address
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			readableAddress = EQCType.bytesToASCIISting(data);
-		}
-
-		// Parse balance
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null && !EQCType.isNULL(data)) {
-			balance = EQCType.eqcBitsToLong(data);
-		}
-		
-	}
-
-	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		byte validCount = 0;
-
-		// Parse userName
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			++validCount;
-		}
-
-		// Parse pwdHash
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			++validCount;
-		}
-
-		// Parse privateKey
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			++validCount;
-		}
-		
-		// Parse publicKey
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			++validCount;
-		}
+		publicKey = EQCType.parseBIN(is);
 
 		// Parse address
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-			++validCount;
-		}
+		readableAddress = EQCType.bytesToASCIISting(EQCType.parseBIN(is));
 
 		// Parse balance
-		data = null;
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			++validCount;
-		}
+		balance = EQCType.eqcBitsToLong(EQCType.parseEQCBits(is));
 
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
 	}
 
 	@Override
@@ -344,7 +278,7 @@ public class UserAccount implements EQCTypable {
 			ecdsa = Signature.getInstance("SHA1withECDSA", "SunEC");
 			PrivateKey privateKey = Util.getPrivateKey(Util.AESDecrypt(this.privateKey, password), Util.AddressTool.getAddressType(transaction.getTxIn().getAddress().getReadableAddress()));
 			ecdsa.initSign(privateKey);
-			ecdsa.update(transaction.getBytes());
+			ecdsa.update(transaction.getBytes(AddressShape.READABLE));
 			signature = ecdsa.sign();
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			// TODO Auto-generated catch block
@@ -368,7 +302,7 @@ public class UserAccount implements EQCTypable {
 		try {
 			sign = Signature.getInstance("SHA1withECDSA", "SunEC");
 			sign.initVerify(eqcPublicKey);
-			sign.update(transaction.getBytes());
+			sign.update(transaction.getBytes(AddressShape.READABLE));
 			boolVerifyResult = sign.verify(transaction.getSignature());
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			// TODO Auto-generated catch block
@@ -404,10 +338,7 @@ public class UserAccount implements EQCTypable {
 	}
 
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		if(addressShape.length != 0) {
-			return false;
-		}
+	public boolean isSanity() {
 		if(userName == null || pwdHash == null || privateKey == null || publicKey == null || readableAddress == null) {
 			return false;
 		}
@@ -424,15 +355,9 @@ public class UserAccount implements EQCTypable {
 	}
 
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
+		return false;
 	}
 	
 }

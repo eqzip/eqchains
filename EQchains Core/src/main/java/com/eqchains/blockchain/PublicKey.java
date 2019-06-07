@@ -35,12 +35,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
+import com.eqchains.util.Util.AddressTool;
 
 /**
  * The PublicKey contains the compressed public key corresponding to the
@@ -60,12 +62,6 @@ public class PublicKey implements EQCTypable {
 	 * The No. Address relevant public key which is Bin type.
 	 */
 	private byte[] publicKey = null;
-	/**
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 */
-	private final static byte VERIFICATION_COUNT = 2;
-	
 	private boolean isNew;
 
 	public PublicKey() {
@@ -74,37 +70,21 @@ public class PublicKey implements EQCTypable {
 	}
 
 	public PublicKey(byte[] bytes) throws NoSuchFieldException, IOException {
+		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data;
-
-		// Parse PublicKey's serial number
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			id = new ID(data);
-		}
-
-		// Parse publicKey
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null) {
-			publicKey = data;
-		}
+		parsePublickey(is);
+		EQCType.assertNoRedundantData(is);
 	}
-
-	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data;
-		byte validCount = 0;
-
+	
+	public PublicKey(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+		parsePublickey(is);
+	}
+	
+	private void parsePublickey(ByteArrayInputStream is) throws NoSuchFieldException, IllegalStateException, IOException {
 		// Parse PublicKey's serial number
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			++validCount;
-		}
-
+		id = new ID(EQCType.parseEQCBits(is));
 		// Parse publicKey
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null) {
-			++validCount;
-		}
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+		publicKey = EQCType.parseBIN(is);
 	}
 
 	/**
@@ -193,37 +173,11 @@ public class PublicKey implements EQCTypable {
 	}
 	
 	@Override
-	public boolean isSanity(AddressShape... addressShape) {
-		if(addressShape.length == 0) {
-			if(id == null || publicKey == null) {
-				return false;
-			}
-		}
-		else if(addressShape.length == 1) {
-			if(addressShape[0] == AddressShape.ID) {
-				if(id == null) {
-					return false;
-				}
-			}
-			else {
-				if(publicKey == null) {
-					return false;
-				}
-			}
+	public boolean isSanity() {
+		if(id == null || publicKey == null) {
+			return false;
 		}
 		return true;
-	}
-
-	@Override
-	public byte[] getBytes(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBin(AddressShape addressShape) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	/* (non-Javadoc)
@@ -269,5 +223,21 @@ public class PublicKey implements EQCTypable {
 				+ "\"Publickey\":" + "\"" + Util.dumpBytes(publicKey, 16) + "\""
 				+ "\n" + "}";
 	}
-	
+
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+		Account account = accountsMerkleTree.getAccount(id);
+		if(!account.isPublickeyExists()) {
+			if(!AddressTool.verifyAddressPublickey(account.getKey().getAddress().getReadableAddress(), publicKey)) {
+				return false;
+			}
+		}
+		else {
+			if(!Arrays.equals(account.getKey().getPublickey().getPublickey(), publicKey)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 }
