@@ -34,18 +34,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Vector;
+
+import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteBatch;
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.CoinAsset;
+import com.eqchains.blockchain.account.Publickey;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
+import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCTypable;
@@ -55,6 +61,8 @@ import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 import com.eqchains.util.Util.AddressTool;
+
+import avro.shaded.com.google.common.base.Objects;
 
 
 /**
@@ -530,7 +538,7 @@ public class Transactions implements EQCTypable {
 		return txFee;
 	}
 	
-	public boolean isAccountListValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isNewAccountListValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
 		if(newAccountList.size() == 0) {
 			return true;
@@ -539,12 +547,37 @@ public class Transactions implements EQCTypable {
 				.equals(ID.ONE)) {
 			return false;
 		}else {
+			// Get the new Account's ID list from Transactions
+			Vector<ID> newAccounts = new Vector<>();
+			for(Transaction transaction : newTransactionList) {
+				for(TxOut txOut : transaction.getTxOutList()) {
+					if(txOut.getAddress().getID().compareTo(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()) > 0) {
+						if(!newAccounts.contains(txOut.getAddress().getID())) {
+							newAccounts.add(txOut.getAddress().getID());
+						}
+					}
+				}
+			}
+			if(newAccountList.size() != newAccounts.size()) {
+				return false;
+			}
+			for(int i=0; i<newAccountList.size(); ++i) {
+				if(!newAccountList.get(i).getID().equals(newAccounts.get(i))) {
+					return false;
+				}
+			}
 			for(int i=0; i<newAccountList.size(); ++i) {
 				// Check if Address already exists
 				if(accountsMerkleTree.isAccountExists(newAccountList.get(i), true)) {
 					return false;
 				}
 				else {
+					// Check if ID is valid
+					if ((i + 1) < newAccountList.size()) {
+						if (!newAccountList.get(i).getID().getNextID().equals(newAccountList.get(i + 1))) {
+							return false;
+						}
+					}
 					// Save new Account in Filter
 					Account account = new AssetAccount();
 					account.getKey().setAddress(newAccountList.get(i));
@@ -558,12 +591,6 @@ public class Transactions implements EQCTypable {
 					Log.info("Numbers: " + accountsMerkleTree.getTotalAccountNumbers());
 					accountsMerkleTree.increaseTotalAccountNumbers();
 					Log.info("Numbers: " + accountsMerkleTree.getTotalAccountNumbers());
-				}
-				// Check if ID is valid
-				if ((newAccountList.size() > 1) && ((i + 1) < newAccountList.size())) {
-					if (!newAccountList.get(i).getID().getNextID().equals(newAccountList.get(i + 1))) {
-						return false;
-					}
 				}
 			}
 		}
@@ -579,7 +606,29 @@ public class Transactions implements EQCTypable {
 		return false;
 	}
 	
-	public boolean isPublickeyListValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isNewPublickeyListValid(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+		WriteBatch writeBatch = null;
+		if(newPublicKeyList.size() > 0) {
+			writeBatch = new WriteBatch();
+		}
+		// Get the new Publickey's ID list from Transactions
+		Vector<ID> newPublickeys = new Vector<>();
+		for(int i=1; i<newTransactionList.size(); ++i) {
+			Account account = accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getAddress());
+				if(!account.isPublickeyExists()) {
+					if(!newPublickeys.contains(newTransactionList.get(i).getTxIn().getAddress().getID())) {
+						newPublickeys.add(newTransactionList.get(i).getTxIn().getAddress().getID());
+					}
+				}
+		}
+		if(newPublicKeyList.size() != newPublickeys.size()) {
+			return false;
+		}
+		for(int i=0; i<newPublicKeyList.size(); ++i) {
+			if(!newPublicKeyList.get(i).getID().equals(newPublickeys.get(i))) {
+				return false;
+			}
+		}
 		for(PublicKey publicKey : newPublicKeyList) {
 			if(!isPublickeyIDExistsInTransactions(publicKey.getID())) {
 				return false;
@@ -588,19 +637,29 @@ public class Transactions implements EQCTypable {
 				return false;
 			}
 			else {
-				Address address = accountsMerkleTree.getAccount(publicKey.getID()).getKey().getAddress();
-				if(!AddressTool.verifyAddressPublickey(address.getReadableAddress(), publicKey.getPublicKey())) {
+				Account account = accountsMerkleTree.getAccount(publicKey.getID());
+				if(!AddressTool.verifyAddressPublickey(account.getKey().getAddress().getReadableAddress(), publicKey.getPublicKey())) {
 					return false;
 				}
 				else {
-					accountsMerkleTree.savePublicKey(publicKey, accountsMerkleTree.getHeight().getNextID());
+					Publickey publickey1 = new Publickey();
+					publickey1.setPublickey(publicKey.getPublicKey());
+					publickey1.setPublickeyCreateHeight(accountsMerkleTree.getHeight().getNextID());
+					account.getKey().setPublickey(publickey1);
+					writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(),
+							account.getBytes());
+					writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1),
+							account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
 				}
 			}
+		}
+		if(writeBatch != null) {
+			accountsMerkleTree.getFilter().batchUpdate(writeBatch);
 		}
 		return true;
 	}
 	
-	public boolean isAllTxInPublickeyExists(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isAllTxInPublickeyExists(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		for(int i=1; i<newTransactionList.size(); ++i) {
 			if(!accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getAddress().getID()).isPublickeyExists()) {
 				return false;

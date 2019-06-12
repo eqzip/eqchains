@@ -31,6 +31,7 @@ package com.eqchains.blockchain;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Vector;
@@ -81,7 +82,7 @@ public class AccountsMerkleTree {
 	// stub
 	private Vector<MerkleTree> accountsMerkleTree;
 
-	public AccountsMerkleTree(ID height, Filter filter) {
+	public AccountsMerkleTree(ID height, Filter filter) throws Exception {
 		super();
 		
 //		if(height.subtract(val))
@@ -128,8 +129,9 @@ public class AccountsMerkleTree {
 	 * @param address
 	 * @param isFiltering When need searching in Filter table just set it to true
 	 * @return true if Address exists
+	 * @throws Exception 
 	 */
-	public synchronized boolean isAccountExists(Address address, boolean isFiltering) {
+	public synchronized boolean isAccountExists(Address address, boolean isFiltering) throws Exception {
 		boolean isExists = false;
 		if(isFiltering && filter.isAddressExists(address)) {
 			isExists = true;
@@ -143,11 +145,11 @@ public class AccountsMerkleTree {
 		return  isExists;
 	}
 	
-	public synchronized Account getAccount(ID id) {
+	public synchronized Account getAccount(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		return filter.getAccount(id, true);
 	}
 	
-	public synchronized Account getAccount(Address address) {
+	public synchronized Account getAccount(Address address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		return filter.getAccount(address, true);
 	}
 	
@@ -155,10 +157,11 @@ public class AccountsMerkleTree {
 	 * Save current Account in Filter
 	 * @param account
 	 * @return true if save successful
+	 * @throws RocksDBException 
 	 */
-	public synchronized boolean saveAccount(Account account) {
+	public synchronized void saveAccount(Account account) throws RocksDBException {
 //		Log.info(account.toString());
-		return filter.saveAccount(account);
+		filter.saveAccount(account);
 	}
 	
 	public synchronized void increaseTotalAccountNumbers() {
@@ -186,7 +189,7 @@ public class AccountsMerkleTree {
 		this.height = height;
 	}
 
-	public void buildAccountsMerkleTree() {
+	public void buildAccountsMerkleTree() throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		Account account = null;
 		Vector<byte[]> accountsHash = new Vector<>();
 		long remainder = totalAccountNumbers.longValue();
@@ -238,19 +241,13 @@ public class AccountsMerkleTree {
 		return bytes;
 	}
 
-	public boolean merge() {
-		boolean isSucc = true;
-		if(!filter.merge()) {
-			isSucc = false;
-		}
-		if(!filter.close()) {
-			isSucc = false;
-		}
-		return isSucc;
+	public void merge() throws NoSuchFieldException, IllegalStateException, IOException, RocksDBException {
+		filter.merge();
+		filter.close();
 	}
 	
-	public boolean close() {
-		return filter.close();
+	public void close() throws RocksDBException {
+		filter.close();
 	}
 	
 	public static class Filter {
@@ -259,7 +256,7 @@ public class AccountsMerkleTree {
 //		private HashMap<byte[], ColumnFamilyHandle> columnFamilyHandles;
 		private Vector<ColumnFamilyHandle> columnFamilyHandles;
 		
-		public Filter(byte[] columnFamilyName) {
+		public Filter(byte[] columnFamilyName) throws RocksDBException {
 			if(EQCBlockChainRocksDB.getInstance().isDefaultColumnFamily(columnFamilyName)) {
 				new IllegalArgumentException("Filter's columnFamilyName can't the same as defaultColumnFamilyName");
 			}
@@ -270,7 +267,6 @@ public class AccountsMerkleTree {
 //			columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_HASH)));
 			
 			MutableColumnFamilyOptions mutableColumnFamilyOptions = MutableColumnFamilyOptions.builder().setCompressionType(CompressionType.NO_COMPRESSION).build();
-			try {
 				for(ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
 					EQCBlockChainRocksDB.getRocksDB().setOptions(columnFamilyHandle, mutableColumnFamilyOptions);
 					// In case before close the app crashed so here just clear the table
@@ -278,18 +274,13 @@ public class AccountsMerkleTree {
 					EQCBlockChainRocksDB.clearTable(columnFamilyHandle);
 //					Log.info("After cleartable: " + EQCBlockChainRocksDB.getTableItemNumbers(columnFamilyHandle));
 				}
-			} catch (RocksDBException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error(e.getMessage());
-			}
 		}
 		
-		public Account getAccount(ID id, boolean isLoadInFilter) {
+		public Account getAccount(ID id, boolean isLoadInFilter) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 			return getAccount(id.getEQCBits(), isLoadInFilter);
 		}
 		
-		public Account getAccount(Address address, boolean isLoadInFilter) {
+		public Account getAccount(Address address, boolean isLoadInFilter) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 			ID id = null;
 			id = getAddressID(address);
 			if(id == null) {
@@ -298,59 +289,43 @@ public class AccountsMerkleTree {
 			return getAccount(id, isLoadInFilter);
 		}
 		
-		public boolean isAddressExists(Address address) {
+		public boolean isAddressExists(Address address) throws RocksDBException {
 			boolean isSucc = false;
-			try {
-				// For security issue only support search address via AddressAI
-				if((EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI()) != null)) {
-					isSucc = true;
-				}
-			} catch (RocksDBException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error("During isAddressExists " + address + " error occur: " + e.getMessage());
+			// For security issue only support search address via AddressAI
+			if ((EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI()) != null)) {
+				isSucc = true;
 			}
 			return isSucc;
 		}
 		
-		public boolean isAddressExists(Address address, ID height) {
+		public boolean isAddressExists(Address address, ID height) throws NoSuchFieldException, RocksDBException, IOException {
 			boolean isSucc = false;
 			byte[] bytes = null;
-			try {
 				// For security issue only support search address via AddressAI
 				if((bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI())) != null) {
 					// Here maybe still exists some issue
 					if(new AssetAccount(bytes).getKey().getAddressCreateHeight().compareTo(height) <= 0)
 					isSucc = true;
 				}
-			} catch (RocksDBException | NoSuchFieldException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error("During isAddressExists " + address + " error occur: " + e.getMessage());
-			}
 			return isSucc;
 		}
 		
-		public boolean saveAccount(Account account) {
-			boolean isSucc = true;
-			try {
-				WriteBatch writeBatch = new WriteBatch();
-				writeBatch.put(columnFamilyHandles.get(0), account.getIDEQCBits(), account.getBytes());
-				writeBatch.put(columnFamilyHandles.get(1), account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
+		public void saveAccount(Account account) throws RocksDBException {
+			WriteBatch writeBatch = new WriteBatch();
+			writeBatch.put(columnFamilyHandles.get(0), account.getIDEQCBits(), account.getBytes());
+			writeBatch.put(columnFamilyHandles.get(1), account.getKey().getAddress().getAddressAI(),
+					account.getIDEQCBits());
 //				writeBatch.put(columnFamilyHandles.get(2), account.getIDEQCBits(), account.getHash());
-				EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
-			} catch (RocksDBException e) {
-				isSucc = false;
-				e.printStackTrace();
-				Log.Error(e.getMessage());
-			}
-			return isSucc;
+			EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
+		}
+		
+		public void batchUpdate(WriteBatch writeBatch) throws RocksDBException {
+			EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
 		}
 
-		public Account getAccount(byte[] id, boolean isLoadInFilter) {
+		public Account getAccount(byte[] id, boolean isLoadInFilter) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
 			Account account = null;
 			byte[] bytes = null;
-			try {
 				bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(0), id);
 				if (bytes != null) {
 					account = Account.parseAccount(bytes);
@@ -368,38 +343,25 @@ public class AccountsMerkleTree {
 						saveAccount(account);
 					}
 				}
-			} catch (RocksDBException | NoSuchFieldException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error("During getAccount ID No." + new ID(id) + " error occur: " + e.getMessage());
-			}
 			return account;
 		}
 		
 		@Deprecated
-		public byte[] getAccountHash(ID id) {
+		public byte[] getAccountHash(ID id) throws RocksDBException {
 			byte[] bytes = null;
-			try {
 				bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(2),
 						id.getEQCBits());
 				if(bytes == null) {
 					bytes = EQCBlockChainRocksDB.get(TABLE.ACCOUNT_HASH, id.getEQCBits());
 				}
-			} catch (RocksDBException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error("During getAccountHash " + id + " error occur: " + e.getMessage());
-			}
 			return bytes;
 		}
 		
-		public boolean merge() {
-			boolean isSucc = true;
+		public void merge() throws NoSuchFieldException, IllegalStateException, IOException, RocksDBException {
 			Account account = null;
 			RocksIterator rocksIterator = EQCBlockChainRocksDB.getRocksDB().newIterator(columnFamilyHandles.get(0));
 			rocksIterator.seekToFirst();
 			while(rocksIterator.isValid()) {
-				try {
 //					WriteBatch writeBatch = new WriteBatch();
 //					Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
 //					writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT), rocksIterator.key(), rocksIterator.value());
@@ -414,23 +376,16 @@ public class AccountsMerkleTree {
 					// At here calculate Account's Hash is faster than retrieve it from HD
 					EQCBlockChainRocksDB.getInstance().saveAccount(account);
 					rocksIterator.next();
-				} catch (NoSuchFieldException | IOException e) {
-					isSucc = false;
-					e.printStackTrace();
-					Log.Error("During merge " + columnFamilyHandles + " error occur: " + e.getMessage());
-				}
 			}
-			return isSucc;
 		}
 		
-		public boolean takeSnapshot() {
+		public void takeSnapshot() throws Exception {
 			boolean isSucc = true;
 			RocksIterator rocksIterator = EQCBlockChainRocksDB.getRocksDB().newIterator(columnFamilyHandles.get(0));
 			rocksIterator.seekToFirst();
 			AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
 			
 			while (rocksIterator.isValid()) {
-				try {
 //					Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
 					Account account = Account.parseAccount(rocksIterator.value());
 					if (account.getID()
@@ -446,19 +401,12 @@ public class AccountsMerkleTree {
 //					rocksIterator.next();
 //					Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
 					rocksIterator.next();
-				} catch (NoSuchFieldException | IOException e) {
-					isSucc = false;
-					e.printStackTrace();
-					Log.Error("During merge " + columnFamilyHandles + " error occur: " + e.getMessage());
-				}
 			}
-			return isSucc;
 		}
 		
-		public ID getAddressID(Address address) {
+		public ID getAddressID(Address address) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
 			ID id = null;
 			byte[] bytes = null;
-			try {
 				bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI());
 				if(bytes != null) {
 					id = new ID(bytes);
@@ -472,19 +420,14 @@ public class AccountsMerkleTree {
 							saveAccount(account);
 					}
 				}
-			} catch (RocksDBException | NoSuchFieldException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error("During getAddressSerialNumber " + address + " error occur: " + e.getMessage());
-			}
 			return id;
 		}
 
-		public Address getAddress(ID id) {
+		public Address getAddress(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 			return getAccount(id, true).getKey().getAddress();
 		}
 
-		public PublicKey getPublicKey(ID id) {
+		public PublicKey getPublicKey(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 			PublicKey publicKey = null;
 			if(getAccount(id, true).getKey().getPublickey() != null) {
 				publicKey = new PublicKey();
@@ -494,16 +437,16 @@ public class AccountsMerkleTree {
 			return publicKey;
 		}
 
-		public boolean savePublicKey(PublicKey publicKey, ID height) {
+		public void savePublicKey(PublicKey publicKey, ID height) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
 			Account account = getAccount(publicKey.getID(), true);
 			com.eqchains.blockchain.account.Publickey publickey2 = new com.eqchains.blockchain.account.Publickey();
 			publickey2.setPublickey(publicKey.getPublicKey());
 			publickey2.setPublickeyCreateHeight(height);
 			account.getKey().setPublickey(publickey2);
-			return saveAccount(account);
+			saveAccount(account);
 		}
 
-		public boolean isPublicKeyExists(PublicKey publicKey) {
+		public boolean isPublicKeyExists(PublicKey publicKey) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 			boolean isSucc = false;
 			Account account = getAccount(publicKey.getID(), true);
 			if(account.getKey().getPublickey() != null) {
@@ -514,49 +457,53 @@ public class AccountsMerkleTree {
 			return isSucc;
 		}
 
-		public boolean deletePublicKey(PublicKey publicKey) {
+		public void deletePublicKey(PublicKey publicKey) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
 			Account account = getAccount(publicKey.getID(), true);
 			account.getKey().setPublickey(null);
-			return saveAccount(account);
+			saveAccount(account);
 		}
 
-		public boolean close() {
-			boolean isSucc = true;
+		public void close() throws RocksDBException {
 			for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
-				if (!EQCBlockChainRocksDB.clearTable(columnFamilyHandle) || !EQCBlockChainRocksDB.dropTable(columnFamilyHandle)) {
-					isSucc = false;
-				}
+				EQCBlockChainRocksDB.clearTable(columnFamilyHandle);
+				EQCBlockChainRocksDB.dropTable(columnFamilyHandle);
 			}
-			return isSucc;
+		}
+
+		/**
+		 * @return the columnFamilyHandles
+		 */
+		public Vector<ColumnFamilyHandle> getColumnFamilyHandles() {
+			return columnFamilyHandles;
 		}
 		
 	}
 
-	public ID getAddressID(Address address) {
+	public ID getAddressID(Address address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException {
 		return filter.getAddressID(address);
 	}
 
-	public Address getAddress(ID id) {
+	public Address getAddress(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		return filter.getAddress(id);
 	}
 
-	public PublicKey getPublicKey(ID id) {
+	public PublicKey getPublicKey(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		return filter.getPublicKey(id);
 	}
 
-	public boolean savePublicKey(PublicKey publicKey, ID height) {
-		return filter.savePublicKey(publicKey, height);
+	public void savePublicKey(PublicKey publicKey, ID height) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+		filter.savePublicKey(publicKey, height);
 	}
 
-	public boolean isPublicKeyExists(PublicKey publicKey) {
+	public boolean isPublicKeyExists(PublicKey publicKey) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		return filter.isPublicKeyExists(publicKey);
 	}
 
-	public boolean deletePublicKey(PublicKey publicKey) {
-		return filter.deletePublicKey(publicKey);
+	public void deletePublicKey(PublicKey publicKey) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+		filter.deletePublicKey(publicKey);
 	}
 
-	public byte[] getEQCHeaderHash(ID id) {
+	public byte[] getEQCHeaderHash(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		byte[] hash = null;
 		Account account = null;
 		account = getAccount(id);
@@ -564,7 +511,7 @@ public class AccountsMerkleTree {
 		return hash;
 	}
 	
-	public EQCHive getEQCBlock(ID height, boolean isSegwit) {
+	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws Exception {
 		return Util.DB().getEQCBlock(height, true);
 	}
 
@@ -625,7 +572,7 @@ public class AccountsMerkleTree {
 			return false;
 		}
 		
-		public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+		public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 			for(AssetStatistics assetStatistics : assetStatisticsList) {
 				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) accountsMerkleTree.getAccount(assetStatistics.assetID);
 				AssetSubchainHeader assetSubchainHeader = assetSubchainAccount.getAssetSubchainHeader();
@@ -633,7 +580,7 @@ public class AccountsMerkleTree {
 					Log.Error("totalAccountNumbers is invalid.");
 					return false;
 				}
-				if(assetSubchainHeader.getTotalSupply().compareTo(assetStatistics.totalSupply) != 0) {
+ 				if(assetSubchainHeader.getTotalSupply().compareTo(assetStatistics.totalSupply) != 0) {
 					Log.Error("totalSupply is invalid.");
 					return false;
 				}
@@ -667,10 +614,17 @@ public class AccountsMerkleTree {
 			public ID totalAccountNumbers;
 			public ID totalSupply;
 			public ID totalTransactionNumbers;
+			
+			public AssetStatistics() {
+				totalAccountNumbers = ID.ZERO;
+				totalSupply = ID.ZERO;
+				totalTransactionNumbers = ID.ZERO;
+			}
+			
 		}
 	}
 	
-	public Statistics getStatistics() {
+	public Statistics getStatistics() throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		Account account;
 		Statistics statistics = new Statistics();
 		for(int i=1; i<=totalAccountNumbers.longValue(); ++i) {
@@ -684,8 +638,15 @@ public class AccountsMerkleTree {
 		return statistics;
 	}
 	
-	public boolean takeSnapshot() {
-		return filter.takeSnapshot();
+	public void takeSnapshot() throws Exception {
+		filter.takeSnapshot();
+	}
+
+	/**
+	 * @return the filter
+	 */
+	public Filter getFilter() {
+		return filter;
 	}
 	
 }

@@ -36,14 +36,19 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
 
+import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteBatch;
+
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Publickey;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
@@ -209,10 +214,13 @@ public class TransferTransaction extends Transaction {
 	 * 验证是否TxFee大于零，验证是否所有的Txin&TxOut的Value大于零。 // 9. 验证TxFee是否足够？
 	 * 
 	 * @return
+	 * @throws RocksDBException 
+	 * @throws IllegalStateException 
 	 * @throws IOException
 	 * @throws NoSuchFieldException
+	 * @throws Exception 
 	 */
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
 		
 		Account txInAccount = accountsMerkleTree.getAccount(txIn.getAddress());
 		
@@ -423,7 +431,11 @@ public class TransferTransaction extends Transaction {
 		if(!isBasicSanity(addressShape)) {
 			return false;
 		}
-		
+		for (TxOut txOut : txOutList) {
+			if(txOut.getAddress().getType() != AddressType.T1 || txOut.getAddress().getType() != AddressType.T2) {
+				return false;
+			}
+		}
 		if (transactionType != TransactionType.TRANSFER) {
 			return false;
 		}
@@ -613,7 +625,9 @@ public class TransferTransaction extends Transaction {
 		return tx;
 	}
 	
-	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) {
+	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) throws Exception {
+		// Fill in TxIn's Address
+		txIn.getAddress().setID(accountsMerkleTree.getAddressID(txIn.getAddress()));
 		// Fill in Publickey's Serial Number
 		publickey.setID(txIn.getAddress().getID());
 
@@ -648,7 +662,7 @@ public class TransferTransaction extends Transaction {
 		return true;
 	}
 	
-	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, byte[] signature) throws IllegalStateException {
+	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, byte[] signature) throws IllegalStateException, NoSuchFieldException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		super.prepareVerify(accountsMerkleTree, signature);
 		// Fill in TxOut's Address' ReadableAddress
 		for (TxOut txOut : getTxOutList()) {
@@ -656,24 +670,46 @@ public class TransferTransaction extends Transaction {
 		}
 	}
 	
-	public void update(AccountsMerkleTree accountsMerkleTree) {
-		super.update(accountsMerkleTree);
+	public void update(AccountsMerkleTree accountsMerkleTree)
+			throws Exception {
+		WriteBatch writeBatch = new WriteBatch();
+		// Update current Transaction's relevant Account's AccountsMerkleTree's data
+		// Update current Transaction's TxIn Account's relevant Asset's Nonce&Balance
+		Account account = accountsMerkleTree.getAccount(txIn.getAddress().getID());
+		// Update current Transaction's TxIn Account's relevant Asset's Nonce
+		account.getAsset(getAssetID()).increaseNonce();
+		// Update current Transaction's TxIn Account's relevant Asset's Balance
+		account.getAsset(getAssetID()).getBalance().subtract(new ID(getBillingValue()));
+		// Update current Transaction's TxIn Publickey if need
+		if (publickey.isNew()) {
+			Publickey publickey = new Publickey();
+			publickey.setPublickey(this.publickey.getPublicKey());
+			publickey.setPublickeyCreateHeight(accountsMerkleTree.getHeight().getNextID());
+			account.getKey().setPublickey(publickey);
+		}
+		writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(),
+				account.getBytes());
+		writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1),
+				account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
+
 		// Update current Transaction's TxOut Account
-		Account account = null;
 		for (TxOut txOut : txOutList) {
 			if (txOut.isNew()) {
 				account = new AssetAccount();
 				account.getKey().setAddress(txOut.getAddress());
 				account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				accountsMerkleTree.increaseTotalAccountNumbers();
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
 			}
 			account.getAsset(getAssetID()).getBalance().add(new ID(txOut.getValue()));
 			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
-			if(accountsMerkleTree.saveAccount(account) && txOut.isNew()) {
-				accountsMerkleTree.increaseTotalAccountNumbers();
-			}
+			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(),
+					account.getBytes());
+			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1),
+					account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
 		}
+		accountsMerkleTree.getFilter().batchUpdate(writeBatch);
 	}
 	
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
@@ -687,7 +723,6 @@ public class TransferTransaction extends Transaction {
 			TxOut txOut = new TxOut(is, addressShape);
 			// Add TxOut
 			txOutList.add(txOut);
-			++txOutCount;
 		}
 	}
 

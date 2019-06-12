@@ -92,40 +92,14 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	private static EQCBlockChainH2 instance;
 	private static final int ONE_ROW = 1;
 	
-	static {
-		getInstance();
-	}
-	
-	private EQCBlockChainH2() {
-		try {
+	private EQCBlockChainH2() throws ClassNotFoundException, SQLException {
 			Class.forName("org.h2.Driver");
 			connection = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
 			statement = connection.createStatement();
-//			if(!Configuration.getInstance().isInitH2()) {
-//				Configuration.getInstance().updateIsInitH2(true);
-//				createTable();
-//			}
 			createTable();
-		} catch (SQLException | ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-//		finally {
-//			try {
-//				statement.close();
-//				connection.close();
-//			} catch (SQLException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//				Log.Error(e.getMessage());
-//			}
-//			
-//		}
 	}
 	
-	public synchronized void dropTable() {
-		try {
+	public synchronized void dropTable() throws SQLException {
 			statement.execute("DROP TABLE ACCOUNT");
 			statement.execute("DROP TABLE PUBLICKEY");
 			statement.execute("DROP TABLE TRANSACTION");
@@ -136,15 +110,9 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			statement.execute("DROP TABLE TXIN_HEADER_HASH");
 			statement.execute("DROP TABLE ACCOUNT_SNAPSHOT");
 //			statement.execute("DROP TABLE ");
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 	}
 	
-	private synchronized void createTable() {
-		try {
+	private synchronized void createTable() throws SQLException {
 			// Create Account table. Each address should be unique and it's serial number should be one by one
 			boolean result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
@@ -217,7 +185,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					+ "txin_value BIGINT,"
 					+ "tx_fee BIGINT,"
 					+ "rawdata BINARY,"
-					+ "signature_hash BINARY(32),"
+					+ "signature BINARY,"
 					+ "tx_size INT,"
 					+ "qos BIGINT,"
 					+ "receieved_timestamp BIGINT,"
@@ -246,14 +214,9 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			if(result) {
 				Log.info("Create table");
 			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 	}
 	
-	public synchronized static EQCBlockChainH2 getInstance() {
+	public synchronized static EQCBlockChainH2 getInstance() throws ClassNotFoundException, SQLException {
 		if(instance == null) {
 			synchronized (EQCBlockChainH2.class) {
 				if(instance == null) {
@@ -268,6 +231,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getAddressSerialNumber(com.eqzip.eqcoin.blockchain.Address)
 	 */
 	@Override
+	@Deprecated
 	public synchronized ID getAddressID(Address address) {
 		ID serialNumber = null;
 		try {
@@ -290,6 +254,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getAddress(com.eqzip.eqcoin.util.SerialNumber)
 	 */
 	@Override
+	@Deprecated
 	public synchronized Address getAddress(ID serialNumber) {
 		Address address = null;
 		try {
@@ -313,6 +278,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return address;
 	}
 	
+	@Deprecated
 	public synchronized Vector<Account> getAllAccounts(ID height) {
 		Vector<Account> accounts = new Vector<Account>();
 //		Account account = null;
@@ -342,6 +308,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return accounts;
 	}
 	
+	@Deprecated
 	public synchronized Vector<Account> getAccounts(ID begin, ID end, ID height) {
 		Vector<Account> accounts = new Vector<>();
 //		Account account = null;
@@ -381,6 +348,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return accounts;
 	}
 
+	@Deprecated
 	public synchronized ID getTotalAccountNumber(ID height) {
 		long accountsNumber = 0;
 		try {
@@ -404,6 +372,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#isAddressExists(com.eqzip.eqcoin.blockchain.Address)
 	 */
 	@Override
+	@Deprecated
 	public synchronized boolean isAddressExists(Address address) {
 		try {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address='" + address.getAddress() + "'");
@@ -421,6 +390,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return false;
 	}
 	
+	@Deprecated
 	public synchronized boolean appendAddress(Address address, ID address_update_height) {
 		int result = 0;
 		try {
@@ -446,6 +416,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return result == ONE_ROW;
 	}
 
+	@Deprecated
 	public synchronized boolean deleteAddress(Address address) {
 		int result = 0;
 		try {
@@ -462,6 +433,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return result == ONE_ROW;
 	}
 
+	@Deprecated
 	public synchronized boolean deleteAddressFromHeight(ID height) {
 		int result = 0;
 		try {
@@ -481,6 +453,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getLastAddressSerialNumber()
 	 */
+	@Deprecated
 	public synchronized ID getLastAddressSerialNumber() {
 		ID serialNumber = null;
 		try {
@@ -501,6 +474,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getAddressTotalNumbers()
 	 */
+	@Deprecated
 	public synchronized long getAddressTotalNumbers() {
 		// TODO Auto-generated method stub
 		return 0;
@@ -571,6 +545,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getPublicKeySerialNumber(com.eqzip.eqcoin.blockchain.Address)
 	 */
+	@Deprecated
 	public synchronized ID getPublicKeySerialNumber(Address address) {
 		// TODO Auto-generated method stub
 		return null;
@@ -579,7 +554,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getPublicKey(com.eqzip.eqcoin.util.SerialNumber)
 	 */
-	@Override
+	@Deprecated
 	public synchronized PublicKey getPublicKey(ID serialNumber) {
 		PublicKey publicKey = null;
 		try {
@@ -603,7 +578,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#isPublicKeyExists(com.eqzip.eqcoin.blockchain.PublicKey)
 	 */
-	@Override
+	@Deprecated
 	public synchronized boolean isPublicKeyExists(PublicKey publicKey) {
 		try {
 			ResultSet resultSet;
@@ -622,7 +597,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return false;
 	}
 
-	@Override
+	@Deprecated
 	public synchronized boolean savePublicKey(PublicKey publicKey, ID height) {
 		int result = 0;
 		try {
@@ -644,7 +619,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return result == ONE_ROW;
 	}
 	
-	@Override
+	@Deprecated
 	public synchronized boolean deletePublicKey(PublicKey publicKey) {
 		int result = 0;
 		try {
@@ -658,6 +633,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return result >= 1;
 	}
 
+	@Deprecated
 	public synchronized boolean deletePublicKeyFromHeight(ID height) {
 		int result = 0;
 		try {
@@ -674,6 +650,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getLastPublicKeySerialNumber()
 	 */
+	@Deprecated
 	public synchronized ID getLastPublicKeySerialNumber() {
 		ID serialNumber = null;
 		try {
@@ -692,6 +669,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getPublicKeyTotalNumbers()
 	 */
+	@Deprecated
 	public synchronized long getPublicKeyTotalNumbers() {
 		// TODO Auto-generated method stub
 		return 0;
@@ -701,6 +679,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getEQCBlock(com.eqzip.eqcoin.util.SerialNumber, boolean)
 	 */
 	@Override
+	@Deprecated
 	public synchronized EQCHive getEQCBlock(ID height, boolean isSegwit) {
 		EQCHive eqcBlock = null;
 		File file = new File(Util.BLOCK_PATH + height.longValue() + Util.EQC_SUFFIX);
@@ -777,6 +756,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * util.SerialNumber)
 	 */
 	@Override
+	@Deprecated
 	public synchronized boolean isEQCBlockExists(ID height) {
 		boolean isEQCBlockExists = false;
 		File file = new File(Util.BLOCK_PATH + height.longValue() + Util.EQC_SUFFIX);
@@ -793,6 +773,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * com.eqzip.eqcoin.blockchain.EQCBlockChain#isEQCBlockExists(com.eqzip.eqcoin.
 	 * blockchain.EQCBlock)
 	 */
+	@Deprecated
 	public synchronized boolean isEQCBlockExists(EQCHive eqcBlock) {
 		// TODO Auto-generated method stub
 		return false;
@@ -805,8 +786,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * blockchain.EQCBlock)
 	 */
 	@Override
-	public synchronized boolean saveEQCBlock(EQCHive eqcBlock) {
-		boolean isSaveSuccessful = true;
+	@Deprecated
+	public synchronized void saveEQCBlock(EQCHive eqcBlock) {
 		File file = new File(Util.BLOCK_PATH + eqcBlock.getHeight().longValue() + Util.EQC_SUFFIX);
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
@@ -819,10 +800,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			isSaveSuccessful = false;
 			Log.Error(e.getMessage());
 		}
-		return isSaveSuccessful;
 	}
 
 	/*
@@ -833,9 +812,9 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * util.SerialNumber)
 	 */
 	@Override
-	public synchronized boolean deleteEQCBlock(ID height) {
+	@Deprecated
+	public synchronized void deleteEQCBlock(ID height) {
 		// TODO Auto-generated method stub
-		return false;
 	}
 
 	/*
@@ -845,6 +824,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * com.eqzip.eqcoin.blockchain.EQCBlockChain#getEQCHeader(com.eqzip.eqcoin.util.
 	 * SerialNumber)
 	 */
+	@Deprecated
 	public synchronized EQCHeader getEQCHeader(ID height) {
 		EQCHeader eqcHeader = null;
 		File file = new File(Util.BLOCK_PATH + height.longValue() + Util.EQC_SUFFIX);
@@ -875,6 +855,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * eqcoin.util.SerialNumber)
 	 */
 	@Override
+	@Deprecated
 	public synchronized byte[] getTransactionsHash(ID height) {
 		// TODO Auto-generated method stub
 		return null;
@@ -886,6 +867,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getBalance(com.eqzip.eqcoin.
 	 * blockchain.Address)
 	 */
+	@Deprecated
 	public synchronized long getBalance(Address address) {
 		ResultSet resultSet;
 		long txInValue = 0;
@@ -913,6 +895,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return txOutValue - txInValue;
 	}
 
+	@Deprecated
 	public synchronized long getBalance(Address address, ID height) {
 		ResultSet resultSet;
 		long txInValue = 0;
@@ -977,6 +960,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //		return result == ONE_ROW;
 //	}
 
+	@Deprecated
 	public synchronized ID getTxInHeight(Address txInAddress) {
 		ID height = null;
 		try {
@@ -1005,7 +989,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public synchronized boolean saveEQCBlockTailHeight(ID height) {
+	@Deprecated
+	public synchronized void saveEQCBlockTailHeight(ID height) {
 		int result = 0;
 		try {
 			if (getEQCBlockTailHeight() != null) {
@@ -1023,25 +1008,20 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 		}
-		return result == ONE_ROW;
 	}
 
 	@Override
-	public synchronized ID getEQCBlockTailHeight() {
+	@Deprecated
+	public synchronized ID getEQCBlockTailHeight() throws SQLException {
 		ID serialNumber = null;
-		try {
-			 ResultSet resultSet = statement.executeQuery("SELECT * FROM SYNCHRONIZATION");
-			 if(resultSet.next()) {
-				 serialNumber = new ID(BigInteger.valueOf(resultSet.getLong("block_tail_height")));
-			 }
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
+		ResultSet resultSet = statement.executeQuery("SELECT * FROM SYNCHRONIZATION");
+		if (resultSet.next()) {
+			serialNumber = new ID(BigInteger.valueOf(resultSet.getLong("block_tail_height")));
 		}
 		return serialNumber;
 	}
 
+	@Deprecated
 	public synchronized ID getTotalAccountNumbers(ID height) {
 		ID serialNumber = null;
 		try {
@@ -1057,6 +1037,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return serialNumber;
 	}
 
+	@Deprecated
 	public synchronized boolean setTotalAccountNumbers(ID numbers) {
 		int result = 0;
 		try {
@@ -1079,6 +1060,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 	
 	@Override
+	@Deprecated
 	public synchronized byte[] getEQCHeaderHash(ID height) {
 		EQCHive eqcBlock = getEQCBlock(height, true);
 		return eqcBlock.getEqcHeader().getHash();
@@ -1092,52 +1074,33 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * .blockchain.Address)
 	 */
 	@Override
-	public synchronized Vector<Transaction> getTransactionListInPool() {
+	public synchronized Vector<Transaction> getTransactionListInPool()
+			throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
 		Vector<Transaction> transactions = new Vector<Transaction>();
-		try {
-			 PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE qos>='9' OR "
-						+ "(qos='8') OR "
-					 	+ "(qos='4' AND receieved_timestamp<=?) OR "
-						+ "(qos='2' AND receieved_timestamp<=?) OR "
-					 	+ "(qos='1' AND receieved_timestamp<=?) AND "
-					 	+ "(record_status = FALSE) ORDER BY qos DESC, receieved_timestamp ASC"
-						 );
-			 preparedStatement.setLong(1, (System.currentTimeMillis()-200000));
-			 preparedStatement.setLong(2, (System.currentTimeMillis()-400000));
-			 preparedStatement.setLong(3, (System.currentTimeMillis()-600000));
-			 ResultSet resultSet = preparedStatement.executeQuery();
-			 while(resultSet.next()) {
-				 byte[] bytes = resultSet.getBytes("rawdata");
-				 ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-				 byte[] data = null;
-				 
-				// Parse Transaction
-				if ((data = EQCType.parseBIN(is)) != null && !EQCType.isNULL(data)) {
-					Transaction transaction = Transaction.parseTransaction(data, Address.AddressShape.READABLE);
-					if(transaction != null) {
-						
-						// Parse PublicKey
-						data = null;
-						if ((data = EQCType.parseBIN(is)) != null) {
-							PublicKey publickey = new PublicKey();
-							publickey.setPublicKey(data);
-							transaction.setPublickey(publickey);
-						}
+		PreparedStatement preparedStatement = connection
+				.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE qos>='9' OR " + "(qos='8') OR "
+						+ "(qos='4' AND receieved_timestamp<=?) OR " + "(qos='2' AND receieved_timestamp<=?) OR "
+						+ "(qos='1' AND receieved_timestamp<=?) AND "
+						+ "(record_status = FALSE) ORDER BY qos DESC, receieved_timestamp ASC");
+		preparedStatement.setLong(1, (System.currentTimeMillis() - 200000));
+		preparedStatement.setLong(2, (System.currentTimeMillis() - 400000));
+		preparedStatement.setLong(3, (System.currentTimeMillis() - 600000));
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while (resultSet.next()) {
+			byte[] bytes = resultSet.getBytes("rawdata");
+			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+			byte[] data = null;
 
-						// Parse Signature
-						data = null;
-						if ((data = EQCType.parseBIN(is)) != null) {
-							transaction.setSignature(data);
-						}
-						
-						transactions.add(transaction);
-					}
-				}
-			}
-		} catch (SQLException | NoSuchFieldException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
+			// Parse Transaction
+			Transaction transaction = Transaction.parseTransaction(EQCType.parseBIN(is), Address.AddressShape.READABLE);
+			// Parse PublicKey
+			PublicKey publickey = new PublicKey();
+			publickey.setPublicKey(EQCType.parseBIN(is));
+			transaction.setPublickey(publickey);
+
+			// Parse Signature
+			transaction.setSignature(EQCType.parseBIN(is));
+			transactions.add(transaction);
 		}
 //		Collections.sort(transactions);
 		return transactions;
@@ -1146,11 +1109,11 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/**
 	 * @param transaction EQC Transaction include PublicKey and Signature so for every Transaction it's raw is unique
 	 * @return boolean If add Transaction successful return true else return false
+	 * @throws SQLException 
 	 */
 	@Override
-	public synchronized boolean addTransactionInPool(Transaction transaction) {
+	public synchronized boolean addTransactionInPool(Transaction transaction) throws SQLException {
 		int result = 0;
-		try {
 //			result = statement.executeUpdate("INSERT INTO TRANSACTION_POOL (txin_address, txin_value, tx_fee, rawdata, tx_size, qos, receieved_timestamp) VALUES('" 
 //					+ transaction.getTxIn().getAddress().getAddress() + "','"
 //					+ transaction.getTxIn().getValue() + "','"
@@ -1159,76 +1122,61 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //					+ size + "','"
 //					+ qos + "','"
 //					+ timestamp + "')");
-			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_POOL (txin_address, txin_value, tx_fee, rawdata, signature_hash, tx_size, qos, receieved_timestamp, record_status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_POOL (txin_address, txin_value, tx_fee, rawdata, signature, tx_size, qos, receieved_timestamp, record_status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
 			preparedStatement.setString(1, transaction.getTxIn().getAddress().getReadableAddress());
 			preparedStatement.setLong(2, transaction.getTxIn().getValue());
 			preparedStatement.setLong(3, transaction.getTxFeeLimit());
 			preparedStatement.setBytes(4, transaction.getRPCBytes());
-			preparedStatement.setBytes(5, Util.SHA3_256(transaction.getSignature()));
+			preparedStatement.setBytes(5, transaction.getSignature());
 			preparedStatement.setInt(6, transaction.getMaxBillingSize());
 			preparedStatement.setLong(7, transaction.getQosRate());
 			preparedStatement.setLong(8, System.currentTimeMillis());
 			preparedStatement.setBoolean(9, false);
 			result =preparedStatement.executeUpdate();
 			Log.info("result: " + result);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return result == ONE_ROW;
 	}
 
 	@Override
-	public synchronized boolean deleteTransactionInPool(Transaction transaction) {
+	public synchronized boolean deleteTransactionInPool(Transaction transaction) throws SQLException {
 		int result = 0;
-		try {
 //			result = statement.executeUpdate("DELETE FROM TRANSACTION_POOL WHERE rawdata='" + transaction.getBytes(AddressShape.ADDRESS) + "'");
-			PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM TRANSACTION_POOL WHERE signature_hash= ?");
-			preparedStatement.setBytes(1,  Util.SHA3_256(transaction.getSignature()));
+			PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM TRANSACTION_POOL WHERE signature= ?");
+			preparedStatement.setBytes(1, transaction.getSignature());
 			result = preparedStatement.executeUpdate();
 			Log.info("result: " + result);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return result == ONE_ROW;
 	}
 
 	@Override
-	public synchronized boolean isTransactionExistsInPool(Transaction transaction) {
-		try {
+	public synchronized boolean isTransactionExistsInPool(Transaction transaction) throws SQLException {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM TRANSACTION_POOL WHERE signature='" + transaction.getBytes(AddressShape.ADDRESS) + "'");
-			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE signature_hash= ?");
-			preparedStatement.setBytes(1,  Util.SHA3_256(transaction.getSignature()));
+			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE signature= ?");
+			preparedStatement.setBytes(1, transaction.getSignature());
 			ResultSet resultSet  = preparedStatement.executeQuery(); 
 			if(resultSet.next()) {
 				 return true;
 			 }
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return false;
 	}
 
+	@Deprecated
 	public synchronized Vector<Transaction> getTransactionList(Address address) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	@Deprecated
 	public synchronized Vector<Transaction> getTransactionList(Address address, ID height) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	public synchronized boolean addTransaction(Transaction transaction, ID height, int trans_id) {
+	@Deprecated
+	public synchronized boolean addTransaction(Transaction transaction, ID height, int trans_id) throws SQLException {
 		int result = 0;
 		int validCount = 0;//transaction.isCoinBase()?(transaction.getTxOutNumber()):(1+transaction.getTxOutNumber());
 		
-		try {
 			if(!transaction.isCoinBase()) {
 				result += statement.executeUpdate("INSERT INTO TRANSACTION (height, trans_id, io, address_id, value) VALUES('" 
 					+ height.longValue() + "','"
@@ -1246,31 +1194,23 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					+ txOut.getValue() + "')");
 			}
 //			Log.info("result: " + result);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return result == validCount;
 	}
 
-	public synchronized boolean deleteTransactionFromHeight(ID height) {
+	@Deprecated
+	public synchronized boolean deleteTransactionFromHeight(ID height) throws SQLException {
 		int result = 0;
-		try {
 			result = statement.executeUpdate("DELETE FROM TRANSACTION WHERE height>='" + height.longValue() + "'");
 			Log.info("result: " + result);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return result >= ONE_ROW;
 	}
 
+	@Deprecated
 	public synchronized boolean isTransactionExists(Transaction transaction) {
 		return isSignatureExists(transaction.getSignature());
 	}
 
+	@Deprecated
 	public synchronized int getTransactionNumbersIn24hours(Address address, ID currentHeight) {
 		int numbers = 0;
 		long heightOffset = ((currentHeight.longValue() - 8640)>0)?(currentHeight.longValue() - 8640):0;
@@ -1298,7 +1238,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return numbers;
 	}
 
-	public synchronized boolean addAllTransactions(EQCHive eqcBlock) {
+	@Deprecated
+	public synchronized boolean addAllTransactions(EQCHive eqcBlock) throws SQLException {
 		int isSuccessful = 0;
 		Vector<Transaction> transactions = eqcBlock.getTransactions().getNewTransactionList();
 		for(int i=0; i<transactions.size(); ++i) {
@@ -1309,6 +1250,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return isSuccessful == transactions.size();
 	}
 
+	@Deprecated
 	public synchronized boolean isSignatureExists(byte[] signature) {
 		try {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM SIGNATURE_HASH WHERE signature='" + signature + "'");
@@ -1326,6 +1268,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return false;
 	}
 
+	@Deprecated
 	public synchronized boolean addAllAddress(EQCHive eqcBlock) {
 		boolean isSuccess = false;
 		for(Address address : eqcBlock.getTransactions().getNewAccountList()) {
@@ -1334,6 +1277,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return isSuccess;
 	}
 
+	@Deprecated
 	public synchronized boolean addAllPublicKeys(EQCHive eqcBlock) {
 		boolean isSuccess = false;
 		for(PublicKey publicKey : eqcBlock.getTransactions().getNewPublicKeyList()) {
@@ -1342,6 +1286,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return isSuccess;
 	}
 
+	@Deprecated
 	public synchronized boolean appendSignature(ID height, int trans_id, ID txin_id, byte[] signature) {
 		int result = 0;
 		try {
@@ -1360,6 +1305,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return result == ONE_ROW;
 	}
 
+	@Deprecated
 	public synchronized boolean addAllSignatures(EQCHive eqcBlock) {
 		boolean isSuccess = false;
 		for(int i=0; i<eqcBlock.getSignatures().getSignatureList().size(); ++i) {
@@ -1368,6 +1314,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return isSuccess;
 	}
 
+	@Deprecated
 	public synchronized long getBalanceFromAccount(Address address) {
 		long balance = 0;
 		try {
@@ -1383,6 +1330,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return balance;
 	}
 
+	@Deprecated
 	public synchronized boolean updateBalanceInAccount(Address address, long balance) {
 		int result = 0;
 		PreparedStatement preparedStatement;
@@ -1399,6 +1347,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return result == ONE_ROW;
 	}
 
+	@Deprecated
 	public synchronized int getNonce(Address address) {
 		int nonce = 0;
 		try {
@@ -1414,6 +1363,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return nonce;
 	}
 
+	@Deprecated
 	public synchronized boolean updateNonce(Address address, int nonce) {
 		int result = 0;
 		PreparedStatement preparedStatement;
@@ -1431,7 +1381,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public synchronized boolean deleteTransactionsInPool(EQCHive eqcBlock) {
+	public synchronized boolean deleteTransactionsInPool(EQCHive eqcBlock) throws SQLException {
 		int isSuccessful = 0;
 		Vector<Transaction> transactions = eqcBlock.getTransactions().getNewTransactionList();
 		for(int i=1; i<transactions.size(); ++i) {
@@ -1443,35 +1393,20 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean close() {
+	public boolean close() throws SQLException {
 		boolean boolResult = true;
 		if(statement != null) {
-			try {
 				statement.close();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				boolResult = false;
-				Log.Error(e.getMessage());
-			}
 		}
 		if(connection != null) {
-			try {
 				connection.close();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				boolResult = false;
-				Log.Error(e.getMessage());
-			}
 		}
 		return boolResult;
 	}
 
 	@Override
-	public boolean saveAccount(Account account) {
+	public void saveAccount(Account account) {
 		// TODO Auto-generated method stub
-		return false;
 	}
 
 	@Override
@@ -1481,9 +1416,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean deleteAccount(ID serialNumber) {
+	public void deleteAccount(ID serialNumber) {
 		// TODO Auto-generated method stub
-		return false;
 	}
 
 	@Override
@@ -1492,16 +1426,14 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return null;
 	}
 
-	@Override
 	public boolean saveTotalAccountNumbers(ID numbers) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public synchronized Account getAccountSnapshot(ID accountID, ID height) {
+	public synchronized Account getAccountSnapshot(ID accountID, ID height) throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
 		Account account = null;
-		try {
 			PreparedStatement preparedStatement = connection.prepareStatement(
 					"SELECT * FROM ACCOUNT_SNAPSHOT WHERE id=? AND snapshot_height <=? ORDER BY snapshot_height DESC LIMIT 1");
 			preparedStatement.setLong(1, accountID.longValue());
@@ -1519,17 +1451,11 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					account = Account.parseAccount(resultSet.getBytes("account"));
 				}
 			}
-		} catch (SQLException | NoSuchFieldException | IllegalStateException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return account;
 	}
 	
-	public synchronized boolean isAccountSnapshotExists(ID accountID, ID height) {
+	public synchronized boolean isAccountSnapshotExists(ID accountID, ID height) throws SQLException {
 		boolean isSucc = false;
-		try {
 			PreparedStatement preparedStatement = connection.prepareStatement(
 					"SELECT * FROM ACCOUNT_SNAPSHOT WHERE id=? AND snapshot_height=?");
 			preparedStatement.setLong(1, accountID.longValue());
@@ -1538,19 +1464,13 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			if (resultSet.next()) {
 				isSucc = true;
 			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return isSucc;
 	}
 
 	@Override
-	public synchronized boolean saveAccountSnapshot(Account account, ID height) {
+	public synchronized boolean saveAccountSnapshot(Account account, ID height) throws SQLException {
 		int result = 0;
 		PreparedStatement preparedStatement = null;
-		try {
 			if (isAccountSnapshotExists(account.getID(), height)) {
 					preparedStatement = connection.prepareStatement("UPDATE ACCOUNT_SNAPSHOT SET account = ?, snapshot_height = ? where id = ?");
 					preparedStatement.setBytes(1, account.getBytes());
@@ -1568,28 +1488,17 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				result = preparedStatement.executeUpdate();
 //				Log.info("INSERT: " + result);
 			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return result == ONE_ROW;
 	}
 
 	@Override
-	public synchronized boolean deleteAccountSnapshot(ID height, boolean isForward) {
+	public synchronized boolean deleteAccountSnapshot(ID height, boolean isForward) throws SQLException {
 		int result = 0;
 		PreparedStatement preparedStatement;
-		try {
 			preparedStatement = connection.prepareStatement("DELETE FROM ACCOUNT_SNAPSHOT WHERE snapshot_height " + (isForward?">=?":"<=?"));
 			preparedStatement.setLong(1, height.longValue());
 			result = preparedStatement.executeUpdate();
 			Log.info("result: " + result);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
 		return result >= ONE_ROW;
 	}
 

@@ -97,6 +97,7 @@ public class Keystore {
 		AddressType addressType = AddressType.T1;
 		
 		try {
+			Log.info("createUserAccount");
 			kpg = KeyPairGenerator.getInstance("EC", "SunEC");
 			ECGenParameterSpec ecsp = null;
 			if(type == ECCTYPE.P256) {
@@ -107,27 +108,36 @@ public class Keystore {
 				ecsp = new ECGenParameterSpec("secp521r1");
 				addressType = AddressType.T2;
 			}
-			kpg.initialize(ecsp, SecureRandom.getInstanceStrong());
+			Log.info("SecureRandom.getInstanceStrong");
+//			kpg.initialize(ecsp, SecureRandom.getInstanceStrong());
+			kpg.initialize(ecsp, SecureRandom.getInstance("SHA1PRNG"));
+			Log.info("after SecureRandom.getInstanceStrong");
+			Log.info("x0");
 			KeyPair kp = kpg.genKeyPair();
+			Log.info("x1");
 			PrivateKey privKey = kp.getPrivate();
 			PublicKey pubKey = kp.getPublic();
 			EQCPublicKey eqcPublicKey = new EQCPublicKey(type);
 			eqcPublicKey.setECPoint((ECPublicKey) pubKey);
-			
+			Log.info("x");
 			account.setUserName(userName);
 			account.setPwdHash(Util.EQCCHA_MULTIPLE_DUAL(password.getBytes(), Util.HUNDREDPULS, true, false));
 			account.setPrivateKey(Util.AESEncrypt(((ECPrivateKey)privKey).getS().toByteArray(), password));
 			account.setPublicKey(Util.AESEncrypt(eqcPublicKey.getCompressedPublicKeyEncoded(), password));
 			account.setReadableAddress(Util.AddressTool.generateAddress(eqcPublicKey.getCompressedPublicKeyEncoded(), addressType));
 			account.setBalance(0);
+			Log.info("x1");
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			Log.Error(e.getMessage());
+			Log.Error("error occur: " + e.getMessage());
 		}
 
+		Log.info("x2");
 		if (account != null && !isUserAccountExist(account)) {
+			Log.info("x3");
 			accounts.add(account);
+			Log.info("x4");
 			saveUserAccounts(accounts);
 		}
 		return account;
@@ -220,7 +230,7 @@ public class Keystore {
 //			if (!createKeystore(KEYSTORE_PATH)) {
 //				Log.info("Error, keystore create failed.");
 //			}
-//			Log.info(Util.KEYSTORE_PATH);
+			Log.info(Util.KEYSTORE_PATH);
 			File file = new File(Util.KEYSTORE_PATH);
 			File fileBak = new File(Util.KEYSTORE_PATH_BAK);
 			// Backup old key store file to EQCoin.keystore.bak
@@ -254,6 +264,7 @@ public class Keystore {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			bool = false;
+			Log.Error(e.getMessage());
 		}
 		return bool;
 	}

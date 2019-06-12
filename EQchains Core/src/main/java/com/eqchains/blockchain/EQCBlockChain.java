@@ -29,8 +29,12 @@
  */
 package com.eqchains.blockchain;
 
+import java.io.IOException;
 import java.math.BigInteger;
+import java.sql.SQLException;
 import java.util.Vector;
+
+import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.transaction.Address;
@@ -45,13 +49,13 @@ import com.eqchains.util.ID;
 public interface EQCBlockChain {
 	
 	// Address relevant interface for H2, avro(optional).
-	public ID getAddressID(Address address);
+	public ID getAddressID(Address address) throws Exception;
 	
-	public Address getAddress(ID serialNumber);
+	public Address getAddress(ID serialNumber) throws Exception;
 	
 //	public boolean appendAddress(Address address, SerialNumber address_create_height);
 	
-	public boolean isAddressExists(Address address);
+	public boolean isAddressExists(Address address) throws Exception;
 	
 //	public boolean deleteAddress(Address address);
 	
@@ -70,24 +74,24 @@ public interface EQCBlockChain {
 	
 //	public ID getTotalAccountNumber(ID height);
 	
-	public boolean saveAccount(Account account);
+	public void saveAccount(Account account) throws Exception;
 	
-	public Account getAccount(ID serialNumber);
+	public Account getAccount(ID serialNumber) throws Exception;
 	
-	public Account getAccount(byte[] addressAI);
+	public Account getAccount(byte[] addressAI) throws Exception;
 	
-	public boolean deleteAccount(ID serialNumber);
+	public void deleteAccount(ID serialNumber) throws Exception;
 	
 	// Public key relevant interface for H2, avro(optional).
 //	public SerialNumber getPublicKeySerialNumber(Address address);
 	
-	public PublicKey getPublicKey(ID serialNumber);
-	
-	public boolean savePublicKey(PublicKey publicKey, ID height);
-	
-	public boolean isPublicKeyExists(PublicKey publicKey);
-	
-	public boolean deletePublicKey(PublicKey publicKey);
+//	public PublicKey getPublicKey(ID serialNumber) throws Exception;
+//	
+//	public boolean savePublicKey(PublicKey publicKey, ID height);
+//	
+//	public boolean isPublicKeyExists(PublicKey publicKey);
+//	
+//	public boolean deletePublicKey(PublicKey publicKey);
 	
 //	public boolean deletePublicKeyFromHeight(SerialNumber height);
 //	
@@ -98,15 +102,15 @@ public interface EQCBlockChain {
 //	public boolean addAllPublicKeys(EQCBlock eqcBlock);
 	
 	// Block relevant interface for for avro, H2(optional).
-	public EQCHive getEQCBlock(ID height, boolean isSegwit);
+	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws Exception;
 	
-	public boolean isEQCBlockExists(ID height);
+	public boolean isEQCBlockExists(ID height) throws Exception;
 	
 //	public boolean isEQCBlockExists(EQCBlock eqcBlock);
 	
-	public boolean saveEQCBlock(EQCHive eqcBlock);
+	public void saveEQCBlock(EQCHive eqcBlock) throws Exception;
 	
-	public boolean deleteEQCBlock(ID height);
+	public void deleteEQCBlock(ID height) throws Exception;
 	
 //	public EQCHeader getEQCHeader(SerialNumber height);
 	
@@ -119,17 +123,17 @@ public interface EQCBlockChain {
 //	public long getBalance(Address address, SerialNumber height);
 	
 	// TransactionPool relevant interface for H2, avro.
-	public Vector<Transaction> getTransactionListInPool();
+	public Vector<Transaction> getTransactionListInPool() throws SQLException, Exception;
 	
 //	public Vector<Transaction> getTransactionList(Address address, SerialNumber height);
 	
-	public boolean addTransactionInPool(Transaction transaction);
+	public boolean addTransactionInPool(Transaction transaction) throws SQLException;
 	
-	public boolean deleteTransactionInPool(Transaction transaction);
+	public boolean deleteTransactionInPool(Transaction transaction) throws SQLException;
 	
-	public boolean deleteTransactionsInPool(EQCHive eqcBlock);
+	public boolean deleteTransactionsInPool(EQCHive eqcBlock) throws SQLException;
 	
-	public boolean isTransactionExistsInPool(Transaction transaction);
+	public boolean isTransactionExistsInPool(Transaction transaction) throws SQLException;
 	
 	// Transaction relevant interface for H2, avro. Save all the Transaction record in the EQC block chain.
 //	public Vector<Transaction> getTransactionList(Address address);
@@ -148,7 +152,7 @@ public interface EQCBlockChain {
 //	public SerialNumber getTxInHeight(Address txInAddress);
 	
 	// For sign and verify Transaction need use relevant TxIn's EQC block header's hash via this function to get it from xxx.EQC.
-	public byte[] getEQCHeaderHash(ID height);
+	public byte[] getEQCHeaderHash(ID height) throws Exception;
 	
 //	public int getTransactionNumbersIn24hours(Address address, SerialNumber currentHeight);
 	
@@ -156,13 +160,13 @@ public interface EQCBlockChain {
 //	
 //	public boolean addTxInBlockHeaderHash(byte[] hash, SerialNumber addressSerialNumber, SerialNumber height);
 	
-	public ID getEQCBlockTailHeight();
+	public ID getEQCBlockTailHeight() throws Exception;
 	
-	public boolean saveEQCBlockTailHeight(ID height);
+	public void saveEQCBlockTailHeight(ID height) throws Exception;
 	
-	public ID getTotalAccountNumbers(ID height);
+	public ID getTotalAccountNumbers(ID height) throws Exception;
 	
-	public boolean saveTotalAccountNumbers(ID numbers);
+//	public boolean saveTotalAccountNumbers(ID numbers);
 	
 	// Signature relevant interface for H2, avro.
 //	public boolean isSignatureExists(byte[] signature);
@@ -181,15 +185,15 @@ public interface EQCBlockChain {
 //	public boolean updateNonce(Address address, int nonce);
 	
 	// Release the relevant database resource
-	public boolean close();
+	public boolean close() throws SQLException, Exception;
 	// Clear the relevant database table
-	public void dropTable();
+	public void dropTable() throws Exception, SQLException;
 	
 	// Take Account's snapshot
-	public Account getAccountSnapshot(ID accountID, ID height);
+	public Account getAccountSnapshot(ID accountID, ID height) throws SQLException, Exception;
 	
-	public boolean saveAccountSnapshot(Account account, ID height);
+	public boolean saveAccountSnapshot(Account account, ID height) throws SQLException, Exception;
 	
-	public boolean deleteAccountSnapshot(ID height, boolean isForward);
+	public boolean deleteAccountSnapshot(ID height, boolean isForward) throws SQLException, Exception;
 	
 }

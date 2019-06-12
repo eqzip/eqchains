@@ -33,6 +33,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.rocksdb.RocksDBException;
+
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -87,7 +89,7 @@ public abstract class Operation implements EQCAddressShapeTypable, EQCAddressSha
 		this.op = op;
 	}
 	
-	public boolean execute(Object ...objects) {
+	public boolean execute(Object ...objects) throws Exception {
 		return false;
 	}
 	
@@ -105,7 +107,7 @@ public abstract class Operation implements EQCAddressShapeTypable, EQCAddressSha
 		this.op = op;
 	}
 
-	public boolean isMeetPreconditions(Object ...objects) {
+	public boolean isMeetPreconditions(Object ...objects) throws Exception {
 		return false;
 	}
 

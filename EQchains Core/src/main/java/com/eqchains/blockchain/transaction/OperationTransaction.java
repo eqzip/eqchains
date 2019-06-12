@@ -32,8 +32,11 @@ package com.eqchains.blockchain.transaction;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Vector;
+
+import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.account.Account;
@@ -157,7 +160,7 @@ public class OperationTransaction extends TransferTransaction {
 	 * AccountsMerkleTree)
 	 */
 	@Override
-	public boolean verify(AccountsMerkleTree accountsMerkleTree) {
+	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		// TODO Auto-generated method stub
 		return super.verify(accountsMerkleTree);
 	}
@@ -266,8 +269,8 @@ public class OperationTransaction extends TransferTransaction {
 		return (txOutList.size() >= MIN_TXOUT) && (txOutList.size() <= MAX_TXOUT);
 	}
 
-	public void execute(AccountsMerkleTree accountsMerkleTree, ID id) {
-			if(!operation.execute(accountsMerkleTree, id)) {
+	public void execute(AccountsMerkleTree accountsMerkleTree, OperationTransaction operationTransaction) throws Exception {
+			if(!operation.execute(accountsMerkleTree, operationTransaction)) {
 				throw new IllegalStateException("During execute operation error occur: " + operation);
 			}
 	}
@@ -350,9 +353,9 @@ public class OperationTransaction extends TransferTransaction {
 		return true;
 	}
 	
-	public void update(AccountsMerkleTree accountsMerkleTree) {
+	public void update(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		super.update(accountsMerkleTree);
-		execute(accountsMerkleTree, txIn.getAddress().getID());
+		execute(accountsMerkleTree, this);
 	}
 	
 	public byte[] getBodyBytes(AddressShape addressShape) {

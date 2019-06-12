@@ -29,7 +29,6 @@
  */
 package com.eqchains.util;
 
-import java.awt.image.Raster;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -66,6 +65,7 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPrivateKeySpec;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -92,7 +92,7 @@ import org.apache.commons.net.ntp.TimeStamp;
 import org.bouncycastle.crypto.digests.RIPEMD128Digest;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 import org.bouncycastle.jcajce.provider.symmetric.Threefish;
-import org.junit.jupiter.params.shadow.com.univocity.parsers.annotations.Trim;
+import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.EQCHive;
@@ -202,6 +202,8 @@ public final class Util {
 
 	public final static int ONE_MB = 1048576;
 	
+	public final static int MAX_BLOCK_SIZE = ONE_MB;
+	
 	public final static int MAX_NONCE = 268435455;
 	
 	public final static int HASH_LEN = 64;
@@ -215,7 +217,12 @@ public final class Util {
 	 * Set the default PATH value WINDOWS_PATH
 	 */
 	private static String CURRENT_PATH = System.getProperty("user.dir");
-	public static String PATH = "C:" + File.separator + "EQCOIN";// System.getProperty("user.dir") + File.separator +
+	
+	public static String WINDOWS = "C:";
+	
+	public static String LINUX = "/usr";
+			
+	public static String PATH = LINUX + File.separator + "EQchains";// System.getProperty("user.dir") + File.separator +
 																	// "EQCOIN";
 //	static {
 //		PATH = System.getProperty("user.dir") + "/EQCOIN";
@@ -223,9 +230,9 @@ public final class Util {
 	
 	public static final String MAGIC_PATH = ".\\src\\main\\QuidditchHelixFlashForward";
 
-	public static final String KEYSTORE_PATH = PATH + File.separator + "EQCoin.keystore";
+	public static final String KEYSTORE_PATH = PATH + File.separator + "EQchains.keystore";
 
-	public static final String KEYSTORE_PATH_BAK = PATH + File.separator + "EQCoin.keystore.bak";
+	public static final String KEYSTORE_PATH_BAK = PATH + File.separator + "EQchains.keystore.bak";
 
 	public static final String LOG_PATH = PATH + File.separator + "log.txt";
 
@@ -354,16 +361,18 @@ public final class Util {
 	private Util() {
 	}
 
-	public static void init() {
+	public static void init() throws RocksDBException, Exception {
 		System.setProperty("sun.net.client.defaultConnectTimeout", "3000");  
 		createDir(PATH);
 //		createDir(AVRO_PATH);
+		createDir(DB_PATH);
 		createDir(H2_PATH);
-		createDir(BLOCK_PATH);
+		createDir(ROCKSDB_PATH);
+//		createDir(BLOCK_PATH);
 		if (!Configuration.getInstance().isInitSingularityBlock()
 				&& Keystore.getInstance().getUserAccounts().size() > 0/* Will Remove when Cold Wallet ready */) {
 			EQCHive eqcBlock = gestationSingularityBlock();
-			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
+//			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
 			EQCBlockChainRocksDB.getInstance().saveEQCBlock(eqcBlock);
 //			Address address = eqcBlock.getTransactions().getAddressList().get(0);
 //			if(!EQCBlockChainH2.getInstance().isAddressExists(address)) {
@@ -1019,7 +1028,7 @@ public final class Util {
 		return foo;
 	}
 
-	public static EQCBlockChain getEQCBlockChain(PERSISTENCE persistence) {
+	public static EQCBlockChain getEQCBlockChain(PERSISTENCE persistence) throws ClassNotFoundException, SQLException {
 		EQCBlockChain eqcBlockChain;
 		switch (persistence) {
 //		case AVRO:
@@ -1033,11 +1042,11 @@ public final class Util {
 		return eqcBlockChain;
 	}
 
-	public static EQCBlockChain getEQCBlockChain() {
+	public static EQCBlockChain getEQCBlockChain() throws ClassNotFoundException, SQLException {
 		return EQCBlockChainH2.getInstance();
 	}
 
-	public static AddressType getAddressType(ID addressSerialNumber) {
+	public static AddressType getAddressType(ID addressSerialNumber) throws Exception {
 		return AddressTool
 				.getAddressType(getEQCBlockChain(PERSISTENCE.H2).getAddress(addressSerialNumber).getReadableAddress());
 	}
@@ -2168,7 +2177,7 @@ public final class Util {
 		return transaction;
 	}
 
-	public static EQCHive gestationSingularityBlock() {
+	public static EQCHive gestationSingularityBlock() throws RocksDBException, Exception {
 		EQCHive eqcBlock = null;
 		saveEQCBlockTailHeight(ID.ZERO);
 		// Create AccountsMerkleTree
@@ -2307,7 +2316,7 @@ public final class Util {
 		}
 	}
 
-	public static byte[] cypherTarget(ID height) {
+	public static byte[] cypherTarget(ID height) throws ClassNotFoundException, SQLException {
 		byte[] target = null;
 		BigInteger oldDifficulty;
 		BigInteger newDifficulty;
@@ -2355,7 +2364,7 @@ public final class Util {
 
 	
 
-	public static PublicKey getPublicKey(ID serialNumber, EQCHive eqcBlock) {
+	public static PublicKey getPublicKey(ID serialNumber, EQCHive eqcBlock) throws ClassNotFoundException, SQLException {
 		PublicKey publicKey = null;
 		publicKey = EQCBlockChainH2.getInstance().getPublicKey(serialNumber);
 		if (publicKey == null) {
@@ -2370,7 +2379,7 @@ public final class Util {
 		return publicKey;
 	}
 
-	public static String getAddress(ID serialNumber, EQCHive eqcBlock) {
+	public static String getAddress(ID serialNumber, EQCHive eqcBlock) throws ClassNotFoundException, SQLException {
 		Address address = null;
 		address = EQCBlockChainH2.getInstance().getAddress(serialNumber);
 		if (address == null) {
@@ -2465,7 +2474,8 @@ public final class Util {
 		}
 	}
 
-	public static long getBalance(String address) {
+	@Deprecated
+	public static long getBalance(String address) throws ClassNotFoundException, SQLException {
 		Address strAddress = new Address();
 		strAddress.setReadableAddress(address);
 		strAddress.setID(EQCBlockChainH2.getInstance().getAddressID(strAddress));
@@ -2571,7 +2581,7 @@ public final class Util {
 		return boolIsNetworkAvailable;
 	}
 	
-	public static byte[] getBlockHeaderHash(Transaction transaction) {
+	public static byte[] getBlockHeaderHash(Transaction transaction) throws ClassNotFoundException, SQLException {
 		return EQCBlockChainH2.getInstance().getEQCHeaderHash(
 				EQCBlockChainH2.getInstance().getTxInHeight(transaction.getTxIn().getAddress()));
 	}
@@ -2585,7 +2595,7 @@ public final class Util {
 		return intToBytes((int) (crc32c.getValue() & 0xFFFFFFFF));
 	}
 	
-	public static EQCBlockChain DB(DB db) {
+	public static EQCBlockChain DB(DB db) throws RocksDBException, ClassNotFoundException, SQLException {
 		EQCBlockChain eqcBlockChain = null;
 		if(db == DB.H2) {
 			eqcBlockChain = EQCBlockChainH2.getInstance();
@@ -2596,7 +2606,7 @@ public final class Util {
 		return eqcBlockChain;
 	}
 	
-	public static EQCBlockChain DB() {
+	public static EQCBlockChain DB() throws RocksDBException, ClassNotFoundException, SQLException {
 		return DB(DB.ROCKSDB);
 	}
 	
@@ -2651,7 +2661,7 @@ public final class Util {
 		"\n}";
 	}
 	
-	public static void saveEQCBlockTailHeight(ID height) {
+	public static void saveEQCBlockTailHeight(ID height) throws RocksDBException, ClassNotFoundException, SQLException {
 		EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(height);
 		EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(height);
 	}

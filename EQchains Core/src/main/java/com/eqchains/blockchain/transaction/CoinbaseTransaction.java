@@ -32,7 +32,11 @@ package com.eqchains.blockchain.transaction;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Vector;
+
+import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteBatch;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.account.Account;
@@ -123,7 +127,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 * AccountsMerkleTree)
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
 		long eqcFoundationCoinBaseValue = 0;
 		long eqzipCoinBaseValue = 0;
 		long minerCoinBaseValue = 0;
@@ -212,7 +216,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 * @see com.eqzip.eqcoin.blockchain.Transaction#prepare(com.eqzip.eqcoin.blockchain.AccountsMerkleTree, com.eqzip.eqcoin.util.ID)
 	 */
 	@Override
-	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) {
+	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
 		// Update TxOut's Address' isNew status if need
 		for (TxOut txOut : txOutList) {
 			if (!accountsMerkleTree.isAccountExists(txOut.getAddress(), true)) {
@@ -241,8 +245,9 @@ public class CoinbaseTransaction extends TransferTransaction {
 		txOutList.get(0).addValue(txFee);
 	}
 	
-	public void update(AccountsMerkleTree accountsMerkleTree) {
+	public void update(AccountsMerkleTree accountsMerkleTree) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
 		Account account = null;
+		WriteBatch writeBatch = new WriteBatch();
 		// Update current Transaction's TxOut Account
 		for (TxOut txOut : txOutList) {
 			if (txOut.isNew()) {
@@ -254,14 +259,15 @@ public class CoinbaseTransaction extends TransferTransaction {
 				asset.setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 				asset.setNonce(ID.ZERO);
 				account.setAsset(asset);
+				accountsMerkleTree.increaseTotalAccountNumbers();
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
 			}
-			account.getAsset(getAssetID()).getBalance().add(new ID(txOut.getValue())); 
+			account.getAsset(getAssetID()).setBalance(account.getAsset(getAssetID()).getBalance().add(new ID(txOut.getValue())));; 
 			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 			// Update Nonce
 			if(accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
-				if(account.getKey().getAddress().getID().compareTo(ID.ONE) > 0) {
+				if(account.getKey().getAddress().getID().compareTo(ID.TWO) > 0) {
 					account.getAsset(getAssetID()).increaseNonce();
 				}
 			}
@@ -270,10 +276,13 @@ public class CoinbaseTransaction extends TransferTransaction {
 					account.getAsset(getAssetID()).increaseNonce();
 				}
 			}
-			if(accountsMerkleTree.saveAccount(account) && txOut.isNew()) {
-				accountsMerkleTree.increaseTotalAccountNumbers();
-			}
+			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(), account.getBytes());
+			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1), account.getKey().getAddress().getAddressAI(),
+					account.getIDEQCBits());
 		}
+		
+		accountsMerkleTree.getFilter().batchUpdate(writeBatch);
+		
 	}
 	
 	/*

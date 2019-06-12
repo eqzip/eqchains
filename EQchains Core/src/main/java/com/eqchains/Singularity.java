@@ -39,6 +39,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -89,18 +90,44 @@ public class Singularity {
 		MinerService.getInstance().start();
 //		Test.testVerifyBlock();
 //		Test.testTransaction();
+//		System.out.println("Begin testKeystore");
+//		try {
+//			Util.init();
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			System.out.println(e.getMessage());
+//		}
 //		Test.testKeystore();
-//		EQCBlockChainRocksDB.getInstance().dumpEQCBlock();
-//		EQCBlockChainRocksDB.getInstance().dumpAccount();
+//		System.out.println("End testKeystore");
+//		try {
+//			EQCBlockChainRocksDB.getInstance().dumpEQCBlock();
+//			EQCBlockChainRocksDB.getInstance().dumpAccount();
+//		} catch (NoSuchFieldException | RocksDBException | IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			Log.Error(e.getMessage());
+//		}
 //		EQCBlockChainRocksDB.getInstance().dumpTable(TABLE.ACCOUNT);
 //		EQCBlockChainRocksDB.getInstance().dumpTable(TABLE.ACCOUNT_AI);
 //		Log.info("Tail Height in H2: " + EQCBlockChainH2.getInstance().getEQCBlockTailHeight());
 //		Log.info("Tail Height in RocksDB: " + EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight());
 //		Log.info(EQCBlockChainRocksDB.getInstance().getTableItemNumbers(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_AI)).toString());
 //		Configuration.getInstance().updateIsInitSingularityBlock(false);
-//		Util.init();
-//		EQCBlockChainH2.getInstance().dropTable();
-//		EQCBlockChainRocksDB.getInstance().dropTable();
+//		try {
+//			Util.init();
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		try {
+//			EQCBlockChainH2.getInstance().dropTable();
+//			EQCBlockChainRocksDB.getInstance().dropTable();
+//		} catch (ClassNotFoundException | SQLException | RocksDBException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			Log.Error(e.getMessage());
+//		}
 //		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
 //		accountsMerkleTree.buildAccountsMerkleTree();
 //		accountsMerkleTree.generateRoot();

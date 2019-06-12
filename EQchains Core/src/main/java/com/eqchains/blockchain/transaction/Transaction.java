@@ -40,9 +40,12 @@ import java.security.NoSuchProviderException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.acl.Owner;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Vector;
+
+import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.PublicKey;
@@ -348,7 +351,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return rate;
 	}
 
-	public boolean verify(AccountsMerkleTree accountsMerkleTree) {
+	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		boolean isValid = false;
 		if (publickey.isValid(accountsMerkleTree)) {
 			isValid = verifySignature(accountsMerkleTree.getEQCHeaderHash(txIn.getAddress().getID()));
@@ -356,7 +359,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return isValid;
 	}
 
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
 		return false;
 	}
 
@@ -471,7 +474,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return true;
 	}
 	
-	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, byte[] signature) throws IllegalStateException {
+	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, byte[] signature) throws IllegalStateException, NoSuchFieldException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		// Fill in TxIn's ReadableAddress
 		if(transactionType != TransactionType.COINBASE) {
 			Account account = accountsMerkleTree.getAccount(txIn.getAddress().getID());
@@ -489,7 +492,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		this.signature = signature;
 	}
 
-	public boolean isNonceCorrect(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isNonceCorrect(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		// Check if Nonce's value is correct
 		if (!nonce.isNextID(accountsMerkleTree.getAccount(txIn.getAddress().getID()).getAsset(getAssetID()).getNonce())) {
 			return false;
@@ -552,7 +555,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 //		return true;
 //	}
 	
-	public void update(AccountsMerkleTree accountsMerkleTree) {
+	public void update(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		// Update current Transaction's relevant Account's AccountsMerkleTree's data
 		// Update current Transaction's TxIn Publickey if need
 		if (publickey.isNew()) {
@@ -586,7 +589,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		txIn = new TxIn(is, addressShape);
 	}
 	
-	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID accountListInitId) {
+	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID accountListInitId) throws Exception {
 		// TODO Auto-generated method stub
 		
 	}

@@ -33,7 +33,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.sql.SQLException;
 import java.util.Arrays;
+
+import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
@@ -225,7 +228,7 @@ public class PublicKey implements EQCTypable {
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		Account account = accountsMerkleTree.getAccount(id);
 		if(!account.isPublickeyExists()) {
 			if(!AddressTool.verifyAddressPublickey(account.getKey().getAddress().getReadableAddress(), publicKey)) {

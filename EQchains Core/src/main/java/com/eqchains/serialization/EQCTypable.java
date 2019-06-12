@@ -32,6 +32,8 @@ package com.eqchains.serialization;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
+import org.rocksdb.RocksDBException;
+
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 
@@ -44,5 +46,5 @@ public interface EQCTypable {
 	public byte[] getBytes();
 	public byte[] getBin();
 	public boolean isSanity();
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree);
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception;
 }

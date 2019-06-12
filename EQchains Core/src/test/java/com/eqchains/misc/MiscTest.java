@@ -34,9 +34,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.AccountsMerkleTree.Filter;
@@ -64,20 +66,25 @@ import com.eqchains.util.Util.AddressTool.AddressType;
 public class MiscTest {
 	
 	   @Test
-	   void saveAccount() {
-		   Account account = new AssetAccount();
-		   Address address = new Address();
-		   address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		   address.setID(ID.ONE);
-		   account.getKey().setAddress(address);
-		   account.getKey().setAddressCreateHeight(ID.ZERO);
-		   account.getAsset(Asset.EQCOIN).setBalance(new ID(Util.MIN_EQC));
-		   account.getAsset(Asset.EQCOIN).setBalanceUpdateHeight(ID.ZERO);
-		   EQCBlockChainRocksDB.getInstance().saveAccount(account);
-		   Account account2 = EQCBlockChainRocksDB.getInstance().getAccount(ID.ONE);
-		   assertEquals(account, account2);
-	   }
-	   
+	void saveAccount() {
+		Account account = new AssetAccount();
+		Address address = new Address();
+		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		address.setID(ID.ONE);
+		account.getKey().setAddress(address);
+		account.getKey().setAddressCreateHeight(ID.ZERO);
+		account.getAsset(Asset.EQCOIN).setBalance(new ID(Util.MIN_EQC));
+		account.getAsset(Asset.EQCOIN).setBalanceUpdateHeight(ID.ZERO);
+		try {
+			EQCBlockChainRocksDB.getInstance().saveAccount(account);
+			Account account2 = EQCBlockChainRocksDB.getInstance().getAccount(ID.ONE);
+			assertEquals(account, account2);
+		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 	   @Test
 	   void ID() {
 		   ID id = ID.ZERO;
@@ -88,38 +95,51 @@ public class MiscTest {
 	   
 	   @Test
 	   void snapshot() {
-		   Account account = EQCBlockChainH2.getInstance().getAccountSnapshot(ID.TWO.getNextID(), ID.ONE);
-		   assertEquals(account.getAsset(Asset.EQCOIN).getBalanceUpdateHeight(), ID.ONE);
+		   Account account;
+		try {
+			account = EQCBlockChainH2.getInstance().getAccountSnapshot(ID.TWO.getNextID(), ID.ONE);
+			 assertEquals(account.getAsset(Asset.EQCOIN).getBalanceUpdateHeight(), ID.ONE);
+		} catch (NoSuchFieldException | IllegalStateException | ClassNotFoundException | SQLException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	   }
 	   
 	   @Test
 	   void verifyAccountsMerkelTreeRoot() {
-		   ID id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
-		   for(int i=0; i<id.intValue(); ++i) {
-		   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-			accountsMerkleTree.buildAccountsMerkleTree();
-			accountsMerkleTree.generateRoot();
-			Log.info(Util.dumpBytes(accountsMerkleTree.getRoot(), 16));
-			EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
-			accountsMerkleTree.close();
-			assertArrayEquals(accountsMerkleTree.getRoot(), eqcBlock.getRoot().getAccountsMerkelTreeRoot());
-		   }
+		   ID id;
+		try {
+			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
+			 for(int i=0; i<id.intValue(); ++i) {
+				   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+					accountsMerkleTree.buildAccountsMerkleTree();
+					accountsMerkleTree.generateRoot();
+					Log.info(Util.dumpBytes(accountsMerkleTree.getRoot(), 16));
+					EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+					accountsMerkleTree.close();
+					assertArrayEquals(accountsMerkleTree.getRoot(), eqcBlock.getRoot().getAccountsMerkelTreeRoot());
+				   }
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	   }
 	   
 	   @Test
 	   void verifyBlock() {
-		   ID id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
-		   for(int i=8; i<id.intValue(); ++i) {
-			   Log.info("i: " + i);
-		   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-		   EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
-			try {
+		   ID id;
+		try {
+			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
+			 for(int i=1; i<id.intValue(); ++i) {
+			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+			   EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
 				assertTrue(eqcBlock.verify(accountsMerkleTree));
 				accountsMerkleTree.close();
-			} catch (NoSuchFieldException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		   }
+				 Log.info("i: " + i + " passed");
+			   }
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 	   }
 }

@@ -32,6 +32,9 @@ package com.eqchains.blockchain.transaction.operation;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
+
+import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.account.Account;
@@ -102,26 +105,25 @@ public class UpdateAddressOperation extends Operation {
 	 * @see com.eqzip.eqcoin.blockchain.OperationTransaction.Operation#execute()
 	 */
 	@Override
-	public boolean execute(Object ...objects) {
+	public boolean execute(Object ...objects) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
 		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[0];
-		ID id = (ID) objects[1];
-		boolean isSucc = true;
-		Account account = accountsMerkleTree.getAccount(id);
+		OperationTransaction operationTransaction = (OperationTransaction) objects[1];
+		Account account = accountsMerkleTree.getAccount(operationTransaction.getTxIn().getAddress().getID());
 		if(account.isPublickeyExists()) {
 			account.getKey().setPublickey(null);
 		}
 		address.setID(account.getID());
 		account.getKey().setAddress(address);
 		account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
-		isSucc = accountsMerkleTree.saveAccount(account);
-		return isSucc;
+		accountsMerkleTree.saveAccount(account);
+		return true;
 	}
 
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.transaction.operation.Operation#isMeetPreconditions()
 	 */
 	@Override
-	public boolean isMeetPreconditions(Object ...objects) {
+	public boolean isMeetPreconditions(Object ...objects) throws Exception {
 		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[0];
 		return !accountsMerkleTree.isAccountExists(address, true);
 	}
