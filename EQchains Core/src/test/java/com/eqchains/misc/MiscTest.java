@@ -40,11 +40,11 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
-import com.eqchains.blockchain.AccountsMerkleTree.Filter;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.keystore.Keystore;

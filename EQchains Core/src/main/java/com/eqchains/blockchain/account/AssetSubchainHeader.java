@@ -33,7 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
@@ -53,12 +53,16 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	private String symbol;
 	private String decimals;
 	private ID maxSupply;
+	private ID maxSupplyUpdateHeight;
 	private boolean ifCanChangeMaxSupply;
 	private ID totalSupply;
+	private ID totalSupplyUpdateHeight;
 	private boolean ifCanChangeTotalSupply;
 	private boolean ifCanBurn;
 	private ID totalAccountNumbers;
+	private ID totalAccountNumbersUpdateHeight;
 	private ID totalTransactionNumbers;
+	private ID totalTransactionNumbersUpdateHeight;
 	// Need do more job to use full regression check the url's format if is valid
 	// length less than 20
 	private String url;

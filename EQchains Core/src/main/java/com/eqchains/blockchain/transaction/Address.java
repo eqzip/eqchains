@@ -36,8 +36,8 @@ import java.util.Arrays;
 
 import javax.print.attribute.standard.RequestingUserName;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.PublicKey;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.serialization.EQCAddressShapeTypable;

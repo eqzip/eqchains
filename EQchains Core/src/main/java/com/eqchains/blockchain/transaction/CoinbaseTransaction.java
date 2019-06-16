@@ -38,11 +38,11 @@ import java.util.Vector;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.CoinAsset;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;

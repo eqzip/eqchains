@@ -94,7 +94,6 @@ import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 import org.bouncycastle.jcajce.provider.symmetric.Threefish;
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
@@ -102,7 +101,6 @@ import com.eqchains.blockchain.Index;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.Root;
 import com.eqchains.blockchain.TransactionsHeader;
-import com.eqchains.blockchain.AccountsMerkleTree.Filter;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
@@ -110,6 +108,8 @@ import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.account.Asset.AssetType;
 import com.eqchains.blockchain.account.SmartContractAccount.LanguageType;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
@@ -176,7 +176,7 @@ public final class Util {
 
 	public final static int TXFEE_RATE = 10;
 	
-	public final static String DEFAULT_TXFEE_RATE = "10";
+	public final static byte DEFAULT_TXFEE_RATE = 10;
 
 	public final static int ZERO = 0;
 
@@ -221,8 +221,11 @@ public final class Util {
 	public static String WINDOWS = "C:";
 	
 	public static String LINUX = "/usr";
-			
-	public static String PATH = LINUX + File.separator + "EQchains";// System.getProperty("user.dir") + File.separator +
+
+	/**
+	 * In Windows due to haven't the permission to access the Program File folder so have to save it to C but in Linux can access the CURRENT_PATH
+	 */
+	public static String PATH = CURRENT_PATH + File.separator + "EQchains";// System.getProperty("user.dir") + File.separator +
 																	// "EQCOIN";
 //	static {
 //		PATH = System.getProperty("user.dir") + "/EQCOIN";
@@ -368,11 +371,14 @@ public final class Util {
 		createDir(DB_PATH);
 		createDir(H2_PATH);
 		createDir(ROCKSDB_PATH);
+		Test.testKeystore(); // Test stub
 //		createDir(BLOCK_PATH);
 		if (!Configuration.getInstance().isInitSingularityBlock()
 				&& Keystore.getInstance().getUserAccounts().size() > 0/* Will Remove when Cold Wallet ready */) {
+			Log.info("0");
 			EQCHive eqcBlock = gestationSingularityBlock();
 //			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
+			Log.info("1");
 			EQCBlockChainRocksDB.getInstance().saveEQCBlock(eqcBlock);
 //			Address address = eqcBlock.getTransactions().getAddressList().get(0);
 //			if(!EQCBlockChainH2.getInstance().isAddressExists(address)) {
@@ -380,22 +386,25 @@ public final class Util {
 //			}
 //			EQCBlockChainH2.getInstance().addAllTransactions(eqcBlock);// .addTransaction(eqcBlock.getTransactions().getTransactionList().get(0),
 																		// SerialNumber.ZERO, 0);
-			EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.ZERO));
-			EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.ZERO));
+//			EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.ZERO));
+			Log.info("2");
+			EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(ID.ZERO);
+			Log.info("3");
 			Configuration.getInstance().updateIsInitSingularityBlock(true);
+			Log.info("4");
 		}
-//		cookie = new Cookie();
-//		cookie.setIp(getIP());
-//		cookie.setVersion(PROTOCOL_VERSION);
-//		if (cookie.getIp().length() == 0) {
-//			Log.Error("During get IP error occur please check your network");
-//		} else {
-//			Log.info(cookie.toString());
-//		}
-//		status = new Status();
-//		status.setCookie(cookie);
-//		status.setCode(STATUS.OK.ordinal());
-//		status.setMessage("");
+		cookie = new Cookie();
+		cookie.setIp(getIP());
+		cookie.setVersion(PROTOCOL_VERSION);
+		if (cookie.getIp().length() == 0) {
+			Log.Error("During get IP error occur please check your network");
+		} else {
+			Log.info(cookie.toString());
+		}
+		status = new Status();
+		status.setCookie(cookie);
+		status.setCode(STATUS.OK.ordinal());
+		status.setMessage("");
 	}
 
 //	private static void init(final OS os) {
@@ -2224,7 +2233,7 @@ public final class Util {
 		account.getAssetSubchainHeader().setTotalAccountNumbers(new ID(3));
 		account.getAssetSubchainHeader().setTotalTransactionNumbers(ID.ONE);
 		account.getAssetSubchainHeader().setUrl("www.eqchains.com");
-		account.getAssetSubchainHeader().setLogo(getSecureRandomBytes());
+		account.getAssetSubchainHeader().setLogo(new byte[64]);
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 
@@ -2316,7 +2325,7 @@ public final class Util {
 		}
 	}
 
-	public static byte[] cypherTarget(ID height) throws ClassNotFoundException, SQLException {
+	public static byte[] cypherTarget(ID height) throws RocksDBException, Exception {
 		byte[] target = null;
 		BigInteger oldDifficulty;
 		BigInteger newDifficulty;
@@ -2327,23 +2336,23 @@ public final class Util {
 		ID serialNumber_begin = new ID(height.subtract(BigInteger.valueOf(10)));
 		if (height.longValue() % 10 != 0) {
 //			Log.info(serialNumber_end.toString());
-			target = EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTarget();
+			target = Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget();//EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTarget();
 //			Log.info(Util.bigIntegerTo128String(Util.targetBytesToBigInteger(target)));
 		} else {
 			Log.info(
 					"Old target: "
 							+ Util.bigIntegerTo512String(Util.targetBytesToBigInteger(
-									EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTarget()))
+									Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget()))
 							+ "\r\naverge time: "
-							+ (EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTimestamp().longValue()
-									- EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_begin).getTimestamp().longValue())
+							+ (Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
+									- Util.DB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())
 									/ 9);
 			oldDifficulty = Util
-					.targetBytesToBigInteger(EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTarget());
+					.targetBytesToBigInteger(Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget());
 			newDifficulty = oldDifficulty
 					.multiply(BigInteger
-							.valueOf((EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTimestamp().longValue()
-									- EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_begin).getTimestamp().longValue())))
+							.valueOf((Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
+									- Util.DB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())))
 					.divide(BigInteger.valueOf(9 * Util.BLOCK_INTERVAL));
 			// Compare if old difficulty divide new difficulty is bigger than MAX_DIFFICULTY_MULTIPLE
 			if(oldDifficulty.divide(newDifficulty).compareTo(BigInteger.valueOf(MAX_DIFFICULTY_MULTIPLE)) > 0) {
@@ -2673,5 +2682,7 @@ public final class Util {
 		}
 		return maxCoinbaseHeight;
 	}
+	
+	
 	
 }

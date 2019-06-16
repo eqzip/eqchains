@@ -35,9 +35,9 @@ import java.io.IOException;
 import java.security.acl.Owner;
 import java.util.Collections;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.account.Account.AccountType;
 import com.eqchains.blockchain.account.SmartContractAccount.LanguageType;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;

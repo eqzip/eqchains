@@ -29,53 +29,12 @@
  */
 package com.eqchains;
 
-import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.MathContext;
-import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.zip.GZIPOutputStream;
-
-import org.apache.avro.io.BinaryData;
-import org.bouncycastle.asn1.dvcs.Data;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.Options;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-
-import com.eqchains.blockchain.AccountsMerkleTree;
-import com.eqchains.blockchain.EQCHive;
-import com.eqchains.blockchain.PublicKey;
-import com.eqchains.blockchain.AccountsMerkleTree.Filter;
-import com.eqchains.blockchain.transaction.Address;
-import com.eqchains.blockchain.transaction.CoinbaseTransaction;
-import com.eqchains.blockchain.transaction.OperationTransaction;
-import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.blockchain.transaction.TransferTransaction;
-import com.eqchains.configuration.Configuration;
-import com.eqchains.keystore.Keystore;
-import com.eqchains.keystore.UserAccount;
-import com.eqchains.keystore.Keystore.ECCTYPE;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
-import com.eqchains.serialization.EQCType;
+import com.eqchains.rpc.avro.SyncblockNetwork;
 import com.eqchains.service.MinerService;
-import com.eqchains.test.Test;
-import com.eqchains.util.Base58;
-import com.eqchains.util.ID;
+import com.eqchains.service.SyncblockNetworkService;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
-import com.eqchains.util.Util.AddressTool.AddressType;
 
 /**
  * @author Xun Wang
@@ -84,19 +43,32 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  */
 public class Singularity {
 	public static void main(String[] args) {
-//		Thread.currentThread().setPriority(10);
+		Thread.currentThread().setPriority(10);
 //		EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.valueOf(0)));
 //		EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.valueOf(0)));
-		MinerService.getInstance().start();
+//		MinerService.getInstance().start();
+//		SyncblockNetworkService.getInstance().start();
 //		Test.testVerifyBlock();
 //		Test.testTransaction();
+//		Test.testKeystore();
 //		System.out.println("Begin testKeystore");
+		try {
+//			Configuration.getInstance().updateIsInitSingularityBlock(false); // Test stub
+			Util.init();
+//			MinerService.getInstance().start();
+			SyncblockNetworkService.getInstance().start();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
 //		try {
-//			Util.init();
-//		} catch (Exception e) {
+//			EQCBlockChainH2.getInstance().dropTable();
+//			EQCBlockChainRocksDB.getInstance().dropTable();
+//		} catch (ClassNotFoundException | SQLException | RocksDBException e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
-//			System.out.println(e.getMessage());
+//			Log.Error(e.getMessage());
 //		}
 //		Test.testKeystore();
 //		System.out.println("End testKeystore");
@@ -119,14 +91,6 @@ public class Singularity {
 //		} catch (Exception e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
-//		}
-//		try {
-//			EQCBlockChainH2.getInstance().dropTable();
-//			EQCBlockChainRocksDB.getInstance().dropTable();
-//		} catch (ClassNotFoundException | SQLException | RocksDBException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			Log.Error(e.getMessage());
 //		}
 //		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
 //		accountsMerkleTree.buildAccountsMerkleTree();

@@ -44,8 +44,9 @@ import javax.print.attribute.Size2DSyntax;
 
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.AccountsMerkleTree.Statistics;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree.Statistics;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -114,7 +115,7 @@ public class EQCHive implements EQCTypable {
 		signatures = new Signatures();
 	}
 
-	public EQCHive(ID currentBlockHeight, byte[] previousBlockHeaderHash) throws ClassNotFoundException, SQLException {
+	public EQCHive(ID currentBlockHeight, byte[] previousBlockHeaderHash) throws RocksDBException, Exception {
 
 		init();
 		// Create EQC block header

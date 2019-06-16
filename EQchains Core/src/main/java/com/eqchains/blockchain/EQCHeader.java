@@ -41,6 +41,7 @@ import javax.print.attribute.standard.RequestingUserName;
 
 import org.rocksdb.RocksDBException;
 
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.serialization.EQCTypable;
@@ -312,7 +313,7 @@ public class EQCHeader implements EQCTypable {
 		return true;
 	}
 
-	public boolean isDifficultyValid(AccountsMerkleTree accountsMerkleTree) throws ClassNotFoundException, SQLException {
+	public boolean isDifficultyValid(AccountsMerkleTree accountsMerkleTree) throws RocksDBException, Exception {
 		if (!Arrays.equals(target, Util.cypherTarget(accountsMerkleTree.getHeight().getNextID()))) {
 			return false;
 		}

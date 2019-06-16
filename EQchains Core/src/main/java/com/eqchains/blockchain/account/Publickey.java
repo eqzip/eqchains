@@ -34,8 +34,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.serialization.EQCHashInheritable;
+import com.eqchains.serialization.EQCHashTypable;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -48,9 +50,10 @@ import com.eqchains.util.Util;
  * @date Dec 14, 2018
  * @email 10509759@qq.com
  */
-public class Publickey implements EQCTypable, EQCInheritable {
+public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	private byte[] publickey;
 	private ID publickeyCreateHeight;
+	private byte[] publickeyCreateHeightHash;
 	
 	public Publickey() {
 		// TODO Auto-generated constructor stub
@@ -224,6 +227,59 @@ public class Publickey implements EQCTypable, EQCInheritable {
 
 	public boolean isNULL() {
 		return publickey == null && publickeyCreateHeight == null;
+	}
+
+	@Override
+	public byte[] getHeaderHashBytes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getBodyHashBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(EQCType.bytesToBIN(publickey));
+			os.write(publickeyCreateHeight.getEQCBits());
+			os.write(publickeyCreateHeightHash);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
+	@Override
+	public byte[] getHashBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(getBodyHashBytes());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
+	@Override
+	public void updateHash(AccountsMerkleTree accountsMerkleTree) throws Exception {
+		publickeyCreateHeightHash = accountsMerkleTree.getEQCHeaderHash(publickeyCreateHeight);
+	}
+
+	/**
+	 * @return the publickeyCreateHeightHash
+	 */
+	public byte[] getPublickeyCreateHeightHash() {
+		return publickeyCreateHeightHash;
+	}
+
+	/**
+	 * @param publickeyCreateHeightHash the publickeyCreateHeightHash to set
+	 */
+	public void setPublickeyCreateHeightHash(byte[] publickeyCreateHeightHash) {
+		this.publickeyCreateHeightHash = publickeyCreateHeightHash;
 	}
 	
 }

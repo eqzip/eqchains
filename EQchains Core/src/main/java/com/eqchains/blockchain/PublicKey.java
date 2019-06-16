@@ -39,6 +39,7 @@ import java.util.Arrays;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;

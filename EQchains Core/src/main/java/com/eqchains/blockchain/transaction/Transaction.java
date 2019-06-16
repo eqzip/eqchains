@@ -47,11 +47,11 @@ import java.util.Vector;
 
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.crypto.EQCPublicKey;
@@ -246,8 +246,21 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public int compareTo(Transaction o) {
 		// TODO Auto-generated method stub
 		int nResult = 0;
-		if ((nResult = this.txIn.getAddress().getReadableAddress().compareTo(o.getTxIn().getAddress().getReadableAddress())) == 0) {
-			nResult = this.nonce.compareTo(o.getNonce());
+		if ((nResult = this.getTransactionType().compareTo(o.getTransactionType())) == 0) {
+			if ((nResult = this.getSubchainID().compareTo(o.getSubchainID())) == 0) {
+				if ((nResult = this.getQosRate().compareTo(o.getQosRate())) == 0) {
+					if ((nResult = this.txIn.getAddress().getID().compareTo(o.getTxIn().getAddress().getID())) == 0) {
+						nResult = this.nonce.compareTo(o.getNonce());
+					}
+				}
+			}
+		}
+		if (nResult != 0) {
+			if (nResult < 0) {
+				nResult = 1;
+			} else {
+				nResult = -1;
+			}
 		}
 		return nResult;
 	}
@@ -256,8 +269,21 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public int compare(Transaction o1, Transaction o2) {
 		// TODO Auto-generated method stub
 		int nResult = 0;
-		if ((nResult = o1.getTxIn().getAddress().getReadableAddress().compareTo(o2.getTxIn().getAddress().getReadableAddress())) == 0) {
-			nResult = o1.getNonce().compareTo(o2.getNonce());
+		if ((nResult = o1.getTransactionType().compareTo(o2.getTransactionType())) == 0) {
+			if ((nResult = o1.getSubchainID().compareTo(o2.getSubchainID())) == 0) {
+				if ((nResult = o1.getQosRate().compareTo(o2.getQosRate())) == 0) {
+					if ((nResult = o1.txIn.getAddress().getID().compareTo(o2.getTxIn().getAddress().getID())) == 0) {
+						nResult = o1.nonce.compareTo(o2.getNonce());
+					}
+				}
+			}
+		}
+		if (nResult != 0) {
+			if (nResult < 0) {
+				nResult = 1;
+			} else {
+				nResult = -1;
+			}
 		}
 		return nResult;
 	}
@@ -341,14 +367,14 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return TXFEE_RATE.get(rate);
 	}
 	
-	public long getQosRate() {
+	public ID getQosRate() {
 		long rate = 1;
 		if (getTxFeeLimit() > getMaxTxFeeLimit()) {
 			rate = TXFEE_RATE.POSTPONEVIP.getRate() + getTxFeeLimit() - getMaxTxFeeLimit();
 		} else {
 			rate = (int) (getTxFeeLimit() / (getMaxBillingSize() * Util.TXFEE_RATE));
 		}
-		return rate;
+		return new ID(rate);
 	}
 
 	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
@@ -436,9 +462,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			eqPublicKey.setECPoint(publickey.getPublicKey());
 //			Log.info(Util.dumpBytesBigEndianBinary(eqPublicKey.getEncoded()));
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			os.write(txIn.getAddress().getIDEQCBits());
 			os.write(TXIN_HEADER_HASH);
-			os.write(publickey.getPublicKey());
 			os.write(getBytes(AddressShape.READABLE));
 			signature.update(Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.HUNDREDPULS, true, false));
 			isTransactionValid = signature.verify(this.signature);
@@ -453,9 +477,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public byte[] sign(Signature ecdsa, byte[] TXIN_HEADER_HASH) {
 		try {
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			os.write(txIn.getAddress().getIDEQCBits());
 			os.write(TXIN_HEADER_HASH);
-			os.write(publickey.getPublicKey());
 			os.write(getBytes(AddressShape.READABLE));
 			ecdsa.update(Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.HUNDREDPULS, true, false));
 			signature = ecdsa.sign();

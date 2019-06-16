@@ -64,11 +64,11 @@ import java.sql.SQLException;
 
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.TransactionsHeader;
-import com.eqchains.blockchain.AccountsMerkleTree.Filter;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.TxOut;
@@ -179,7 +179,7 @@ public final class MinerService extends Thread {
 				EQCHive newEQCBlock;
 				try {
 					newEQCBlock = new EQCHive(newBlockHeight, blockTail.getEqcHeader().getHash());
-				} catch (ClassNotFoundException | SQLException e1) {
+				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 					Log.Error(e1.getMessage());

@@ -33,6 +33,12 @@
           {"name": "height", "type": "long"}
       ]
      },
+     {"name": "Europa", "type": "record",
+      "fields": [
+          {"name": "height",   "type": "Height"},
+          {"name": "nonce", "type": "long"}
+      ]
+     },
      {"name": "Block", "type": "record",
       "fields": [
           {"name": "cookie",   "type": "Cookie"},
@@ -56,7 +62,7 @@
      },
      "getBlockTail": {
          "request": [{"name": "cookie", "type": "Cookie"}],
-         "response": "Height"
+         "response": "Europa"
    	  },
    	 "getBlock": {
          "request": [{"name": "height", "type": "Height"}],

@@ -33,6 +33,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.acl.Owner;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,7 +43,9 @@ import java.util.Vector;
 
 import javax.print.attribute.standard.RequestingUserName;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
+import org.rocksdb.RocksDBException;
+
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -49,6 +53,8 @@ import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.serialization.EQCHashInheritable;
+import com.eqchains.serialization.EQCHashTypable;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -64,19 +70,24 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @date Nov 5, 2018
  * @email 10509759@qq.com
  */
-public abstract class Account implements EQCTypable, EQCInheritable {
+public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	/**
 	 * Header field include AccountType
 	 */
 	protected AccountType accountType;
+	protected ID createHeight;
+	protected byte[] createHeightHash;
 	protected ID version;
+	protected ID versionUpdateHeight;
+	protected byte[] versionUpdateHeightHash;
 	/**
 	 * Body field include Version, Key, AssetList
 	 */
 	protected Key key;
 	protected Vector<Asset> assetList;
 	protected ID assetListSize;
-//	private ID miscNonce; // Reversed when some account involved in MiscSmartContractTransaction just update version to 1 and add this filed to record the relevant nonce.
+	protected ID assetUpdateHeight;
+	protected byte[] assetUpdateHeightHash;
 //	private String email; // KYC
 	public final static byte MAX_VERSION = 0;
 	
@@ -259,7 +270,9 @@ public abstract class Account implements EQCTypable, EQCInheritable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(accountType.getEQCBits());
+			os.write(createHeight.getEQCBits());
 			os.write(version.getEQCBits());
+			os.write(versionUpdateHeight.getEQCBits());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -273,6 +286,7 @@ public abstract class Account implements EQCTypable, EQCInheritable {
 			os.write(key.getBytes());
 			Collections.sort(assetList);
 			os.write(getAssetArray());
+			os.write(assetUpdateHeight.getEQCBits());
 //			// In MVP Phase email always be null so here just append EQCType.NULL
 //			os.write(EQCType.NULL);
 		} catch (IOException e) {
@@ -298,7 +312,7 @@ public abstract class Account implements EQCTypable, EQCInheritable {
 //	}
 	
 	public byte[] getHash() {
-		return Util.EQCCHA_MULTIPLE_DUAL(getBytes(), Util.HUNDREDPULS, true, false);
+		return Util.EQCCHA_MULTIPLE_DUAL(getHashBytes(), Util.HUNDREDPULS, true, false);
 	}
 	
 	public boolean isPublickeyExists() {
@@ -518,6 +532,120 @@ public abstract class Account implements EQCTypable, EQCInheritable {
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	public void updateHash(AccountsMerkleTree accountsMerkleTree) throws Exception {
+		createHeightHash = accountsMerkleTree.getEQCHeaderHash(createHeight);
+		versionUpdateHeightHash = accountsMerkleTree.getEQCHeaderHash(versionUpdateHeight);
+		key.updateHash(accountsMerkleTree);
+		assetUpdateHeightHash = accountsMerkleTree.getEQCHeaderHash(assetUpdateHeight);
+	}
+	
+	@Override
+	public byte[] getHashBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(getHeaderHashBytes());
+			os.write(getBodyHashBytes());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
+	@Override
+	public byte[] getHeaderHashBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(accountType.getEQCBits());
+			os.write(createHeight.getEQCBits());
+			os.write(createHeightHash);
+			os.write(version.getEQCBits());
+			os.write(versionUpdateHeight.getEQCBits());
+			os.write(versionUpdateHeightHash);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
+	@Override
+	public byte[] getBodyHashBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(key.getHashBytes());
+			Collections.sort(assetList);
+			os.write(getAssetArray());
+			os.write(assetUpdateHeight.getEQCBits());
+			os.write(assetUpdateHeightHash);
+//			// In MVP Phase email always be null so here just append EQCType.NULL
+//			os.write(EQCType.NULL);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
+	/**
+	 * @return the createHeight
+	 */
+	public ID getCreateHeight() {
+		return createHeight;
+	}
+
+	/**
+	 * @param createHeight the createHeight to set
+	 */
+	public void setCreateHeight(ID createHeight) {
+		this.createHeight = createHeight;
+	}
+
+	/**
+	 * @return the versionUpdateHeight
+	 */
+	public ID getVersionUpdateHeight() {
+		return versionUpdateHeight;
+	}
+
+	/**
+	 * @param versionUpdateHeight the versionUpdateHeight to set
+	 */
+	public void setVersionUpdateHeight(ID versionUpdateHeight) {
+		this.versionUpdateHeight = versionUpdateHeight;
+	}
+
+	/**
+	 * @return the createHeightHash
+	 */
+	public byte[] getCreateHeightHash() {
+		return createHeightHash;
+	}
+
+	/**
+	 * @param createHeightHash the createHeightHash to set
+	 */
+	public void setCreateHeightHash(byte[] createHeightHash) {
+		this.createHeightHash = createHeightHash;
+	}
+
+	/**
+	 * @return the versionUpdateHeightHash
+	 */
+	public byte[] getVersionUpdateHeightHash() {
+		return versionUpdateHeightHash;
+	}
+
+	/**
+	 * @param versionUpdateHeightHash the versionUpdateHeightHash to set
+	 */
+	public void setVersionUpdateHeightHash(byte[] versionUpdateHeightHash) {
+		this.versionUpdateHeightHash = versionUpdateHeightHash;
 	}
 	
 }

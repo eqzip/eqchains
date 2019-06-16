@@ -33,9 +33,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.account.Account.AccountType;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address;
+import com.eqchains.serialization.EQCHashInheritable;
+import com.eqchains.serialization.EQCHashTypable;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -47,10 +49,11 @@ import com.eqchains.util.Log;
  * @date Dec 14, 2018
  * @email 10509759@qq.com
  */
-public class Key implements EQCTypable, EQCInheritable  {
+public class Key implements EQCHashTypable, EQCHashInheritable  {
 
 	private Address address;
 	private ID addressCreateHeight;
+	private byte[] addressCreateHeightHash;
 	private Publickey publickey;
 	
 	public Key() {
@@ -204,6 +207,44 @@ public class Key implements EQCTypable, EQCInheritable  {
 		return os.toByteArray();
 	}
 
+	@Override
+	public byte[] getHeaderHashBytes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getBodyHashBytes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getHashBytes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void updateHash(AccountsMerkleTree accountsMerkleTree) throws Exception {
+		addressCreateHeightHash = accountsMerkleTree.getEQCHeaderHash(addressCreateHeight);
+		publickey.updateHash(accountsMerkleTree);
+	}
+
+	/**
+	 * @return the addressCreateHeightHash
+	 */
+	public byte[] getAddressCreateHeightHash() {
+		return addressCreateHeightHash;
+	}
+
+	/**
+	 * @param addressCreateHeightHash the addressCreateHeightHash to set
+	 */
+	public void setAddressCreateHeightHash(byte[] addressCreateHeightHash) {
+		this.addressCreateHeightHash = addressCreateHeightHash;
+	}
+
 //	/* (non-Javadoc)
 //	 * @see java.lang.Object#hashCode()
 //	 */
@@ -238,5 +279,4 @@ public class Key implements EQCTypable, EQCInheritable  {
 //		return true;
 //	}
 	
-
 }

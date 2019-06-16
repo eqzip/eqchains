@@ -31,6 +31,7 @@ package com.eqchains.service;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.NettyServer;
@@ -41,11 +42,13 @@ import org.apache.avro.util.Utf8;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.rpc.avro.Block;
 import com.eqchains.rpc.avro.Cookie;
+import com.eqchains.rpc.avro.Europa;
 import com.eqchains.rpc.avro.FullNodeList;
 import com.eqchains.rpc.avro.Height;
 import com.eqchains.rpc.avro.MinerList;
 import com.eqchains.rpc.avro.Status;
 import com.eqchains.rpc.avro.SyncblockNetwork;
+import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
@@ -78,15 +81,36 @@ public class SyncblockNetworkService extends Thread {
 		}
 
 		@Override
-		public Height getBlockTail(Cookie cookie) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
+		public Europa getBlockTail(Cookie cookie) throws AvroRemoteException {
+			Europa europa = new Europa();
+			Height height = new Height();
+			height.setCookie(Util.getCookie());
+			try {
+				height.setHeight(Util.DB().getEQCBlockTailHeight().longValue());
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.Error(e.getMessage());
+			}
+			europa.setHeight(height);
+			europa.setNonce(0l);
+			return europa;
 		}
 
 		@Override
 		public Block getBlock(Height height) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
+			Block block = new Block();
+			ByteBuffer byteBuffer = null;
+			try {
+				byteBuffer = ByteBuffer.wrap(Util.DB().getEQCBlock(new ID(height.getHeight()), false).getBytes());
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.Error(e.getMessage());
+			}
+			block.setBlock(byteBuffer);
+			block.setCookie(Util.getCookie());
+			return block;
 		}
 
 	}

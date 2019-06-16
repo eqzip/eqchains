@@ -43,7 +43,6 @@ import com.eqchains.rpc.avro.Cookie;
 import com.eqchains.rpc.avro.MinerList;
 import com.eqchains.rpc.avro.Status;
 import com.eqchains.rpc.avro.SyncblockNetwork;
-import com.eqchains.rpc.avro.Transaction;
 import com.eqchains.rpc.avro.TransactionNetwork;
 import com.eqchains.rpc.avro.TransactionRPC;
 import com.eqchains.util.Log;

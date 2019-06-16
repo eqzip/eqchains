@@ -47,6 +47,7 @@ import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.account.Publickey;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;

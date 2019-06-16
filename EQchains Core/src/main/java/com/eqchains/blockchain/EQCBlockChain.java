@@ -127,13 +127,17 @@ public interface EQCBlockChain {
 	
 //	public Vector<Transaction> getTransactionList(Address address, SerialNumber height);
 	
-	public boolean addTransactionInPool(Transaction transaction) throws SQLException;
+	public boolean saveTransactionInPool(Transaction transaction) throws SQLException;
 	
 	public boolean deleteTransactionInPool(Transaction transaction) throws SQLException;
 	
 	public boolean deleteTransactionsInPool(EQCHive eqcBlock) throws SQLException;
 	
 	public boolean isTransactionExistsInPool(Transaction transaction) throws SQLException;
+	
+	public ID getTransactionMaxNonce(Transaction transaction) throws SQLException;
+	
+	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException;
 	
 	// Transaction relevant interface for H2, avro. Save all the Transaction record in the EQC block chain.
 //	public Vector<Transaction> getTransactionList(Address address);

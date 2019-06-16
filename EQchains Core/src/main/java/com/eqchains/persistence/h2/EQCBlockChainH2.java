@@ -148,7 +148,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
 					+ "height BIGINT,"
-					+ "trans_id INT,"
+					+ "trans_id BIGINT,"
 					+ "io BOOLEAN,"
 					+ "address_id BIGINT,"
 					+ "value BIGINT"
@@ -166,7 +166,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			statement.execute("CREATE TABLE IF NOT EXISTS SIGNATURE_HASH("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
 					+ "height BIGINT,"
-					+ "trans_id INT,"
+					+ "trans_id BIGINT,"
 					+ "txin_id BIGINT,"
 					+ "signature BINARY(16)"
 					+ ")");
@@ -209,6 +209,13 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					+ "account BINARY,"
 				/*	+ "account_hash BIGINT(64),"*/
 					+ "snapshot_height BIGINT"
+					+ ")");
+			
+			// Create Transaction max continues Nonce table
+			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION_MAX_NONCE("
+					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
+					+ "id BIGINT,"
+					+ "max_nonce BIGINT"
 					+ ")");
 			
 			if(result) {
@@ -1112,7 +1119,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @throws SQLException 
 	 */
 	@Override
-	public synchronized boolean addTransactionInPool(Transaction transaction) throws SQLException {
+	public synchronized boolean saveTransactionInPool(Transaction transaction) throws SQLException {
 		int result = 0;
 //			result = statement.executeUpdate("INSERT INTO TRANSACTION_POOL (txin_address, txin_value, tx_fee, rawdata, tx_size, qos, receieved_timestamp) VALUES('" 
 //					+ transaction.getTxIn().getAddress().getAddress() + "','"
@@ -1129,7 +1136,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			preparedStatement.setBytes(4, transaction.getRPCBytes());
 			preparedStatement.setBytes(5, transaction.getSignature());
 			preparedStatement.setInt(6, transaction.getMaxBillingSize());
-			preparedStatement.setLong(7, transaction.getQosRate());
+			preparedStatement.setLong(7, transaction.getQosRate().longValue());
 			preparedStatement.setLong(8, System.currentTimeMillis());
 			preparedStatement.setBoolean(9, false);
 			result =preparedStatement.executeUpdate();
@@ -1510,6 +1517,28 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		// TODO Auto-generated method stub
 		super.finalize();
 		close();
+	}
+
+	@Override
+	public ID getTransactionMaxNonce(Transaction transaction) throws SQLException {
+		ID nonce = null;
+			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_MAX_NONCE WHERE id=?");
+			preparedStatement.setLong(1, transaction.getTxIn().getAddress().getID().longValue());
+			ResultSet resultSet = preparedStatement.executeQuery();
+			if (resultSet.next()) {
+				nonce = new ID(resultSet.getLong("max_nonce"));
+			}
+		return nonce;
+	}
+
+	@Override
+	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException {
+		int result = 0;
+			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_MAX_NONCE (id, max_nonce) VALUES (?, ?)");
+			preparedStatement.setLong(1, transaction.getTxIn().getAddress().getID().longValue());
+			preparedStatement.setLong(2, transaction.getNonce().longValue());
+			result = preparedStatement.executeUpdate();
+		return result == ONE_ROW;
 	}
 
 }

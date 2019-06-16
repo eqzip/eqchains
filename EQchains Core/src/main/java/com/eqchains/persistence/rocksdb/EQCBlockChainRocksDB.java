@@ -442,7 +442,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean addTransactionInPool(Transaction transaction) {
+	public boolean saveTransactionInPool(Transaction transaction) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -616,6 +616,18 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			rocksIterator.next();
 		}
 		return id;
+	}
+
+	@Override
+	public ID getTransactionMaxNonce(Transaction transaction) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
 	}
 	
 }

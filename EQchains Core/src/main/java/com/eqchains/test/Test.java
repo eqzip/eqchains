@@ -31,7 +31,6 @@ package com.eqchains.test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -55,7 +54,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Vector;
 
-import org.mortbay.io.ByteArrayEndPoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -66,24 +64,23 @@ import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Transactions;
-import com.eqchains.blockchain.AccountsMerkleTree.Filter;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.account.Publickey;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.blockchain.transaction.operation.UpdateAddressOperation;
@@ -899,7 +896,7 @@ public class Test {
 				Log.info("Passed");
 			}
 			Log.info(transaction.toString());
-			EQCBlockChainH2.getInstance().addTransactionInPool(transaction);
+			EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
@@ -1604,7 +1601,7 @@ public class Test {
 			}
 			transaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB
 					.getInstance().getAccount(userAccount.getAddressAI()).getKey().getAddressCreateHeight()));
-			EQCBlockChainH2.getInstance().addTransactionInPool(transaction);
+			EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
 					new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
@@ -1658,7 +1655,7 @@ public class Test {
 			Log.info("getQos: " + operationTransaction.getQos());
 			operationTransaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB
 					.getInstance().getAccount(txIn.getAddress().getAddressAI()).getKey().getAddressCreateHeight()));
-			EQCBlockChainH2.getInstance().addTransactionInPool(operationTransaction);
+			EQCBlockChainH2.getInstance().saveTransactionInPool(operationTransaction);
 		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException | ClassNotFoundException | SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

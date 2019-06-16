@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -48,7 +49,7 @@ import com.eqchains.util.Util;
  */
 public class Root implements EQCTypable {
 	private ID version;
-	private String txFeeRate;
+	private byte txFeeRate;
 	/**
 	 * Save the root of Accounts Merkel Tree.
 	 */
@@ -70,7 +71,7 @@ public class Root implements EQCTypable {
 		version = new ID(EQCType.parseEQCBits(is));
 
 		// Parse TxFeeRate
-		txFeeRate = EQCType.bytesToASCIISting(EQCType.parseBIN(is));
+		txFeeRate = EQCType.parseEQCBits(is)[0];
 
 		// Parse Accounts hash
 		accountsMerkelTreeRoot = EQCType.parseBIN(is);
@@ -88,7 +89,7 @@ public class Root implements EQCTypable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(version.getEQCBits());
-			os.write(EQCType.stringToBIN(txFeeRate));
+			os.write(EQCType.intToEQCBits(txFeeRate&0xFF));
 			os.write(EQCType.bytesToBIN(accountsMerkelTreeRoot));
 			os.write(EQCType.bytesToBIN(transactionsMerkelTreeRoot));
 		} catch (IOException e) {
@@ -165,12 +166,18 @@ public class Root implements EQCTypable {
 
 	@Override
 	public boolean isSanity() {
-		if (version == null || txFeeRate == null || accountsMerkelTreeRoot == null || transactionsMerkelTreeRoot == null) {
+		if (version == null || accountsMerkelTreeRoot == null || transactionsMerkelTreeRoot == null) {
 			return false;
 		}
 //		if (totalSupply.compareTo(Util.MIN_EQC) < 0 || totalSupply.compareTo(Util.MAX_EQC) > 0) {
 //			return false;
 //		}
+//		if(!(txFeeRate > 0 && txFeeRate <= 127)) {
+//			return false;
+//		}
+		if(!(txFeeRate > 0 && txFeeRate <= 10)) {
+			return false;
+		}
 		if (accountsMerkelTreeRoot.length != Util.HASH_LEN || transactionsMerkelTreeRoot.length != Util.HASH_LEN) {
 			return false;
 		}
@@ -186,14 +193,14 @@ public class Root implements EQCTypable {
 	/**
 	 * @return the txFeeRate
 	 */
-	public String getTxFeeRate() {
+	public byte getTxFeeRate() {
 		return txFeeRate;
 	}
 
 	/**
 	 * @param txFeeRate the txFeeRate to set
 	 */
-	public void setTxFeeRate(String txFeeRate) {
+	public void setTxFeeRate(byte txFeeRate) {
 		this.txFeeRate = txFeeRate;
 	}
 	

@@ -31,7 +31,7 @@ package com.eqchains.blockchain.account;
 
 import java.io.IOException;
 
-import com.eqchains.blockchain.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 
 /**
  * @author Xun Wang
@@ -46,12 +46,6 @@ public class AssetAccount extends Account {
 
 	public AssetAccount(byte[] bytes) throws NoSuchFieldException, IOException {
 		super(bytes);
-	}
-
-	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 }

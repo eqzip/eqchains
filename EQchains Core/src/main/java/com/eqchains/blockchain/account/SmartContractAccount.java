@@ -57,6 +57,11 @@ public abstract class SmartContractAccount extends Account {
 	 */
 	private LanguageType languageType;
 	private ID leasePeriod;
+	private ID leasePeriodUpdateHeight;
+	private ID totalStateSize;
+	private ID totalStateSizeUpdateHeight;
+	private State state;
+	private ID stateUpdateHeight;
 	public final static byte MAX_VERSION = 0;
 	
 	public enum LanguageType {
@@ -78,6 +83,37 @@ public abstract class SmartContractAccount extends Account {
 		}
 		public boolean isSanity() {
 			if((this.ordinal() < INTELLIGENT.ordinal()) || (this.ordinal() > INVALID.ordinal())) {
+				return false;
+			}
+			return true;
+		}
+		public byte[] getEQCBits() {
+			return EQCType.intToEQCBits(this.ordinal());
+		}
+	}
+	
+	public enum State {
+		ACTIVE, OVERDUE, INACTIVE, INVALID;
+		public static State get(int ordinal) {
+			State state = null;
+			switch (ordinal) {
+			case 0:
+				state = State.ACTIVE;
+				break;
+			case 1:
+				state = State.OVERDUE;
+				break;
+			case 2:
+				state = State.INACTIVE;
+				break;
+			default:
+				state = State.INVALID;
+				break;
+			}
+			return state;
+		}
+		public boolean isSanity() {
+			if((this.ordinal() < ACTIVE.ordinal()) || (this.ordinal() > INVALID.ordinal())) {
 				return false;
 			}
 			return true;

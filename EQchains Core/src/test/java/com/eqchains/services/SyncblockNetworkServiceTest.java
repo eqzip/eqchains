@@ -27,24 +27,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.serialization;
+package com.eqchains.services;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 
-import org.rocksdb.RocksDBException;
+import org.apache.avro.ipc.NettyTransceiver;
+import org.apache.avro.ipc.specific.SpecificRequestor;
+import org.junit.jupiter.api.Test;
 
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.rpc.avro.SyncblockNetwork;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Oct 4, 2018
+ * @date Jun 13, 2019
  * @email 10509759@qq.com
  */
-public interface EQCTypable {
-	public byte[] getBytes();
-	public byte[] getBin();
-	public boolean isSanity();
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception;
+public class SyncblockNetworkServiceTest {
+
+	@Test
+	void ping() {
+		long time = System.currentTimeMillis();
+    	NettyTransceiver client = null;
+    	try {
+    		Util.init();
+    		System.out.println("Begin link remote: " + time);
+    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName("129.28.138.37"), 7997), 3000l);
+    		System.out.println("End link remote: " + (System.currentTimeMillis() - time));
+    		 // client code - attach to the server and send a message
+    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+            System.out.println("Client built, got proxy");
+//            Cookie cookie = new Cookie();
+//            cookie.setIp(Util.getCookie().getIp().toString());
+//            cookie.setVersion("0.01");
+            System.out.println("Calling proxy.send with message:  " + Util.getCookie());
+            System.out.println("Result: " + proxy.ping(Util.getCookie()));
+
+//            // cleanup
+//            client.close();
+    	}
+    	catch (Exception e) {
+			// TODO: handle exception
+    		System.out.println("Exception occur during link remote: " + (System.currentTimeMillis() - time));
+    		System.out.println(e.getMessage());
+		}
+    	finally {
+			if(client != null) {
+				client.close();
+			}
+		}
+	}
 }

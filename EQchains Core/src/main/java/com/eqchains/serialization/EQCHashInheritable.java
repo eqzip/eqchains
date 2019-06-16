@@ -29,22 +29,15 @@
  */
 package com.eqchains.serialization;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-
-import org.rocksdb.RocksDBException;
-
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 
 /**
  * @author Xun Wang
- * @date Oct 4, 2018
+ * @date Jun 15, 2019
  * @email 10509759@qq.com
  */
-public interface EQCTypable {
-	public byte[] getBytes();
-	public byte[] getBin();
-	public boolean isSanity();
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception;
+public interface EQCHashInheritable extends EQCInheritable {
+	public byte[] getHeaderHashBytes();
+	public byte[] getBodyHashBytes();
+	public void updateHash(AccountsMerkleTree accountsMerkleTree) throws Exception;
 }
