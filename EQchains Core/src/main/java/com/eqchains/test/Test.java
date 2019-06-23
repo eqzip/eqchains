@@ -34,6 +34,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -54,6 +56,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.avro.ipc.NettyTransceiver;
+import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -69,13 +73,13 @@ import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Transactions;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.account.Publickey;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TransferTransaction;
@@ -92,12 +96,16 @@ import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
+import com.eqchains.rpc.avro.Cookie;
+import com.eqchains.rpc.avro.Status;
+import com.eqchains.rpc.avro.SyncblockNetwork;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.Base58;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 import com.eqchains.util.Util.AddressTool;
+import com.eqchains.util.Util.STATUS;
 import com.eqchains.util.Util.AddressTool.AddressType;
 
 /**
@@ -109,30 +117,30 @@ public class Test {
 	public static void testSignTransaction() {
 		TransferTransaction transaction = new TransferTransaction();
 		TxIn txIn = new TxIn();
-		Address address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		address.setID(new ID(BigInteger.ZERO));
-		txIn.setAddress(address);
+		Passport passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		passport.setID(new ID(BigInteger.ZERO));
+		txIn.setPassport(passport);
 		txIn.setValue(25 * Util.ABC);
 		transaction.setTxIn(txIn);
-		address = new Address();
-		address.setReadableAddress("abc");
-		address.setID(new ID(BigInteger.TWO));
+		passport = new Passport();
+		passport.setReadableAddress("abc");
+		passport.setID(new ID(BigInteger.TWO));
 		TxOut txOut = new TxOut();
-		txOut.setAddress(address);
+		txOut.setPassport(passport);
 		txOut.setValue(24 * Util.ABC);
 		transaction.addTxOut(txOut);
 		transaction.setNonce(ID.ONE);
 
 		byte[] privateKey = Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(0).getPrivateKey(), "abc");
 		byte[] publickey = Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(0).getPublicKey(), "abc");
-		byte[] sign = Util.signTransaction(transaction.getTxIn().getAddress().getType(), privateKey, transaction,
+		byte[] sign = Util.signTransaction(transaction.getTxIn().getPassport().getAddressType(), privateKey, transaction,
 				new byte[4]);
 		transaction.setSignature(sign);
 		com.eqchains.blockchain.PublicKey publicKey2 = new com.eqchains.blockchain.PublicKey();
 		publicKey2.setPublicKey(publickey);
 		transaction.setPublickey(publicKey2);
-		boolean result = Util.verifySignature(transaction.getTxIn().getAddress().getType(), transaction, new byte[4]);
+		boolean result = Util.verifySignature(transaction.getTxIn().getPassport().getAddressType(), transaction, new byte[4]);
 		if (result) {
 			Log.info("verify passed");
 		} else {
@@ -284,7 +292,7 @@ public class Test {
 			Log.info(privKey.toString());
 			Log.info(pubKey.toString());
 			Signature ecdsa;
-			ecdsa = Signature.getInstance("SHA1withECDSA", "SunEC");
+			ecdsa = Signature.getInstance("NONEwithECDSA", "SunEC");
 			ECPrivateKey ecPrivateKey = (ECPrivateKey) privKey;
 			ecdsa.initSign(Util.getPrivateKey(ecPrivateKey.getS().toByteArray(), AddressType.T1));// privKey);
 			String text = "In teaching others we teach ourselves";
@@ -296,7 +304,7 @@ public class Test {
 			System.out.println("Signature: 0x" + (new BigInteger(1, baSignature).toString(16)).toUpperCase()
 					+ "\n Len: " + baSignature.length);
 			Signature signature;
-			signature = Signature.getInstance("SHA1withECDSA", "SunEC");
+			signature = Signature.getInstance("NONEwithECDSA", "SunEC");
 //			pubKey = new sun.security.ec.ECPublicKeyImpl(baSignature);
 			EQCPublicKey eqPublicKey = new EQCPublicKey(type);
 			// Create EQPublicKey according to java pubkey
@@ -365,7 +373,7 @@ public class Test {
 	public static void testKeystore() {
 		UserAccount account;
 		Log.info("testKeystore");
-		for (int i = 0; i < 10; ++i) {
+		for (int i = 0; i < 3; ++i) {
 			Log.info("i: " + i);
 			account = Keystore.getInstance().createUserAccount("nju2006", "abc", ECCTYPE.P521);
 //			if(account.getAddress().length() > 51 || account.getAddress().length() < 49) {
@@ -376,10 +384,10 @@ public class Test {
 	}
 
 	public static void testH2Account() {
-		Address address;
+		Passport passport;
 		try {
-			address = new Address(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
-			EQCBlockChainH2.getInstance().isAddressExists(address);
+			passport = new Passport(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
+			EQCBlockChainH2.getInstance().isAddressExists(passport);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -419,11 +427,11 @@ public class Test {
 	}
 
 	public static void testBase58() {
-		byte[] address = new byte[18];
+		byte[] passport = new byte[18];
 		for (int i = 0; i < 1; ++i) {
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			os.write(0);
-			ByteArrayInputStream is = new ByteArrayInputStream(address);
+			ByteArrayInputStream is = new ByteArrayInputStream(passport);
 			Log.info("os0:\n" + Util.dumpBytesBigEndianHex(os.toByteArray()));
 			StringBuilder sb = new StringBuilder();
 //    	sb.append("00");
@@ -809,17 +817,17 @@ public class Test {
 
 	public static void testToString() {
 		TxIn txIn = new TxIn();
-		Address address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		address.setID(new ID(BigInteger.ZERO));
-		txIn.setAddress(address);
+		Passport passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		passport.setID(new ID(BigInteger.ZERO));
+		txIn.setPassport(passport);
 		txIn.setValue(25 * Util.ABC);
 		Log.info(txIn.toString());
-		Log.info(address.toString());
+		Log.info(passport.toString());
 		// Create Transaction
 		TransferTransaction transaction = new TransferTransaction();
 		TxOut txOut = new TxOut();
-		txOut.setAddress(address);
+		txOut.setPassport(passport);
 		txOut.setValue(25 * Util.ABC);
 		transaction.setTxIn(txIn);
 		transaction.addTxOut(txOut);
@@ -846,19 +854,19 @@ public class Test {
 			TransferTransaction transaction;
 			TxIn txIn;
 			TxOut txOut;
-			Address address;
+			Passport passport;
 			transaction = new TransferTransaction();
 			txIn = new TxIn();
-			address = new Address();
-			address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+			passport = new Passport();
+			passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 //		address.setSerialNumber(serialNumber);
-			txIn.setAddress(address);
+			txIn.setPassport(passport);
 
 			txOut = new TxOut();
-			address = new Address();
-			address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
+			passport = new Passport();
+			passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
 //		address.setSerialNumber((serialNumber = serialNumber.getNextSerialNumber()));
-			txOut.setAddress(address);
+			txOut.setPassport(passport);
 			txOut.setValue(24 * Util.ABC);
 			transaction.setTxIn(txIn);
 			transaction.addTxOut(txOut);
@@ -888,11 +896,11 @@ public class Test {
 //		Transaction transaction1 = new Transaction(transaction.getBytes(AddressShape.ADDRESS), AddressShape.ADDRESS);
 //		Log.info(transaction1.toString());
 
-			byte[] sign = Util.signTransaction(transaction.getTxIn().getAddress().getType(), privateKey, transaction,
+			byte[] sign = Util.signTransaction(transaction.getTxIn().getPassport().getAddressType(), privateKey, transaction,
 					new byte[4]);
 			transaction.setSignature(sign);
 
-			if (Util.verifySignature(transaction.getTxIn().getAddress().getType(), transaction, new byte[4])) {
+			if (Util.verifySignature(transaction.getTxIn().getPassport().getAddressType(), transaction, new byte[4])) {
 				Log.info("Passed");
 			}
 			Log.info(transaction.toString());
@@ -921,22 +929,22 @@ public class Test {
 		TransferTransaction transaction;
 		TxIn txIn;
 		TxOut txOut;
-		Address address;
+		Passport passport;
 		ID serialNumber = new ID(BigInteger.ZERO);
 		transactions = new Transactions();
 
 		transaction = new TransferTransaction();
 		txIn = new TxIn();
-		address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		address.setID(serialNumber);
-		txIn.setAddress(address);
+		passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		passport.setID(serialNumber);
+		txIn.setPassport(passport);
 		txIn.setValue(25 * Util.ABC);
 		txOut = new TxOut();
-		address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
-		address.setID((serialNumber = serialNumber.getNextID()));
-		txOut.setAddress(address);
+		passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
+		passport.setID((serialNumber = serialNumber.getNextID()));
+		txOut.setPassport(passport);
 		txOut.setValue(24 * Util.ABC);
 		transaction.setTxIn(txIn);
 		transaction.addTxOut(txOut);
@@ -944,38 +952,38 @@ public class Test {
 
 		transaction = new TransferTransaction();
 		txIn = new TxIn();
-		address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
-		address.setID((serialNumber = serialNumber.getNextID()));
-		txIn.setAddress(address);
+		passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
+		passport.setID((serialNumber = serialNumber.getNextID()));
+		txIn.setPassport(passport);
 		txIn.setValue(25 * Util.ABC);
 		txOut = new TxOut();
-		address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(3).getReadableAddress());
+		passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(3).getReadableAddress());
 //		Log.info("a:" + address.getAddress());
-		address.setID((serialNumber = serialNumber.getNextID()));
-		txOut.setAddress(address);
+		passport.setID((serialNumber = serialNumber.getNextID()));
+		txOut.setPassport(passport);
 		txOut.setValue(12 * Util.ABC);
 		transaction.setTxIn(txIn);
 		transaction.addTxOut(txOut);
 
 		// Add new TxOut
-		address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(4).getReadableAddress());
+		passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(4).getReadableAddress());
 //		Log.info("b:" + address.getAddress());
-		address.setID((serialNumber = serialNumber.getNextID()));
+		passport.setID((serialNumber = serialNumber.getNextID()));
 		txOut = new TxOut();
-		txOut.setAddress(address);
+		txOut.setPassport(passport);
 		txOut.setValue(12 * Util.ABC);
 		transaction.addTxOut(txOut);
 
 		// Add new TxOut
-		address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(5).getReadableAddress());
+		passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(5).getReadableAddress());
 //				Log.info("b:" + address.getAddress());
-		address.setID((serialNumber = serialNumber.getNextID()));
+		passport.setID((serialNumber = serialNumber.getNextID()));
 		txOut = new TxOut();
-		txOut.setAddress(address);
+		txOut.setPassport(passport);
 		txOut.setValue((long) (0.9 * Util.ABC));
 		transaction.addTxOut(txOut);
 
@@ -1019,56 +1027,56 @@ public class Test {
 	}
 
 	public static void testValue() {
-		String address = "1";
-		if (Util.isTXValueValid(address)) {
-			Log.info(address + " Passed.");
+		String passport = "1";
+		if (Util.isTXValueValid(passport)) {
+			Log.info(passport + " Passed.");
 		} else {
-			Log.info(address + " Failed.");
+			Log.info(passport + " Failed.");
 		}
-		address = "1.1";
-		if (Util.isTXValueValid(address)) {
-			Log.info(address + " Passed.");
+		passport = "1.1";
+		if (Util.isTXValueValid(passport)) {
+			Log.info(passport + " Passed.");
 		} else {
-			Log.info(address + " Failed.");
+			Log.info(passport + " Failed.");
 		}
-		address = "MwG";
-		if (Util.isTXValueValid(address)) {
-			Log.info(address + " Passed.");
+		passport = "MwG";
+		if (Util.isTXValueValid(passport)) {
+			Log.info(passport + " Passed.");
 		} else {
-			Log.info(address + " Failed.");
+			Log.info(passport + " Failed.");
 		}
-		address = "1.1110";
-		if (Util.isTXValueValid(address)) {
-			Log.info(address + " Passed.");
+		passport = "1.1110";
+		if (Util.isTXValueValid(passport)) {
+			Log.info(passport + " Passed.");
 		} else {
-			Log.info(address + " Failed.");
+			Log.info(passport + " Failed.");
 		}
 	}
 
 	public static void testAddressFormat() {
-		String address = "1w6WJRsMFEcGVEqXMwGmLHWW";
-		if (Util.isAddressFormatValid(address)) {
-			Log.info(address + " Passed.");
+		String passport = "1w6WJRsMFEcGVEqXMwGmLHWW";
+		if (Util.isAddressFormatValid(passport)) {
+			Log.info(passport + " Passed.");
 		} else {
-			Log.info(address + " Failed.");
+			Log.info(passport + " Failed.");
 		}
-		address = "4w6WJRsMFEcGVEqXMwGmLHWW";
-		if (Util.isAddressFormatValid(address)) {
-			Log.info(address + " Passed.");
+		passport = "4w6WJRsMFEcGVEqXMwGmLHWW";
+		if (Util.isAddressFormatValid(passport)) {
+			Log.info(passport + " Passed.");
 		} else {
-			Log.info(address + " Failed.");
+			Log.info(passport + " Failed.");
 		}
-		address = "1w6WJRsMFEcGVEqXMwG";
-		if (Util.isAddressFormatValid(address)) {
-			Log.info(address + " Passed.");
+		passport = "1w6WJRsMFEcGVEqXMwG";
+		if (Util.isAddressFormatValid(passport)) {
+			Log.info(passport + " Passed.");
 		} else {
-			Log.info(address + " Failed.");
+			Log.info(passport + " Failed.");
 		}
-		address = "1w6WJRsMFEcGVEq0XMwGmLHW";
-		if (Util.isAddressFormatValid(address)) {
-			Log.info(address + " Passed.");
+		passport = "1w6WJRsMFEcGVEq0XMwGmLHW";
+		if (Util.isAddressFormatValid(passport)) {
+			Log.info(passport + " Passed.");
 		} else {
-			Log.info(address + " Failed.");
+			Log.info(passport + " Failed.");
 		}
 	}
 
@@ -1281,19 +1289,18 @@ public class Test {
 
 	public static void testRocksDBAccount() {
 		Account account = new AssetAccount();
-		Address address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		address.setID(ID.TWO);
-		account.getKey().setAddress(address);
-		account.getKey().setAddressCreateHeight(ID.ZERO);
+		Passport passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		passport.setID(ID.TWO);
+		account.setPassport(passport);
+		account.setPassportCreateHeight(ID.ZERO);
 		Asset asset = new CoinAsset();
-		asset.setBalance(new ID(500000));
-		asset.setBalanceUpdateHeight(ID.ZERO);
+		asset.deposit(new ID(500000));
 		account.setAsset(asset);
 		try {
 			EQCBlockChainRocksDB.getInstance().saveAccount(account);
 			account = EQCBlockChainRocksDB.getInstance().getAccount(ID.TWO);
-			Log.info(account.getKey().getAddress().toString());
+			Log.info(account.getPassport().toString());
 		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1309,7 +1316,7 @@ public class Test {
 //				// TODO Auto-generated catch block
 //				e.printStackTrace();
 //			}
-//			Log.info(account.getKey().getAddress().toString());
+//			Log.info(account.getAddress().toString());
 //			rocksIterator.next();
 //		}
 	}
@@ -1318,9 +1325,9 @@ public class Test {
 		Account account;
 		try {
 			account = EQCBlockChainRocksDB.getInstance().getAccount(ID.TWO);
-			Log.info(account.getKey().getAddress().toString());
+			Log.info(account.getPassport().toString());
 			account = EQCBlockChainRocksDB.getInstance().getAccount(new ID(3));
-			Log.info(account.getKey().getAddress().toString());
+			Log.info(account.getPassport().toString());
 		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1401,9 +1408,9 @@ public class Test {
 	public static void testVerifyAddress() {
 		byte[] privateKey = Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(0).getPrivateKey(), "abc");
 		byte[] publickey = Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(0).getPublicKey(), "abc");
-		String address = AddressTool.generateAddress(publickey, AddressType.T2);
+		String passport = AddressTool.generateAddress(publickey, AddressType.T2);
 		Log.info(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		Log.info(address);
+		Log.info(passport);
 		if (AddressTool.verifyAddressPublickey(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress(),
 				publickey)) {
 			Log.info("Publickey verify passed");
@@ -1520,34 +1527,31 @@ public class Test {
 
 	public static void testTakeSnapshot() {
 		Account account = new AssetAccount();
-		Address address = new Address();
-		address.setID(ID.ZERO);
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		account.getKey().setAddress(address);
-		account.getKey().setAddressCreateHeight(ID.ZERO);
+		Passport passport = new Passport();
+		passport.setID(ID.ZERO);
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		account.setPassport(passport);
+		account.setPassportCreateHeight(ID.ZERO);
 		Asset asset = new CoinAsset();
-		asset.setBalance(new ID(150000));
-		asset.setBalanceUpdateHeight(ID.ZERO);
+		asset.deposit(new ID(150000));
 		account.setAsset(asset);
 		try {
 			EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.ZERO);
-			address.setID(ID.ZERO);
-			address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-			account.getKey().setAddress(address);
-			account.getKey().setAddressCreateHeight(ID.ZERO);
+			passport.setID(ID.ZERO);
+			passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+			account.setPassport(passport);
+			account.setPassportCreateHeight(ID.ZERO);
 			asset = new CoinAsset();
-			asset.setBalance(new ID(150001));
-			asset.setBalanceUpdateHeight(ID.ONE);
+			asset.deposit(new ID(150001));
 			account.setAsset(asset);
 			EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.ONE);
 
-			address.setID(ID.ZERO);
-			address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-			account.getKey().setAddress(address);
-			account.getKey().setAddressCreateHeight(ID.ZERO);
+			passport.setID(ID.ZERO);
+			passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+			account.setPassport(passport);
+			account.setPassportCreateHeight(ID.ZERO);
 			asset = new CoinAsset();
-			asset.setBalance(new ID(150002));
-			asset.setBalanceUpdateHeight(ID.TWO);
+			asset.deposit(new ID(150002));
 			account.setAsset(asset);
 			EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.TWO);
 
@@ -1571,14 +1575,14 @@ public class Test {
 		UserAccount userAccount1 = Keystore.getInstance().getUserAccounts().get(2);
 		TransferTransaction transaction = new TransferTransaction();
 		TxIn txIn = new TxIn();
-		txIn.setAddress(new Address(userAccount.getReadableAddress()));
+		txIn.setPassport(new Passport(userAccount.getReadableAddress()));
 		transaction.setTxIn(txIn);
 		TxOut txOut = new TxOut();
-		txOut.setAddress(new Address(userAccount1.getReadableAddress()));
+		txOut.setPassport(new Passport(userAccount1.getReadableAddress()));
 		txOut.setValue(50 * Util.ABC);
 		transaction.addTxOut(txOut);
 		try {
-			transaction.setNonce(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getAddress().getAddressAI())
+			transaction.setNonce(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getPassport().getAddressAI())
 					.getAsset(Asset.EQCOIN).getNonce().getNextID());
 			byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
 			byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
@@ -1593,21 +1597,20 @@ public class Test {
 
 			Signature ecdsa = null;
 			try {
-				ecdsa = Signature.getInstance("SHA1withECDSA", "SunEC");
-				ecdsa.initSign(Util.getPrivateKey(privateKey, transaction.getTxIn().getAddress().getType()));
+				ecdsa = Signature.getInstance("NONEwithECDSA", "SunEC");
+				ecdsa.initSign(Util.getPrivateKey(privateKey, transaction.getTxIn().getPassport().getAddressType()));
 			} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			transaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB
-					.getInstance().getAccount(userAccount.getAddressAI()).getKey().getAddressCreateHeight()));
-			EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
 					new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-			publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
-			transaction.getTxIn().getAddress()
-					.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getAddress()));
+			transaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
+			EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
+			publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
+			transaction.getTxIn().getPassport()
+					.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
 			if (transaction.verify(accountsMerkleTree)) {
 				Log.info("passed");
 			} else {
@@ -1623,14 +1626,14 @@ public class Test {
 		UserAccount userAccount = Keystore.getInstance().getUserAccounts().get(1);
 		UserAccount userAccount1 = Keystore.getInstance().getUserAccounts().get(2);
 		TxIn txIn = new TxIn();
-		txIn.setAddress(new Address(userAccount.getReadableAddress()));
+		txIn.setPassport(new Passport(userAccount.getReadableAddress()));
 
 		byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
 		byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
 		Signature ecdsa = null;
 		try {
-			ecdsa = Signature.getInstance("SHA1withECDSA", "SunEC");
-			ecdsa.initSign(Util.getPrivateKey(privateKey, txIn.getAddress().getType()));
+			ecdsa = Signature.getInstance("NONEwithECDSA", "SunEC");
+			ecdsa.initSign(Util.getPrivateKey(privateKey, txIn.getPassport().getAddressType()));
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1642,21 +1645,23 @@ public class Test {
 		operationTransaction.setPublickey(publicKey2);
 		UpdateAddressOperation updateAddressOperation = new UpdateAddressOperation();
 		UserAccount userAccount2 = Keystore.getInstance().getUserAccounts().get(3);
-		updateAddressOperation.setAddress(new Address(userAccount2.getReadableAddress()));
+		updateAddressOperation.setAddress(new Passport(userAccount2.getReadableAddress()));
 		operationTransaction.setOperation(updateAddressOperation);
 		operationTransaction.setTxIn(txIn);
 		try {
 			operationTransaction.setNonce(EQCBlockChainRocksDB.getInstance()
-					.getAccount(txIn.getAddress().getAddressAI()).getAsset(Asset.EQCOIN).getNonce().getNextID());
+					.getAccount(txIn.getPassport().getAddressAI()).getAsset(Asset.EQCOIN).getNonce().getNextID());
 			operationTransaction.cypherTxInValue(TXFEE_RATE.POSTPONE0);
 			Log.info("getMaxBillingSize: " + operationTransaction.getMaxBillingSize());
 			Log.info("getTxFeeLimit: " + operationTransaction.getTxFeeLimit());
 			Log.info("getQosRate: " + operationTransaction.getQosRate());
 			Log.info("getQos: " + operationTransaction.getQos());
-			operationTransaction.sign(ecdsa, EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(EQCBlockChainRocksDB
-					.getInstance().getAccount(txIn.getAddress().getAddressAI()).getKey().getAddressCreateHeight()));
+			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
+					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
+					new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+			operationTransaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
 			EQCBlockChainH2.getInstance().saveTransactionInPool(operationTransaction);
-		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException | ClassNotFoundException | SQLException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -1664,20 +1669,19 @@ public class Test {
 
 	public static void testAccountHashTime() {
 		Account account = new AssetAccount();
-		Address address = new Address();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
-		address.setID(ID.ONE);
-		account.getKey().setAddress(address);
-		account.getKey().setAddressCreateHeight(ID.ONE);
+		Passport passport = new Passport();
+		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
+		passport.setID(ID.ONE);
+		account.setPassport(passport);
+		account.setPassportCreateHeight(ID.ONE);
 		Asset asset = new CoinAsset();
-		asset.setBalance(new ID(50 * Util.ABC));
-		asset.setBalanceUpdateHeight(ID.ONE);
+		asset.deposit(new ID(50 * Util.ABC));
 		account.setAsset(asset);
 		byte[] publickey = Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
 		Publickey publicKey2 = new Publickey();
 		publicKey2.setPublickey(publickey);
 		publicKey2.setPublickeyCreateHeight(ID.ONE);
-		account.getKey().setPublickey(publicKey2);
+		account.setPublickey(publicKey2);
 
 		long c0 = System.currentTimeMillis();
 		int n = 10;
@@ -1846,4 +1850,39 @@ public class Test {
 		Log.info(sb.toString());
 	}
 
+	public static void ping(String localIP, String remoteIP) {
+		long time = System.currentTimeMillis();
+    	NettyTransceiver client = null;
+    	try {
+//    		Util.init();
+    		Cookie cookie = new Cookie();
+    		cookie.setIp(localIP);
+    		cookie.setVersion(Util.PROTOCOL_VERSION);
+    		System.out.println("Begin link remote: " + time);
+    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), 7997), 3000l);
+    		System.out.println("End link remote: " + (System.currentTimeMillis() - time));
+    		 // client code - attach to the server and send a message
+    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+            System.out.println("Client built, got proxy");
+//            Cookie cookie = new Cookie();
+//            cookie.setIp(Util.getCookie().getIp().toString());
+//            cookie.setVersion("0.01");
+            System.out.println("Calling proxy.send with message:  " + cookie);
+            System.out.println("Result: " + proxy.ping(cookie));
+
+//            // cleanup
+//            client.close();
+    	}
+    	catch (Exception e) {
+			// TODO: handle exception
+    		System.out.println("Exception occur during link remote: " + (System.currentTimeMillis() - time));
+    		System.out.println(e.getMessage());
+		}
+    	finally {
+			if(client != null) {
+				client.close();
+			}
+		}
+	}
+	
 }

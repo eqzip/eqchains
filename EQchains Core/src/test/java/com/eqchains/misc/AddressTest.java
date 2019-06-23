@@ -35,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import com.eqchains.blockchain.transaction.Address;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.util.Base58;
 import com.eqchains.util.Log;
@@ -81,10 +81,10 @@ public class AddressTest {
 	   
 	   @Test
 	   void verifyAI2Address() {
-		   Address address = new Address();
-		   address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		   Passport passport = new Passport();
+		   passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		   try {
-			assertEquals(AddressTool.AIToAddress(address.getAddressAI()), address.getReadableAddress());
+			assertEquals(AddressTool.AIToAddress(passport.getAddressAI()), passport.getReadableAddress());
 		} catch (NoSuchFieldException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -35,10 +35,10 @@ import java.io.IOException;
 
 import org.rocksdb.RocksDBException;
 
+import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
 import com.eqchains.serialization.EQCAddressShapeInheritable;
 import com.eqchains.serialization.EQCAddressShapeTypable;
@@ -127,6 +127,8 @@ public abstract class Operation implements EQCAddressShapeTypable, EQCAddressSha
 
 		if (op == OP.ADDRESS) {
 			operation = new UpdateAddressOperation(is, addressShape);
+		} else if (op == OP.TXFEERATE) {
+			operation = new UpdateTxFeeRateOperation();
 		} else if (op == OP.EMAIL) {
 
 		} else if (op == OP.RENEW) {

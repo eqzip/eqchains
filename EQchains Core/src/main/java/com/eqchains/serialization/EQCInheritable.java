@@ -32,7 +32,7 @@ package com.eqchains.serialization;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 
 /**
  * @author Xun Wang

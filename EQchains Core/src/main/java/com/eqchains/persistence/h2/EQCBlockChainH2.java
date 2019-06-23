@@ -61,11 +61,11 @@ import com.eqchains.blockchain.Root;
 import com.eqchains.blockchain.Signatures;
 import com.eqchains.blockchain.Transactions;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.transaction.Address;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxOut;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -215,6 +215,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION_MAX_NONCE("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
 					+ "id BIGINT,"
+					+ "balance BIGINT,"
 					+ "max_nonce BIGINT"
 					+ ")");
 			
@@ -239,7 +240,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 */
 	@Override
 	@Deprecated
-	public synchronized ID getAddressID(Address address) {
+	public synchronized ID getAddressID(Passport address) {
 		ID serialNumber = null;
 		try {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address='" + address.getAddress() + "'");
@@ -262,15 +263,15 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 */
 	@Override
 	@Deprecated
-	public synchronized Address getAddress(ID serialNumber) {
-		Address address = null;
+	public synchronized Passport getAddress(ID serialNumber) {
+		Passport address = null;
 		try {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE id='" + serialNumber.longValue() + "'");
 			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ACCOUNT WHERE id=?");
 			preparedStatement.setLong(1, serialNumber.longValue());
 			ResultSet resultSet = preparedStatement.executeQuery();
 			if (resultSet.next()) {
-				address = new Address();
+				address = new Passport();
 				address.setReadableAddress(resultSet.getString("address"));
 				address.setID(new ID(BigInteger.valueOf(resultSet.getLong("id"))));
 				// Here need do more job to retrieve the code of address. Need consider
@@ -303,7 +304,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //				address.setID(new ID(BigInteger.valueOf(resultSet.getLong("id"))));
 //				// Here need do more job to retrieve the code of address. Need consider
 //				// sometimes the code is null but otherwise the code isn't null
-//				account.getKey().setAddress(address);
+//				account.setAddress(address);
 //				account.setBalance(resultSet.getLong("balance"));
 //				accounts.add(account);
 //			}
@@ -380,7 +381,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 */
 	@Override
 	@Deprecated
-	public synchronized boolean isAddressExists(Address address) {
+	public synchronized boolean isAddressExists(Passport address) {
 		try {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address='" + address.getAddress() + "'");
 			 PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ACCOUNT WHERE address=?");
@@ -398,7 +399,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 	
 	@Deprecated
-	public synchronized boolean appendAddress(Address address, ID address_update_height) {
+	public synchronized boolean appendAddress(Passport address, ID address_update_height) {
 		int result = 0;
 		try {
 //			result = statement.executeUpdate("INSERT INTO ACCOUNT (sn, address, code, height) VALUES('" 
@@ -424,7 +425,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Deprecated
-	public synchronized boolean deleteAddress(Address address) {
+	public synchronized boolean deleteAddress(Passport address) {
 		int result = 0;
 		try {
 //			result = statement.executeUpdate("DELETE FROM ACCOUNT WHERE address='" + address.getAddress() + "'");
@@ -553,7 +554,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getPublicKeySerialNumber(com.eqzip.eqcoin.blockchain.Address)
 	 */
 	@Deprecated
-	public synchronized ID getPublicKeySerialNumber(Address address) {
+	public synchronized ID getPublicKeySerialNumber(Passport address) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -875,7 +876,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * blockchain.Address)
 	 */
 	@Deprecated
-	public synchronized long getBalance(Address address) {
+	public synchronized long getBalance(Passport address) {
 		ResultSet resultSet;
 		long txInValue = 0;
 		long txOutValue = 0;
@@ -903,7 +904,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Deprecated
-	public synchronized long getBalance(Address address, ID height) {
+	public synchronized long getBalance(Passport address, ID height) {
 		ResultSet resultSet;
 		long txInValue = 0;
 		long txOutValue = 0;
@@ -968,7 +969,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //	}
 
 	@Deprecated
-	public synchronized ID getTxInHeight(Address txInAddress) {
+	public synchronized ID getTxInHeight(Passport txInAddress) {
 		ID height = null;
 		try {
 			ResultSet resultSet;
@@ -1099,7 +1100,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			byte[] data = null;
 
 			// Parse Transaction
-			Transaction transaction = Transaction.parseTransaction(EQCType.parseBIN(is), Address.AddressShape.READABLE);
+			Transaction transaction = Transaction.parseTransaction(EQCType.parseBIN(is), Passport.AddressShape.READABLE);
 			// Parse PublicKey
 			PublicKey publickey = new PublicKey();
 			publickey.setPublicKey(EQCType.parseBIN(is));
@@ -1130,7 +1131,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //					+ qos + "','"
 //					+ timestamp + "')");
 			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_POOL (txin_address, txin_value, tx_fee, rawdata, signature, tx_size, qos, receieved_timestamp, record_status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
-			preparedStatement.setString(1, transaction.getTxIn().getAddress().getReadableAddress());
+			preparedStatement.setString(1, transaction.getTxIn().getPassport().getReadableAddress());
 			preparedStatement.setLong(2, transaction.getTxIn().getValue());
 			preparedStatement.setLong(3, transaction.getTxFeeLimit());
 			preparedStatement.setBytes(4, transaction.getRPCBytes());
@@ -1168,13 +1169,13 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Deprecated
-	public synchronized Vector<Transaction> getTransactionList(Address address) {
+	public synchronized Vector<Transaction> getTransactionList(Passport address) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Deprecated
-	public synchronized Vector<Transaction> getTransactionList(Address address, ID height) {
+	public synchronized Vector<Transaction> getTransactionList(Passport address, ID height) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -1189,7 +1190,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					+ height.longValue() + "','"
 					+ trans_id + "','"
 					+ true + "','"
-					+ transaction.getTxIn().getAddress().getID().longValue() + "','"
+					+ transaction.getTxIn().getPassport().getID().longValue() + "','"
 					+ transaction.getTxIn().getValue() + "')");
 			}
 			for(TxOut txOut : transaction.getTxOutList()) {
@@ -1197,7 +1198,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					+ height.longValue() + "','"
 					+ trans_id + "','"
 					+ false + "','"
-					+ txOut.getAddress().getID().longValue() + "','"
+					+ txOut.getPassport().getID().longValue() + "','"
 					+ txOut.getValue() + "')");
 			}
 //			Log.info("result: " + result);
@@ -1218,7 +1219,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Deprecated
-	public synchronized int getTransactionNumbersIn24hours(Address address, ID currentHeight) {
+	public synchronized int getTransactionNumbersIn24hours(Passport address, ID currentHeight) {
 		int numbers = 0;
 		long heightOffset = ((currentHeight.longValue() - 8640)>0)?(currentHeight.longValue() - 8640):0;
 		try {
@@ -1278,8 +1279,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Deprecated
 	public synchronized boolean addAllAddress(EQCHive eqcBlock) {
 		boolean isSuccess = false;
-		for(Address address : eqcBlock.getTransactions().getNewAccountList()) {
-			isSuccess = appendAddress(address, eqcBlock.getHeight());
+		for(Passport passport : eqcBlock.getTransactions().getNewPassportList()) {
+			isSuccess = appendAddress(passport, eqcBlock.getHeight());
 		}
 		return isSuccess;
 	}
@@ -1316,13 +1317,13 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public synchronized boolean addAllSignatures(EQCHive eqcBlock) {
 		boolean isSuccess = false;
 		for(int i=0; i<eqcBlock.getSignatures().getSignatureList().size(); ++i) {
-			isSuccess = appendSignature(eqcBlock.getHeight(), i, eqcBlock.getTransactions().getNewTransactionList().get(i+1).getTxIn().getAddress().getID(), eqcBlock.getSignatures().getSignatureList().get(i));
+			isSuccess = appendSignature(eqcBlock.getHeight(), i, eqcBlock.getTransactions().getNewTransactionList().get(i+1).getTxIn().getPassport().getID(), eqcBlock.getSignatures().getSignatureList().get(i));
 		}
 		return isSuccess;
 	}
 
 	@Deprecated
-	public synchronized long getBalanceFromAccount(Address address) {
+	public synchronized long getBalanceFromAccount(Passport address) {
 		long balance = 0;
 		try {
 			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address='" + address.getReadableAddress() + "'");
@@ -1338,7 +1339,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Deprecated
-	public synchronized boolean updateBalanceInAccount(Address address, long balance) {
+	public synchronized boolean updateBalanceInAccount(Passport address, long balance) {
 		int result = 0;
 		PreparedStatement preparedStatement;
 		try {
@@ -1355,7 +1356,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Deprecated
-	public synchronized int getNonce(Address address) {
+	public synchronized int getNonce(Passport address) {
 		int nonce = 0;
 		try {
 			 ResultSet resultSet = statement.executeQuery("SELECT * FROM ACCOUNT WHERE address='" + address.getReadableAddress() + "'");
@@ -1371,7 +1372,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Deprecated
-	public synchronized boolean updateNonce(Address address, int nonce) {
+	public synchronized boolean updateNonce(Passport address, int nonce) {
 		int result = 0;
 		PreparedStatement preparedStatement;
 		try {
@@ -1489,7 +1490,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			else {
 				preparedStatement = connection.prepareStatement("INSERT INTO ACCOUNT_SNAPSHOT (id, readable_address, account, snapshot_height) VALUES (?, ?, ?, ?)");
 				preparedStatement.setLong(1, account.getID().longValue());
-				preparedStatement.setString(2, account.getKey().getAddress().getReadableAddress());
+				preparedStatement.setString(2, account.getPassport().getReadableAddress());
 				preparedStatement.setBytes(3, account.getBytes());
 				preparedStatement.setLong(4, height.longValue());
 				result = preparedStatement.executeUpdate();
@@ -1523,7 +1524,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public ID getTransactionMaxNonce(Transaction transaction) throws SQLException {
 		ID nonce = null;
 			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_MAX_NONCE WHERE id=?");
-			preparedStatement.setLong(1, transaction.getTxIn().getAddress().getID().longValue());
+			preparedStatement.setLong(1, transaction.getTxIn().getPassport().getID().longValue());
 			ResultSet resultSet = preparedStatement.executeQuery();
 			if (resultSet.next()) {
 				nonce = new ID(resultSet.getLong("max_nonce"));
@@ -1535,10 +1536,16 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException {
 		int result = 0;
 			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_MAX_NONCE (id, max_nonce) VALUES (?, ?)");
-			preparedStatement.setLong(1, transaction.getTxIn().getAddress().getID().longValue());
+			preparedStatement.setLong(1, transaction.getTxIn().getPassport().getID().longValue());
 			preparedStatement.setLong(2, transaction.getNonce().longValue());
 			result = preparedStatement.executeUpdate();
 		return result == ONE_ROW;
+	}
+
+	@Override
+	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

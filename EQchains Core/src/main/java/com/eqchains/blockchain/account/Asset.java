@@ -35,8 +35,8 @@ import java.io.IOException;
 import java.util.Comparator;
 
 import com.eqchains.blockchain.account.Account.AccountType;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -61,9 +61,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	 * Body
 	 */
 	protected ID assetID;
-	protected ID assetCreateHeight;
 	protected ID balance;
-	protected ID balanceUpdateHeight;
 	protected ID nonce;
 	
 	public enum AssetType {
@@ -132,6 +130,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		this.assetType = assetType;
 		version = ID.ZERO;
 		assetID = Asset.EQCOIN;
+		balance = ID.ZERO;
 		nonce = ID.ZERO;
 	}
 
@@ -154,10 +153,10 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	}
 	@Override
 	public boolean isSanity() {
-		if(assetType == null || version == null || assetID == null || assetCreateHeight == null || balance == null || balanceUpdateHeight == null || nonce == null) {
+		if(assetType == null || version == null || assetID == null || balance == null || nonce == null) {
 			return false;
 		}
-		if(!version.isSanity() || !assetID.isSanity() || !assetCreateHeight.isSanity() || !balanceUpdateHeight.isSanity() || !nonce.isSanity()) {
+		if(!version.isSanity() || !assetID.isSanity() || !nonce.isSanity()) {
 			return false;
 		}
 		if(assetID.equals(Asset.EQCOIN)) {
@@ -191,27 +190,6 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		return balance;
 	}
 	/**
-	 * @param balance the balance to set
-	 */
-	public void setBalance(ID balance) {
-		this.balance = balance;
-	}
-	public void updateBalance(ID balance) {
-		this.balance = this.balance.add(balance);
-	}
-	/**
-	 * @return the balanceUpdateHeight
-	 */
-	public ID getBalanceUpdateHeight() {
-		return balanceUpdateHeight;
-	}
-	/**
-	 * @param balanceUpdateHeight the balanceUpdateHeight to set
-	 */
-	public void setBalanceUpdateHeight(ID balanceUpdateHeight) {
-		this.balanceUpdateHeight = balanceUpdateHeight;
-	}
-	/**
 	 * @return the nonce
 	 */
 	public ID getNonce() {
@@ -225,18 +203,6 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	}
 	public void increaseNonce() {
 		nonce = nonce.getNextID();
-	}
-	/**
-	 * @return the assetCreateHeight
-	 */
-	public ID getAssetCreateHeight() {
-		return assetCreateHeight;
-	}
-	/**
-	 * @param assetCreateHeight the assetCreateHeight to set
-	 */
-	public void setAssetCreateHeight(ID assetCreateHeight) {
-		this.assetCreateHeight = assetCreateHeight;
 	}
 
 	/* (non-Javadoc)
@@ -254,7 +220,6 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 				"\n{\n" +
 					"\"AssetID\":" + "\"" + assetID + "\"" + ",\n" +
 					"\"Balance\":" + "\"" + balance + "\"" + ",\n" +
-					"\"BalanceUpdateHeight\":" + "\"" + balanceUpdateHeight + "\"" + ",\n" +
 					"\"Nonce\":" + "\"" + nonce + "\"" + "\n" +
 				"}";
 	}
@@ -282,15 +247,9 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		// Parse AssetID
 		assetID = new ID(EQCType.parseEQCBits(is));
 		
-		// Parse AssetCreateHeight
-		assetCreateHeight = new ID(EQCType.parseEQCBits(is));
-
 		// Parse Balance
 		balance = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
 		
-		// Parse BalanceUpdateHeight
-		balanceUpdateHeight = new ID(EQCType.parseEQCBits(is));
-
 		// Parse Nonce
 		nonce = new ID(EQCType.parseEQCBits(is));
 	}
@@ -314,9 +273,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(assetID.getEQCBits());
-			os.write(assetCreateHeight.getEQCBits());
 			os.write(balance.getEQCBits());
-			os.write(balanceUpdateHeight.getEQCBits());
 			os.write(nonce.getEQCBits());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -358,6 +315,14 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	 */
 	public void setVersion(ID version) {
 		this.version = version;
+	}
+
+	public void withdraw(ID amount) {
+		balance = balance.subtract(amount);
+	}
+	
+	public void deposit(ID amount) {
+		balance = balance.add(amount);
 	}
 	
 }

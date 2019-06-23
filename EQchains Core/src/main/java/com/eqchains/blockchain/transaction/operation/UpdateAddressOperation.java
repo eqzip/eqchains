@@ -37,10 +37,10 @@ import java.sql.SQLException;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.OperationTransaction;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -54,7 +54,7 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @email 10509759@qq.com
  */
 public class UpdateAddressOperation extends Operation {
-	private Address address;
+	private Passport address;
 	
 	public UpdateAddressOperation() {
 		super(OP.ADDRESS);
@@ -106,15 +106,15 @@ public class UpdateAddressOperation extends Operation {
 	 */
 	@Override
 	public boolean execute(Object ...objects) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
-		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[0];
-		OperationTransaction operationTransaction = (OperationTransaction) objects[1];
-		Account account = accountsMerkleTree.getAccount(operationTransaction.getTxIn().getAddress().getID());
+		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
+		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
+		Account account = accountsMerkleTree.getAccount(operationTransaction.getTxIn().getPassport().getID());
 		if(account.isPublickeyExists()) {
-			account.getKey().setPublickey(null);
+			account.setPublickey(null);
 		}
 		address.setID(account.getID());
-		account.getKey().setAddress(address);
-		account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+		account.setPassport(address);
+		account.setPassportCreateHeight(accountsMerkleTree.getHeight().getNextID());
 		accountsMerkleTree.saveAccount(account);
 		return true;
 	}
@@ -131,14 +131,14 @@ public class UpdateAddressOperation extends Operation {
 	/**
 	 * @return the readableAddress
 	 */
-	public Address getAddress() {
+	public Passport getAddress() {
 		return address;
 	}
 
 	/**
 	 * @param readableAddress the readableAddress to set
 	 */
-	public void setAddress(Address readableAddress) {
+	public void setAddress(Passport readableAddress) {
 		this.address = readableAddress;
 	}
 
@@ -173,9 +173,9 @@ public class UpdateAddressOperation extends Operation {
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
 		// Parse Address
 		if (addressShape == AddressShape.READABLE) {
-			address = new Address(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
+			address = new Passport(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
 		} else if (addressShape == AddressShape.ID || addressShape == AddressShape.AI) {
-			address = new Address(AddressTool.AIToAddress(EQCType.parseBIN(is)));
+			address = new Passport(AddressTool.AIToAddress(EQCType.parseBIN(is)));
 		}
 	}
 

@@ -33,7 +33,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -47,11 +48,11 @@ import com.eqchains.util.Util;
  */
 public class TxIn extends Tx {
 	
-	public TxIn(byte[] bytes, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+	public TxIn(byte[] bytes, Passport.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		super(bytes, addressShape);
 	}
 	
-	public TxIn(ByteArrayInputStream is, Address.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+	public TxIn(ByteArrayInputStream is, Passport.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		super(is, addressShape);
 	}
 	
@@ -74,7 +75,7 @@ public class TxIn extends Tx {
 		return 
 		"\"TxIn\":" + 
 		"\n{" +
-			address.toInnerJson() + ",\n" +
+			passport.toInnerJson() + ",\n" +
 			"\"Value\":" + "\"" +  Long.toString(value) + "\"" + "\n" +
 		"}";
 	}

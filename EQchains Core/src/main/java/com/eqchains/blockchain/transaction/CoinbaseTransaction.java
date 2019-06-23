@@ -39,11 +39,12 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.CoinAsset;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -73,7 +74,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 		init();
 	}
 
-	public CoinbaseTransaction(byte[] bytes, Address.AddressShape addressShape)
+	public CoinbaseTransaction(byte[] bytes, Passport.AddressShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalStateException {
 		super(TransactionType.COINBASE);
 		EQCType.assertNotNull(bytes);
@@ -92,7 +93,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 * AddressShape)
 	 */
 	@Override
-	public byte[] getBytes(Address.AddressShape addressShape) {
+	public byte[] getBytes(Passport.AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Header
@@ -115,7 +116,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 * AddressShape)
 	 */
 	@Override
-	public byte[] getBin(Address.AddressShape addressShape) {
+	public byte[] getBin(Passport.AddressShape addressShape) {
 		return EQCType.bytesToBIN(getBytes(addressShape));
 	}
 
@@ -138,15 +139,15 @@ public class CoinbaseTransaction extends TransferTransaction {
 			if(txOutList.size() != MAX_TXOUT) {
 				return false;
 			}
-			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
+			if(!txOutList.get(0).getPassport().getID().equals(ID.ONE)) {
 				return false;
 			}
-			if(!txOutList.get(1).getAddress().getID().equals(ID.TWO)) {
+			if(!txOutList.get(1).getPassport().getID().equals(ID.TWO)) {
 				return false;
 			}
-			if (accountsMerkleTree.isAccountExists(txOutList.get(2).getAddress(), false)) {
+			if (accountsMerkleTree.isAccountExists(txOutList.get(2).getPassport(), false)) {
 				if (nonce.getPreviousID().compareTo(
-						accountsMerkleTree.getAccount(txOutList.get(2).getAddress().getID()).getAsset(getAssetID()).getNonce()) != 0) {
+						accountsMerkleTree.getAccount(txOutList.get(2).getPassport().getID()).getAsset(getAssetID()).getNonce()) != 0) {
 					return false;
 				}
 			} else {
@@ -170,10 +171,10 @@ public class CoinbaseTransaction extends TransferTransaction {
 			if(txOutList.size() != MIN_TXOUT) {
 				return false;
 			}
-			if(!txOutList.get(0).getAddress().getID().equals(ID.ONE)) {
+			if(!txOutList.get(0).getPassport().getID().equals(ID.ONE)) {
 				return false;
 			}
-			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getAsset(getAssetID()).getNonce()) != 0) {
+			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getPassport().getID()).getAsset(getAssetID()).getNonce()) != 0) {
 				return false;
 			}
 			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
@@ -219,25 +220,25 @@ public class CoinbaseTransaction extends TransferTransaction {
 	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
 		// Update TxOut's Address' isNew status if need
 		for (TxOut txOut : txOutList) {
-			if (!accountsMerkleTree.isAccountExists(txOut.getAddress(), true)) {
-				txOut.getAddress().setID(initID);
+			if (!accountsMerkleTree.isAccountExists(txOut.getPassport(), true)) {
+				txOut.getPassport().setID(initID);
 				txOut.setNew(true);
 				initID = initID.getNextID();
 			} else {
 				// For security issue need retrieve and fill in every Address' ID
 				// according to it's AddressAI
-				txOut.getAddress().setID(accountsMerkleTree.getAddressID(txOut.getAddress()));
+				txOut.getPassport().setID(accountsMerkleTree.getAddressID(txOut.getPassport()));
 			}
 		}
 		// Set Nonce
 		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
-			if (accountsMerkleTree.isAccountExists(txOutList.get(2).getAddress(), true)) {
-				nonce = accountsMerkleTree.getAccount(txOutList.get(2).getAddress()).getAsset(Asset.EQCOIN).getNonce().getNextID();
+			if (accountsMerkleTree.isAccountExists(txOutList.get(2).getPassport(), true)) {
+				nonce = accountsMerkleTree.getAccount(txOutList.get(2).getPassport()).getAsset(Asset.EQCOIN).getNonce().getNextID();
 			} else {
 				nonce = ID.ONE;
 			}
 		} else {
-			nonce = accountsMerkleTree.getAccount(txOutList.get(0).getAddress().getID()).getAsset(Asset.EQCOIN).getNonce().getNextID();
+			nonce = accountsMerkleTree.getAccount(txOutList.get(0).getPassport().getID()).getAsset(Asset.EQCOIN).getNonce().getNextID();
 		}
 	}
 	
@@ -252,32 +253,30 @@ public class CoinbaseTransaction extends TransferTransaction {
 		for (TxOut txOut : txOutList) {
 			if (txOut.isNew()) {
 				account = new AssetAccount();
-				account.getKey().setAddress(txOut.getAddress());
-				account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				account.setPassport(txOut.getPassport());
+				account.setPassportCreateHeight(accountsMerkleTree.getHeight().getNextID());
 				Asset asset = new CoinAsset();
 				asset.setAssetID(getAssetID());
-				asset.setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
 				asset.setNonce(ID.ZERO);
 				account.setAsset(asset);
 				accountsMerkleTree.increaseTotalAccountNumbers();
 			} else {
-				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
+				account = accountsMerkleTree.getAccount(txOut.getPassport().getID());
 			}
-			account.getAsset(getAssetID()).setBalance(account.getAsset(getAssetID()).getBalance().add(new ID(txOut.getValue())));; 
-			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
+			account.getAsset(getAssetID()).deposit(new ID(txOut.getValue()));
 			// Update Nonce
 			if(accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
-				if(account.getKey().getAddress().getID().compareTo(ID.TWO) > 0) {
+				if(account.getPassport().getID().compareTo(ID.TWO) > 0) {
 					account.getAsset(getAssetID()).increaseNonce();
 				}
 			}
 			else {
-				if(account.getKey().getAddress().getID().compareTo(ID.ONE) == 0) {
+				if(account.getPassport().getID().compareTo(ID.ONE) == 0) {
 					account.getAsset(getAssetID()).increaseNonce();
 				}
 			}
 			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(), account.getBytes());
-			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1), account.getKey().getAddress().getAddressAI(),
+			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1), account.getPassport().getAddressAI(),
 					account.getIDEQCBits());
 		}
 		
@@ -320,8 +319,8 @@ public class CoinbaseTransaction extends TransferTransaction {
 		// Transaction's AddressList size which storage the new Address
 		for (TxOut txOut : txOutList) {
 			if (txOut.isNew()) {
-				size += txOut.getAddress().getBin(AddressShape.AI).length;
-				Log.info("New TxOut: " + txOut.getAddress().getBin(AddressShape.AI).length);
+				size += txOut.getPassport().getBin(AddressShape.AI).length;
+				Log.info("New TxOut: " + txOut.getPassport().getBin(AddressShape.AI).length);
 			}
 		}
 		
@@ -348,21 +347,21 @@ public class CoinbaseTransaction extends TransferTransaction {
 
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
 		byte txOutValidCount = 0;
-		if (addressShape == Address.AddressShape.ID) {
+		if (addressShape == Passport.AddressShape.ID) {
 			// Parse nonce
 			nonce = new ID(EQCType.parseEQCBits(is));
 			// Parse TxOut
 			while (txOutValidCount < MAX_TXOUT) {
 				TxOut txOut = new TxOut();
 				// Parse TxOut address
-				txOut.getAddress().setID(new ID(EQCType.parseEQCBits(is)));
+				txOut.getPassport().setID(new ID(EQCType.parseEQCBits(is)));
 				// Parse TxOut value
 				txOut.setValue(EQCType.eqcBitsToLong(EQCType.parseEQCBits(is)));
 				// Add TxOut
 				txOutList.add(txOut);
 				++txOutValidCount;
 			}
-		} else if (addressShape == Address.AddressShape.READABLE || addressShape == Address.AddressShape.AI) {
+		} else if (addressShape == Passport.AddressShape.READABLE || addressShape == Passport.AddressShape.AI) {
 			// Parse nonce
 			nonce = new ID(EQCType.parseEQCBits(is));
 			// Parse TxOut

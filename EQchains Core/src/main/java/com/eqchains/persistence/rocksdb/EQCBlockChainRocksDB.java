@@ -61,10 +61,11 @@ import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -248,10 +249,10 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 	
 	@Override
-	public ID getAddressID(Address address) throws RocksDBException {
+	public ID getAddressID(Passport passport) throws RocksDBException {
 		ID serialNumber = null;
 		byte[] bytes = null;
-			bytes = get(TABLE.ACCOUNT, address.getAddressAI());
+			bytes = get(TABLE.ACCOUNT, passport.getAddressAI());
 		if(bytes != null) {
 			serialNumber = new ID(bytes);
 		}
@@ -259,45 +260,45 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public Address getAddress(ID serialNumber) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
-		Address address = null;
+	public Passport getAddress(ID serialNumber) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
+		Passport passport = null;
 		byte[] bytes = null;
 			bytes = get(TABLE.ACCOUNT, serialNumber.getEQCBits());
 		if(bytes != null) {
 			Account account;
 				account = Account.parseAccount(bytes);
-				address = account.getKey().getAddress();
+				passport = account.getPassport();
 		}
-		return address;
+		return passport;
 	}
 
 	@Deprecated
-	public void appendAddress(Address address, ID address_create_height) throws RocksDBException {
-		Account account = Account.createAccount(address);
-		account.getKey().setAddressCreateHeight(address_create_height);
+	public void appendAddress(Passport passport, ID address_create_height) throws RocksDBException {
+		Account account = Account.createAccount(passport);
+		account.setPassportCreateHeight(address_create_height);
 		WriteBatch writeBatch = new WriteBatch();
 			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getIDEQCBits(), account.getBytes());
-			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
+			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getPassport().getAddressAI(), account.getIDEQCBits());
 			writeBatch.put(getTableHandle(TABLE.ACCOUNT), addPrefixH(account.getIDEQCBits()), account.getHash());
 			rocksDB.write(writeOptions, writeBatch);
 	}
 
 	@Override
-	public boolean isAddressExists(Address address) throws RocksDBException {
+	public boolean isAddressExists(Passport passport) throws RocksDBException {
 		boolean isSucc = false;
 			// For security issue only support search address via AddressAI
-			if(rocksDB.get(getTableHandle(TABLE.ACCOUNT_AI), address.getAddressAI()) != null) {
+			if(rocksDB.get(getTableHandle(TABLE.ACCOUNT_AI), passport.getAddressAI()) != null) {
 				isSucc = true;
 			}
 		return isSucc;
 	}
 
 	@Deprecated
-	public void deleteAddress(Address address) throws RocksDBException {
+	public void deleteAddress(Passport passport) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
-			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), address.getID().getEQCBits());
-			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), address.getAddressAI());
-			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), addPrefixH(address.getID().getEQCBits()));
+			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), passport.getID().getEQCBits());
+			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), passport.getAddressAI());
+			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), addPrefixH(passport.getID().getEQCBits()));
 			rocksDB.write(writeOptions, writeBatch);
 	}
 
@@ -311,9 +312,9 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			for(int i=0; i<height.longValue(); ++i) {
 				bytes = rocksDB.get(getTableHandle(TABLE.ACCOUNT), new ReadOptions(), serialNumber.getEQCBits());
 				Account account = Account.parseAccount(bytes);
-				writeBatch.delete(account.getKey().getAddress().getID().getEQCBits());
-				writeBatch.delete(account.getKey().getAddress().getAddressAI());
-				writeBatch.delete(addPrefixH(account.getKey().getAddress().getID().getEQCBits()));
+				writeBatch.delete(account.getPassport().getID().getEQCBits());
+				writeBatch.delete(account.getPassport().getAddressAI());
+				writeBatch.delete(addPrefixH(account.getPassport().getID().getEQCBits()));
 			}
 			rocksDB.write(writeOptions, writeBatch);
 		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
@@ -346,8 +347,8 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		WriteBatch writeBatch = new WriteBatch();
 			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getIDEQCBits(), account.getBytes());
 //			Log.info(account.toString());
-//			Log.info(Util.dumpBytes(account.getKey().getAddress().getAddressAI(), 16));
-			writeBatch.put(getTableHandle(TABLE.ACCOUNT_AI), account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
+//			Log.info(Util.dumpBytes(account.getAddress().getAddressAI(), 16));
+			writeBatch.put(getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(), account.getIDEQCBits());
 			writeBatch.put(getTableHandle(TABLE.ACCOUNT_HASH), account.getIDEQCBits(), account.getHash());
 			rocksDB.write(writeOptions, writeBatch);
 	}
@@ -386,7 +387,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			if (null != bytes) {
 				Account account = Account.parseAccount(bytes);
 				writeBatch.delete(getTableHandle(TABLE.ACCOUNT), serialNumber.getEQCBits());
-				writeBatch.delete(getTableHandle(TABLE.ACCOUNT), account.getKey().getAddress().getAddressAI());
+				writeBatch.delete(getTableHandle(TABLE.ACCOUNT), account.getPassport().getAddressAI());
 				writeBatch.delete(getTableHandle(TABLE.ACCOUNT), addPrefixH(serialNumber.getEQCBits()));
 				rocksDB.write(writeOptions, writeBatch);
 			}
@@ -574,8 +575,8 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		for(int i=1; i<=tail.longValue(); ++i) {
 			account = getAccount(new ID(i));
 			Log.info(account.toString());
-			Log.info(Util.dumpBytes(account.getKey().getAddress().getAddressAI(), 16));
-			Log.info("ID: " + getAccountID(account.getKey().getAddress().getAddressAI()).toString());
+			Log.info(Util.dumpBytes(account.getPassport().getAddressAI(), 16));
+			Log.info("ID: " + getAccountID(account.getPassport().getAddressAI()).toString());
 			Log.info("Account's Hash: " + Util.dumpBytes(getAccountHash(account.getID()), 16));
 		}
 	}
@@ -603,7 +604,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 				try {
 					account = Account.parseAccount(rocksIterator.value());
 					Log.info("Value: " + account.toString());
-					Log.info("AddressAI: " + Util.dumpBytes(account.getKey().getAddress().getAddressAI(), 16));
+					Log.info("AddressAI: " + Util.dumpBytes(account.getPassport().getAddressAI(), 16));
 				} catch (NoSuchFieldException | IllegalStateException | IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -628,6 +629,21 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
+		byte[] hash = null;
+		ID tail = getEQCBlockTailHeight();
+		// Due to the latest Account is got from current node so it's xxxUpdateHeight doesn't higher than tail
+		EQCType.assertNotHigher(height, tail);
+		if(height.compareTo(tail) < 0) {
+			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(height);
+		}
+		else {
+			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(tail);
+		}
+		return hash;
 	}
 	
 }

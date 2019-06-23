@@ -43,9 +43,9 @@ import org.rocksdb.WriteBatch;
 
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
@@ -59,11 +59,8 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class Filter {
-
 	private AccountsMerkleTree accountsMerkleTree;
 	private byte[] columnFamilyName = null;
-//	private ColumnFamilyHandle columnFamilyHandle;
-//	private HashMap<byte[], ColumnFamilyHandle> columnFamilyHandles;
 	private Vector<ColumnFamilyHandle> columnFamilyHandles;
 	
 	public Filter(byte[] columnFamilyName) throws RocksDBException {
@@ -74,12 +71,12 @@ public class Filter {
 		columnFamilyHandles  = new Vector();
 		columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(columnFamilyName));
 		columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_AI)));
-//		columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_HASH)));
+		columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_HASH)));
 		
 		MutableColumnFamilyOptions mutableColumnFamilyOptions = MutableColumnFamilyOptions.builder().setCompressionType(CompressionType.NO_COMPRESSION).build();
 			for(ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
 				EQCBlockChainRocksDB.getRocksDB().setOptions(columnFamilyHandle, mutableColumnFamilyOptions);
-				// In case before close the app crashed so here just clear the table
+				// In case before close the app crashed or abnormal interruption so here just clear the table
 //				Log.info("Before cleartable: " + EQCBlockChainRocksDB.getTableItemNumbers(columnFamilyHandle));
 				EQCBlockChainRocksDB.clearTable(columnFamilyHandle);
 //				Log.info("After cleartable: " + EQCBlockChainRocksDB.getTableItemNumbers(columnFamilyHandle));
@@ -90,7 +87,7 @@ public class Filter {
 		return getAccount(id.getEQCBits(), isLoadInFilter);
 	}
 	
-	public Account getAccount(Address address, boolean isLoadInFilter) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public Account getAccount(Passport address, boolean isLoadInFilter) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		ID id = null;
 		id = getAddressID(address);
 		if(id == null) {
@@ -99,7 +96,7 @@ public class Filter {
 		return getAccount(id, isLoadInFilter);
 	}
 	
-	public boolean isAddressExists(Address address) throws RocksDBException {
+	public boolean isAddressExists(Passport address) throws RocksDBException {
 		boolean isSucc = false;
 		// For security issue only support search address via AddressAI
 		if ((EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI()) != null)) {
@@ -108,13 +105,15 @@ public class Filter {
 		return isSucc;
 	}
 	
-	public boolean isAddressExists(Address address, ID height) throws NoSuchFieldException, RocksDBException, IOException {
+	public boolean isAddressExists(Passport address, ID height) throws NoSuchFieldException, RocksDBException, IOException {
 		boolean isSucc = false;
 		byte[] bytes = null;
+		Account account = null;
 			// For security issue only support search address via AddressAI
 			if((bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI())) != null) {
 				// Here maybe still exists some issue
-				if(new AssetAccount(bytes).getKey().getAddressCreateHeight().compareTo(height) <= 0)
+				account = Account.parseAccount(bytes);
+				if(account.getPassportCreateHeight().compareTo(height) <= 0)
 				isSucc = true;
 			}
 		return isSucc;
@@ -123,9 +122,14 @@ public class Filter {
 	public void saveAccount(Account account) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
 		writeBatch.put(columnFamilyHandles.get(0), account.getIDEQCBits(), account.getBytes());
-		writeBatch.put(columnFamilyHandles.get(1), account.getKey().getAddress().getAddressAI(),
+		writeBatch.put(columnFamilyHandles.get(1), account.getPassport().getAddressAI(),
 				account.getIDEQCBits());
-//			writeBatch.put(columnFamilyHandles.get(2), account.getIDEQCBits(), account.getHash());
+		EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
+	}
+	
+	public void saveAccountHash(Account account, byte[] accountHash) throws RocksDBException {
+		WriteBatch writeBatch = new WriteBatch();
+		writeBatch.put(columnFamilyHandles.get(2), account.getIDEQCBits(), accountHash);
 		EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
 	}
 	
@@ -169,23 +173,19 @@ public class Filter {
 	
 	public void merge() throws Exception {
 		Account account = null;
+		WriteBatch writeBatch = null;
 		RocksIterator rocksIterator = EQCBlockChainRocksDB.getRocksDB().newIterator(columnFamilyHandles.get(0));
 		rocksIterator.seekToFirst();
 		while(rocksIterator.isValid()) {
-//				WriteBatch writeBatch = new WriteBatch();
-//				Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
-//				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT), rocksIterator.key(), rocksIterator.value());
-//				rocksIterator.next();
-//				Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
-//				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT), rocksIterator.key(), rocksIterator.value());
-//				rocksIterator.next();
-//				Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));
-//				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT), rocksIterator.key(), rocksIterator.value());
-//				EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
 				account = Account.parseAccount(rocksIterator.value());
-				// At here calculate Account's Hash is faster than retrieve it from HD
-				account.updateHash(accountsMerkleTree);
-				EQCBlockChainRocksDB.getInstance().saveAccount(account);
+				writeBatch = new WriteBatch();
+				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT), rocksIterator.key(), rocksIterator.value());
+//				Log.info(account.toString());
+//				Log.info(Util.dumpBytes(account.getAddress().getAddressAI(), 16));
+				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(), account.getIDEQCBits());
+				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_HASH), account.getIDEQCBits(), EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(2), account.getIDEQCBits()));
+				EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
+//				EQCBlockChainRocksDB.getInstance().saveAccount(account);
 				rocksIterator.next();
 		}
 	}
@@ -215,7 +215,7 @@ public class Filter {
 		}
 	}
 	
-	public ID getAddressID(Address address) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
+	public ID getAddressID(Passport address) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
 		ID id = null;
 		byte[] bytes = null;
 			bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI());
@@ -234,15 +234,15 @@ public class Filter {
 		return id;
 	}
 
-	public Address getAddress(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
-		return getAccount(id, true).getKey().getAddress();
+	public Passport getAddress(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+		return getAccount(id, true).getPassport();
 	}
 
 	public PublicKey getPublicKey(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		PublicKey publicKey = null;
-		if(getAccount(id, true).getKey().getPublickey() != null) {
+		if(getAccount(id, true).getPublickey() != null) {
 			publicKey = new PublicKey();
-			publicKey.setPublicKey(getAccount(id, true).getKey().getPublickey().getPublickey());
+			publicKey.setPublicKey(getAccount(id, true).getPublickey().getPublickey());
 			publicKey.setID(id);
 		}
 		return publicKey;
@@ -253,15 +253,15 @@ public class Filter {
 		com.eqchains.blockchain.account.Publickey publickey2 = new com.eqchains.blockchain.account.Publickey();
 		publickey2.setPublickey(publicKey.getPublicKey());
 		publickey2.setPublickeyCreateHeight(height);
-		account.getKey().setPublickey(publickey2);
+		account.setPublickey(publickey2);
 		saveAccount(account);
 	}
 
 	public boolean isPublicKeyExists(PublicKey publicKey) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		boolean isSucc = false;
 		Account account = getAccount(publicKey.getID(), true);
-		if(account.getKey().getPublickey() != null) {
-			if(Arrays.equals(account.getKey().getPublickey().getPublickey(), publicKey.getPublicKey())) {
+		if(account.getPublickey() != null) {
+			if(Arrays.equals(account.getPublickey().getPublickey(), publicKey.getPublicKey())) {
 				isSucc = true;
 			}
 		}
@@ -270,7 +270,7 @@ public class Filter {
 
 	public void deletePublicKey(PublicKey publicKey) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
 		Account account = getAccount(publicKey.getID(), true);
-		account.getKey().setPublickey(null);
+		account.setPublickey(null);
 		saveAccount(account);
 	}
 

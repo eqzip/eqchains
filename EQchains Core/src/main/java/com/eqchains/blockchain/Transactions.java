@@ -42,19 +42,19 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.account.Publickey;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -74,8 +74,8 @@ import avro.shaded.com.google.common.base.Objects;
 public class Transactions implements EQCTypable {
 	private Vector<Transaction> newTransactionList;
 	private long newTransactionListSize;
-	private Vector<Address> newAccountList;
-	private long newAccountListSize;
+	private Vector<Passport> newPassportList;
+	private long newPassportListSize;
 	private Vector<PublicKey> newPublicKeyList;
 	private long newPublickeyListSize;
 	
@@ -87,8 +87,8 @@ public class Transactions implements EQCTypable {
 	public void init() {
 		newTransactionList = new Vector<Transaction>();
 		newTransactionListSize = 0;
-		newAccountList = new Vector<Address>();
-		newAccountListSize = 0;
+		newPassportList = new Vector<Passport>();
+		newPassportListSize = 0;
 		newPublicKeyList = new Vector<PublicKey>();
 		newPublickeyListSize = 0;
 	}
@@ -112,7 +112,7 @@ public class Transactions implements EQCTypable {
 			newTransactionListSize = array.length;
 			ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
 			for (int i=0; i<newTransactionListSize; ++i) {
-				newTransactionList.add(Transaction.parseTransaction(EQCType.parseBIN(iStream), Address.AddressShape.ID));
+				newTransactionList.add(Transaction.parseTransaction(EQCType.parseBIN(iStream), Passport.AddressShape.ID));
 			}
 			EQCType.assertNoRedundantData(iStream);
 		}
@@ -123,10 +123,10 @@ public class Transactions implements EQCTypable {
 		// Parse Accounts
 		array = EQCType.parseARRAY(is);
 		if (!array.isNULL()) {
-			newAccountListSize = array.length;
+			newPassportListSize = array.length;
 			ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
-			for(int i=0; i<newAccountListSize; ++i) {
-				newAccountList.add(new Address(iStream));
+			for(int i=0; i<newPassportListSize; ++i) {
+				newPassportList.add(new Passport(iStream));
 			}
 			EQCType.assertNoRedundantData(iStream);
 		}
@@ -176,9 +176,9 @@ public class Transactions implements EQCTypable {
 	
 //	private void parseAccounts(byte[] bytes) throws NoSuchFieldException, IOException{
 //		ARRAY array = EQCType.parseARRAY(bytes);
-//		newAccountListSize = (int) array.length;
+//		newPassportListSize = (int) array.length;
 //		for(byte[] address : array.elements) {
-//			newAccountList.add(new Address(address));
+//			newPassportList.add(new Address(address));
 //		}
 //	}
 	
@@ -191,7 +191,7 @@ public class Transactions implements EQCTypable {
 			// Add new Address
 			for(TxOut txOut : transaction.getTxOutList()) {
 				if(txOut.isNew()) {
-					newAccountList.add(txOut.getAddress());
+					newPassportList.add(txOut.getPassport());
 				}
 			}
 			// Add Transaction
@@ -204,14 +204,14 @@ public class Transactions implements EQCTypable {
 	}
 	
 	@Deprecated
-	public boolean isAddressExists(Address address) {
-		return newAccountList.contains(address);
+	public boolean isAddressExists(Passport address) {
+		return newPassportList.contains(address);
 	}
 	
 	@Deprecated
 	public boolean isAddressExists(String address) {
 		boolean isExists = false;
-		for(Address address2 : newAccountList) {
+		for(Passport address2 : newPassportList) {
 			if(address2.getReadableAddress().equals(address)) {
 				isExists = true;
 				break;
@@ -257,12 +257,12 @@ public class Transactions implements EQCTypable {
 	}
 	
 	private byte[] getAccountsArray() {
-		if (newAccountList.size() == 0) {
+		if (newPassportList.size() == 0) {
 			return EQCType.bytesToBIN(null);
 		}
 		else {
 			Vector<byte[]> addresses = new Vector<byte[]>();
-			for (Address address : newAccountList) {
+			for (Passport address : newPassportList) {
 				addresses.add(address.getBytes());
 			}
 			return EQCType.bytesArrayToARRAY(addresses);
@@ -329,16 +329,16 @@ public class Transactions implements EQCTypable {
 		return EQCType.bytesToBIN(getBytes());
 	}
 	
-	private String _getNewAccountList() {
+	private String _getnewPassportList() {
 		String tx = null;
-		if (newAccountList != null && newAccountList.size() > 0) {
+		if (newPassportList != null && newPassportList.size() > 0) {
 			tx = "\n[\n";
-			if (newAccountList.size() > 1) {
-				for (int i = 0; i < newAccountList.size() - 1; ++i) {
-					tx += newAccountList.get(i) + ",\n";
+			if (newPassportList.size() > 1) {
+				for (int i = 0; i < newPassportList.size() - 1; ++i) {
+					tx += newPassportList.get(i) + ",\n";
 				}
 			}
-			tx += newAccountList.get(newAccountList.size() - 1);
+			tx += newPassportList.get(newPassportList.size() - 1);
 			tx += "\n]";
 		} else {
 			tx = "[]";
@@ -398,11 +398,11 @@ public class Transactions implements EQCTypable {
 		
 				"\"Transactions\":" + 
 				"\n{\n" +
-					"\"NewAccountList\":" + 
+					"\"NewPassportList\":" + 
 					"\n{\n" +
-					"\"Size\":\"" + newAccountListSize + "\",\n" +
+					"\"Size\":\"" + newPassportListSize + "\",\n" +
 					"\"List\":" + 
-						_getNewAccountList() + "\n},\n" +
+						_getnewPassportList() + "\n},\n" +
 						"\"NewPublicKeyList\":" + 
 						"\n{\n" +
 						"\"Size\":\"" + newPublickeyListSize + "\",\n" +
@@ -422,17 +422,17 @@ public class Transactions implements EQCTypable {
 	}
 
 	/**
-	 * @return the newAccountList
+	 * @return the newPassportList
 	 */
-	public Vector<Address> getNewAccountList() {
-		return newAccountList;
+	public Vector<Passport> getNewPassportList() {
+		return newPassportList;
 	}
 
 	/**
-	 * @param newAccountList the newAccountList to set
+	 * @param newPassportList the newPassportList to set
 	 */
-	public void setNewAccountList(Vector<Address> newAccountList) {
-		this.newAccountList = newAccountList;
+	public void setNewPassportList(Vector<Passport> newPassportList) {
+		this.newPassportList = newPassportList;
 	}
 
 	/**
@@ -467,8 +467,8 @@ public class Transactions implements EQCTypable {
 	public void deleteTransactionTail() {
 		Transaction transaction = newTransactionList.lastElement();
 		for(TxOut txOut : transaction.getTxOutList()) {
-			if(newAccountList.contains(txOut.getAddress())) {
-				newAccountList.removeElement(txOut.getAddress());
+			if(newPassportList.contains(txOut.getPassport())) {
+				newPassportList.removeElement(txOut.getPassport());
 			}
 		}
 		if(newPublicKeyList.contains(transaction.getPublickey())) {
@@ -496,12 +496,12 @@ public class Transactions implements EQCTypable {
 		return Util.getMerkleTreeRoot(publickeys);
 	}
 	
-	public byte[] getNewAccountListMerkelTreeRoot() {
-		if(newAccountList.size() == 0) {
+	public byte[] getNewPassportListMerkelTreeRoot() {
+		if(newPassportList.size() == 0) {
 			return null;
 		}
 		Vector<byte[]> addresses = new Vector<byte[]>();
-		for (Address address : newAccountList) {
+		for (Passport address : newPassportList) {
 			addresses.add(address.getBytes());
 		}
 		return Util.getMerkleTreeRoot(addresses);
@@ -513,7 +513,7 @@ public class Transactions implements EQCTypable {
 
 	@Override
 	public boolean isSanity() {
-		for(Address address : newAccountList) {
+		for(Passport address : newPassportList) {
 			if(!address.isSanity(null)) {
 				return false;
 			}
@@ -539,12 +539,12 @@ public class Transactions implements EQCTypable {
 		return txFee;
 	}
 	
-	public boolean isNewAccountListValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isNewPassportListValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
-		if(newAccountList.size() == 0) {
+		if(newPassportList.size() == 0) {
 			return true;
 		}
-		else if (!newAccountList.get(0).getID().subtract(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers())
+		else if (!newPassportList.get(0).getID().subtract(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers())
 				.equals(ID.ONE)) {
 			return false;
 		}else {
@@ -552,40 +552,39 @@ public class Transactions implements EQCTypable {
 			Vector<ID> newAccounts = new Vector<>();
 			for(Transaction transaction : newTransactionList) {
 				for(TxOut txOut : transaction.getTxOutList()) {
-					if(txOut.getAddress().getID().compareTo(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()) > 0) {
-						if(!newAccounts.contains(txOut.getAddress().getID())) {
-							newAccounts.add(txOut.getAddress().getID());
+					if(txOut.getPassport().getID().compareTo(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()) > 0) {
+						if(!newAccounts.contains(txOut.getPassport().getID())) {
+							newAccounts.add(txOut.getPassport().getID());
 						}
 					}
 				}
 			}
-			if(newAccountList.size() != newAccounts.size()) {
+			if(newPassportList.size() != newAccounts.size()) {
 				return false;
 			}
-			for(int i=0; i<newAccountList.size(); ++i) {
-				if(!newAccountList.get(i).getID().equals(newAccounts.get(i))) {
+			for(int i=0; i<newPassportList.size(); ++i) {
+				if(!newPassportList.get(i).getID().equals(newAccounts.get(i))) {
 					return false;
 				}
 			}
-			for(int i=0; i<newAccountList.size(); ++i) {
+			for(int i=0; i<newPassportList.size(); ++i) {
 				// Check if Address already exists
-				if(accountsMerkleTree.isAccountExists(newAccountList.get(i), true)) {
+				if(accountsMerkleTree.isAccountExists(newPassportList.get(i), true)) {
 					return false;
 				}
 				else {
 					// Check if ID is valid
-					if ((i + 1) < newAccountList.size()) {
-						if (!newAccountList.get(i).getID().getNextID().equals(newAccountList.get(i + 1))) {
+					if ((i + 1) < newPassportList.size()) {
+						if (!newPassportList.get(i).getID().getNextID().equals(newPassportList.get(i + 1))) {
 							return false;
 						}
 					}
 					// Save new Account in Filter
 					Account account = new AssetAccount();
-					account.getKey().setAddress(newAccountList.get(i));
-					account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+					account.setPassport(newPassportList.get(i));
+					account.setPassportCreateHeight(accountsMerkleTree.getHeight().getNextID());
 					Asset asset = new CoinAsset();
 					asset.setAssetID(Asset.EQCOIN);
-					asset.setBalanceUpdateHeight(account.getKey().getAddressCreateHeight());
 					asset.setNonce(ID.ZERO);
 					account.setAsset(asset);
 					accountsMerkleTree.saveAccount(account);
@@ -600,7 +599,7 @@ public class Transactions implements EQCTypable {
 	
 	public boolean isPublickeyIDExistsInTransactions(ID id) {
 		for(Transaction transaction : newTransactionList) {
-			if(transaction.getTxIn().getAddress().getID().equals(id)) {
+			if(transaction.getTxIn().getPassport().getID().equals(id)) {
 				return true;
 			}
 		}
@@ -615,10 +614,10 @@ public class Transactions implements EQCTypable {
 		// Get the new Publickey's ID list from Transactions
 		Vector<ID> newPublickeys = new Vector<>();
 		for(int i=1; i<newTransactionList.size(); ++i) {
-			Account account = accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getAddress());
+			Account account = accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport());
 				if(!account.isPublickeyExists()) {
-					if(!newPublickeys.contains(newTransactionList.get(i).getTxIn().getAddress().getID())) {
-						newPublickeys.add(newTransactionList.get(i).getTxIn().getAddress().getID());
+					if(!newPublickeys.contains(newTransactionList.get(i).getTxIn().getPassport().getID())) {
+						newPublickeys.add(newTransactionList.get(i).getTxIn().getPassport().getID());
 					}
 				}
 		}
@@ -639,18 +638,18 @@ public class Transactions implements EQCTypable {
 			}
 			else {
 				Account account = accountsMerkleTree.getAccount(publicKey.getID());
-				if(!AddressTool.verifyAddressPublickey(account.getKey().getAddress().getReadableAddress(), publicKey.getPublicKey())) {
+				if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), publicKey.getPublicKey())) {
 					return false;
 				}
 				else {
 					Publickey publickey1 = new Publickey();
 					publickey1.setPublickey(publicKey.getPublicKey());
 					publickey1.setPublickeyCreateHeight(accountsMerkleTree.getHeight().getNextID());
-					account.getKey().setPublickey(publickey1);
+					account.setPublickey(publickey1);
 					writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(),
 							account.getBytes());
 					writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1),
-							account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
+							account.getPassport().getAddressAI(), account.getIDEQCBits());
 				}
 			}
 		}
@@ -662,7 +661,7 @@ public class Transactions implements EQCTypable {
 	
 	public boolean isAllTxInPublickeyExists(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		for(int i=1; i<newTransactionList.size(); ++i) {
-			if(!accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getAddress().getID()).isPublickeyExists()) {
+			if(!accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport().getID()).isPublickeyExists()) {
 				return false;
 			}
 		}
@@ -673,13 +672,13 @@ public class Transactions implements EQCTypable {
 		return (CoinbaseTransaction) newTransactionList.get(0);
 	}
 	
-	public ID getAccountListInitId(AccountsMerkleTree accountsMerkleTree) {
+	public ID getNewPassportListInitId(AccountsMerkleTree accountsMerkleTree) {
 		ID initID = null;
-		if (newAccountList.size() == 0) {
+		if (newPassportList.size() == 0) {
 			initID = new ID(accountsMerkleTree.getTotalAccountNumbers()
 					.add(BigInteger.valueOf(Util.INIT_ADDRESS_SERIAL_NUMBER)));
 		} else {
-			initID = newAccountList.lastElement().getID().getNextID();
+			initID = newPassportList.lastElement().getID().getNextID();
 		}
 		return initID;
 	}

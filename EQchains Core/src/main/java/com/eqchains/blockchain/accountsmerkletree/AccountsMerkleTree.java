@@ -47,19 +47,20 @@ import org.rocksdb.WriteOptions;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.AssetSubchainHeader;
-import com.eqchains.blockchain.transaction.Address;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.crypto.MerkleTree;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCTypable;
+import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -133,14 +134,14 @@ public class AccountsMerkleTree {
 	 * @return true if Address exists
 	 * @throws Exception 
 	 */
-	public synchronized boolean isAccountExists(Address address, boolean isFiltering) throws Exception {
+	public synchronized boolean isAccountExists(Passport address, boolean isFiltering) throws Exception {
 		boolean isExists = false;
 		if(isFiltering && filter.isAddressExists(address)) {
 			isExists = true;
 		}
 		else if(Util.DB().isAddressExists(address)) {
 			Account account = Util.DB().getAccount(address.getAddressAI());
-			if(account != null && account.getKey().getAddressCreateHeight().compareTo(height) <= 0) {
+			if(account != null && account.getPassportCreateHeight().compareTo(height) <= 0) {
 				isExists = true;
 			}
 		}
@@ -151,7 +152,7 @@ public class AccountsMerkleTree {
 		return filter.getAccount(id, true);
 	}
 	
-	public synchronized Account getAccount(Address address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public synchronized Account getAccount(Passport address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		return filter.getAccount(address, true);
 	}
 	
@@ -196,7 +197,8 @@ public class AccountsMerkleTree {
 		Vector<byte[]> accountsHash = new Vector<>();
 		long remainder = totalAccountNumbers.longValue();
 		int begin = 0, end = 0;
-
+		byte[] accountHash = null;
+		
 		for (int i = 0; i <= totalAccountNumbers.longValue() / MAX_ACCOUNTS_PER_TREE; ++i) {
 			begin = BigInteger.valueOf(i * MAX_ACCOUNTS_PER_TREE)
 					.add(BigInteger.valueOf(Util.INIT_ADDRESS_SERIAL_NUMBER)).intValue();
@@ -214,8 +216,10 @@ public class AccountsMerkleTree {
 				}
 //				Log.info(account.toString());
 //				Log.info(Util.dumpBytes(account.getHash(), 16));
-				account.updateHash(this);
-				accountsHash.add(account.getHash());
+				accountHash = account.getHash();
+				filter.saveAccountHash(account, accountHash);
+				accountsHash.add(accountHash);
+				accountHash = null;
 			}
 			MerkleTree merkleTree = new MerkleTree(accountsHash);
 			merkleTree.generateRoot();
@@ -253,11 +257,11 @@ public class AccountsMerkleTree {
 		filter.close();
 	}
 	
-	public ID getAddressID(Address address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException {
+	public ID getAddressID(Passport address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException {
 		return filter.getAddressID(address);
 	}
 
-	public Address getAddress(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public Passport getAddress(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		return filter.getAddress(id);
 	}
 
@@ -277,11 +281,19 @@ public class AccountsMerkleTree {
 		filter.deletePublicKey(publicKey);
 	}
 
-	public byte[] getEQCHeaderHash(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public byte[] getEQCHeaderHash(ID height) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+		return EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(height);
+	}
+	
+	public byte[] getEQCHeaderBuddyHash(ID height) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		byte[] hash = null;
-		Account account = null;
-		account = getAccount(id);
-		hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(account.getKey().getAddressCreateHeight());
+		EQCType.assertNotHigher(height, this.height);
+		if(height.compareTo(this.height) < 0) {
+			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(height);
+		}
+		else {
+			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(height.getPreviousID());
+		}
 		return hash;
 	}
 	

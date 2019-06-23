@@ -32,15 +32,19 @@ package com.eqchains.blockchain.account;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Arrays;
 
+import org.rocksdb.RocksDBException;
+
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCHashInheritable;
 import com.eqchains.serialization.EQCHashTypable;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
+import com.eqchains.serialization.SoleUpdate;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -53,7 +57,6 @@ import com.eqchains.util.Util;
 public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	private byte[] publickey;
 	private ID publickeyCreateHeight;
-	private byte[] publickeyCreateHeightHash;
 	
 	public Publickey() {
 		// TODO Auto-generated constructor stub
@@ -230,18 +233,18 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	@Override
-	public byte[] getHeaderHashBytes() {
+	public byte[] getHeaderHashBytes(SoleUpdate soleUpdate) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public byte[] getBodyHashBytes() {
+	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(EQCType.bytesToBIN(publickey));
 			os.write(publickeyCreateHeight.getEQCBits());
-			os.write(publickeyCreateHeightHash);
+			soleUpdate.update(os, publickeyCreateHeight);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -251,35 +254,16 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	@Override
-	public byte[] getHashBytes() {
+	public byte[] getHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(getBodyHashBytes());
+			os.write(getBodyHashBytes(soleUpdate));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 		}
 		return os.toByteArray();
-	}
-
-	@Override
-	public void updateHash(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		publickeyCreateHeightHash = accountsMerkleTree.getEQCHeaderHash(publickeyCreateHeight);
-	}
-
-	/**
-	 * @return the publickeyCreateHeightHash
-	 */
-	public byte[] getPublickeyCreateHeightHash() {
-		return publickeyCreateHeightHash;
-	}
-
-	/**
-	 * @param publickeyCreateHeightHash the publickeyCreateHeightHash to set
-	 */
-	public void setPublickeyCreateHeightHash(byte[] publickeyCreateHeightHash) {
-		this.publickeyCreateHeightHash = publickeyCreateHeightHash;
 	}
 	
 }

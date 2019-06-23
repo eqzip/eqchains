@@ -37,7 +37,7 @@ import java.util.Vector;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.transaction.Address;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.util.ID;
 
@@ -49,13 +49,13 @@ import com.eqchains.util.ID;
 public interface EQCBlockChain {
 	
 	// Address relevant interface for H2, avro(optional).
-	public ID getAddressID(Address address) throws Exception;
+	public ID getAddressID(Passport address) throws Exception;
 	
-	public Address getAddress(ID serialNumber) throws Exception;
+	public Passport getAddress(ID serialNumber) throws Exception;
 	
 //	public boolean appendAddress(Address address, SerialNumber address_create_height);
 	
-	public boolean isAddressExists(Address address) throws Exception;
+	public boolean isAddressExists(Passport address) throws Exception;
 	
 //	public boolean deleteAddress(Address address);
 	
@@ -157,6 +157,8 @@ public interface EQCBlockChain {
 	
 	// For sign and verify Transaction need use relevant TxIn's EQC block header's hash via this function to get it from xxx.EQC.
 	public byte[] getEQCHeaderHash(ID height) throws Exception;
+	
+	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception;
 	
 //	public int getTransactionNumbersIn24hours(Address address, SerialNumber currentHeight);
 	

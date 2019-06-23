@@ -41,9 +41,9 @@ import java.security.SignatureException;
 import java.util.Arrays;
 import org.bouncycastle.asn1.sec.ECPrivateKey;
 
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.TransferTransaction;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.serialization.EQCTypable;
@@ -276,7 +276,7 @@ public class UserAccount implements EQCTypable {
 		try {
 			Signature ecdsa;
 			ecdsa = Signature.getInstance("SHA1withECDSA", "SunEC");
-			PrivateKey privateKey = Util.getPrivateKey(Util.AESDecrypt(this.privateKey, password), Util.AddressTool.getAddressType(transaction.getTxIn().getAddress().getReadableAddress()));
+			PrivateKey privateKey = Util.getPrivateKey(Util.AESDecrypt(this.privateKey, password), transaction.getTxIn().getPassport().getAddressType());
 			ecdsa.initSign(privateKey);
 			ecdsa.update(transaction.getBytes(AddressShape.READABLE));
 			signature = ecdsa.sign();
@@ -291,10 +291,10 @@ public class UserAccount implements EQCTypable {
 	public boolean verifyTransaction(String password, TransferTransaction transaction) {
 		boolean boolVerifyResult = false;
 		EQCPublicKey eqcPublicKey = null;
-		if(Util.AddressTool.getAddressType(transaction.getTxIn().getAddress().getReadableAddress()) == AddressType.T1) {
+		if(Util.AddressTool.getAddressType(transaction.getTxIn().getPassport().getReadableAddress()) == AddressType.T1) {
 			eqcPublicKey = new EQCPublicKey(ECCTYPE.P256);
 		}
-		else if(Util.AddressTool.getAddressType(transaction.getTxIn().getAddress().getReadableAddress()) == AddressType.T2) {
+		else if(transaction.getTxIn().getPassport().getAddressType() == AddressType.T2) {
 			eqcPublicKey = new EQCPublicKey(ECCTYPE.P521);
 		}
 		eqcPublicKey.setECPoint(Util.AESDecrypt(publicKey, password));

@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.transaction;
+package com.eqchains.blockchain.account;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -37,8 +37,8 @@ import java.util.Arrays;
 import javax.print.attribute.standard.RequestingUserName;
 
 import com.eqchains.blockchain.PublicKey;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.serialization.EQCAddressShapeTypable;
 import com.eqchains.serialization.EQCTypable;
@@ -54,7 +54,7 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @date Sep 27, 2018
  * @email 10509759@qq.com
  */
-public class Address implements EQCAddressShapeTypable {
+public class Passport implements EQCAddressShapeTypable {
 	/*
 	 * AddressShape enum which expressed three types of addresses Readable, ID and
 	 * AI. <p> Readable Address used for RPC for example send the Transaction's
@@ -75,17 +75,17 @@ public class Address implements EQCAddressShapeTypable {
 	 * @param address
 	 * @param code
 	 */
-	public Address(ID id, String address, byte[] code) {
+	public Passport(ID id, String address, byte[] code) {
 		super();
 		this.id = id;
 		this.readableAddress = address;
 		this.code = code;
 	}
 
-	public Address() {
+	public Passport() {
 	}
 	
-	public Address(String readableAddress) {
+	public Passport(String readableAddress) {
 		this.readableAddress = readableAddress;
 	}
 
@@ -96,14 +96,14 @@ public class Address implements EQCAddressShapeTypable {
 	 * @throws IOException
 	 * @throws NoSuchFieldException
 	 */
-	public Address(byte[] bytes) throws NoSuchFieldException, IOException {
+	public Passport(byte[] bytes) throws NoSuchFieldException, IOException {
 		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseAddress(is);
 		EQCType.assertNoRedundantData(is);
 	}
 	
-	public Address(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+	public Passport(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		parseAddress(is);
 	}
 
@@ -164,7 +164,7 @@ public class Address implements EQCAddressShapeTypable {
 		return size;
 	}
 
-	public AddressType getType() {
+	public AddressType getAddressType() {
 		return Util.AddressTool.getAddressType(readableAddress);
 	}
 	
@@ -240,7 +240,7 @@ public class Address implements EQCAddressShapeTypable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Address other = (Address) obj;
+		Passport other = (Passport) obj;
 		if (readableAddress == null) {
 			if (other.readableAddress != null)
 				return false;
@@ -260,7 +260,7 @@ public class Address implements EQCAddressShapeTypable {
 	}
 
 	public String toInnerJson() {
-		return "\"Address\":" + "{\n" + "\"ID\":" + ((id == null) ? null : "\"" + id + "\"") + ",\n"
+		return "\"Passport\":" + "{\n" + "\"ID\":" + ((id == null) ? null : "\"" + id + "\"") + ",\n"
 				+ "\"ReadableAddress\":" + ((readableAddress == null)?null:"\"" + readableAddress + "\"") + ",\n" + "\"Code\":" + ((code == null)?null:"\"" + Util.getHexString(code) + "\"")
 				+ "\n" + "}";
 	}
@@ -307,7 +307,7 @@ public class Address implements EQCAddressShapeTypable {
 
 	@Override
 	public boolean isSanity(AddressShape addressShape) {
-		if (getType() != AddressType.T1 && getType() != AddressType.T2) {
+		if (getAddressType() != AddressType.T1 && getAddressType() != AddressType.T2) {
 			return false;
 		}
 		if (addressShape == null) {
@@ -354,12 +354,12 @@ public class Address implements EQCAddressShapeTypable {
 	public byte[] getBytes(AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			if (addressShape == Address.AddressShape.ID) {
+			if (addressShape == Passport.AddressShape.ID) {
 				os.write(id.getEQCBits());
-			} else if (addressShape == Address.AddressShape.READABLE) {
+			} else if (addressShape == Passport.AddressShape.READABLE) {
 //				Log.info(Util.dumpBytes(EQCType.stringToASCIIBytes(readableAddress), 16));
 				os.write(EQCType.stringToASCIIBytes(readableAddress));
-			} else if (addressShape == Address.AddressShape.AI) {
+			} else if (addressShape == Passport.AddressShape.AI) {
 				os.write(AddressTool.addressToAI(readableAddress));
 			}
 		} catch (IOException e) {

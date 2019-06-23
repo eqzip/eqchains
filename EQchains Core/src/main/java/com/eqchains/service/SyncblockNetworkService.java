@@ -32,6 +32,7 @@ package com.eqchains.service;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Date;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.NettyServer;
@@ -48,9 +49,11 @@ import com.eqchains.rpc.avro.Height;
 import com.eqchains.rpc.avro.MinerList;
 import com.eqchains.rpc.avro.Status;
 import com.eqchains.rpc.avro.SyncblockNetwork;
+import com.eqchains.test.Test;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
+import com.eqchains.util.Util.STATUS;
 
 /**
  * @author Xun Wang
@@ -65,7 +68,20 @@ public class SyncblockNetworkService extends Thread {
 		@Override
 		public Status ping(Cookie cookie) throws AvroRemoteException {
 			// Here need add function to test ping
-			return Util.getStatus();
+//			Test.ping(Util.getStatus().getCookie().getIp().toString(), Util.getStatus().getCookie().getIp().toString());
+			Cookie cookie1 = new Cookie();
+			cookie1.setIp("14.221.177.198");
+			cookie1.setVersion(Util.PROTOCOL_VERSION);
+			if (cookie1.getIp().length() == 0) {
+				Log.Error("During get IP error occur please check your network");
+			} else {
+				Log.info(cookie1.toString());
+			}
+			Status status = new Status();
+			status.setCookie(cookie1);
+			status.setCode(STATUS.OK.ordinal());
+			status.setMessage(new Date().toString());
+			return status;//Util.getStatus();
 		}
 
 		@Override

@@ -38,13 +38,14 @@ import java.util.Collections;
 import org.apache.avro.io.parsing.Symbol;
 
 import com.eqchains.blockchain.account.Account.AccountType;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
@@ -57,15 +58,11 @@ public abstract class SmartContractAccount extends Account {
 	 */
 	private LanguageType languageType;
 	private ID leasePeriod;
-	private ID leasePeriodUpdateHeight;
-	private ID totalStateSize;
-	private ID totalStateSizeUpdateHeight;
+	private long totalStateSize;
 	private State state;
-	private ID stateUpdateHeight;
-	public final static byte MAX_VERSION = 0;
 	
 	public enum LanguageType {
-		JAVA, INTELLIGENT, INVALID;
+		JAVA, INTELLIGENT, MOVE, INVALID;
 		public static LanguageType get(int ordinal) {
 			LanguageType languageType = null;
 			switch (ordinal) {
@@ -74,6 +71,9 @@ public abstract class SmartContractAccount extends Account {
 				break;
 			case 1:
 				languageType = LanguageType.INTELLIGENT;
+				break;
+			case 2:
+				languageType = LanguageType.MOVE;
 				break;
 			default:
 				languageType = LanguageType.INVALID;
@@ -92,6 +92,16 @@ public abstract class SmartContractAccount extends Account {
 		}
 	}
 	
+	
+	/**
+	 * @author Xun Wang
+	 * @date Jun 18, 2019
+	 * @email 10509759@qq.com
+	 * 
+	 * When SmartContract inactive we can achieve it's state DB to GitHub which is free. 
+	 * After this all the full node doesn't need store it's state DB in local just keep the relevant Account's state.
+	 * When it become active again all the full node can recovery it's state DB from GitHub. 
+	 */
 	public enum State {
 		ACTIVE, OVERDUE, INACTIVE, INVALID;
 		public static State get(int ordinal) {
@@ -187,8 +197,12 @@ public abstract class SmartContractAccount extends Account {
 		languageType = LanguageType.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));
 		// Parse leasePeriod
 		leasePeriod = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
+		// Parse TotalStateSize
+		totalStateSize = Util.bytesToLong(EQCType.parseBIN(is));
+		// Parse State
+		state = State.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see com.eqchains.blockchain.account.Account#getBodyBytes()
 	 */
@@ -199,6 +213,8 @@ public abstract class SmartContractAccount extends Account {
 			os.write(super.getBodyBytes());
 			os.write(languageType.getEQCBits());
 			os.write(leasePeriod.getEQCBits());
+			os.write(EQCType.bytesToBIN(Util.longToBytes(totalStateSize)));
+			os.write(state.getEQCBits());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -238,7 +254,52 @@ public abstract class SmartContractAccount extends Account {
 	public String toInnerJson() {
 		return 
 					"\"LanguageType\":" + "\"" + languageType + "\"" + ",\n" +
-					"\"LeasePeriod\":" + "\"" + leasePeriod + "\"" + ",\n";
+					"\"LeasePeriod\":" + "\"" + leasePeriod + "\"" + ",\n" +
+					"\"TotalStateSize\":" + "\"" + totalStateSize + "\"" + ",\n" +
+					"\"State\":" + "\"" + state + "\"" + ",\n";
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.account.Account#isSanity()
+	 */
+	@Override
+	public boolean isSanity() {
+		if(!super.isSanity()) {
+			return false;
+		}
+		if(languageType == null || leasePeriod == null || totalStateSize <= 0 || state == null) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * @return the totalStateSize
+	 */
+	public long getTotalStateSize() {
+		return totalStateSize;
+	}
+
+	/**
+	 * @param totalStateSize the totalStateSize to set
+	 */
+	public void setTotalStateSize(long totalStateSize) {
+		this.totalStateSize = totalStateSize;
+		Log.info(""+totalStateSize);
+	}
+
+	/**
+	 * @return the state
+	 */
+	public State getState() {
+		return state;
+	}
+
+	/**
+	 * @param state the state to set
+	 */
+	public void setState(State state) {
+		this.state = state;
 	}
 	
 }

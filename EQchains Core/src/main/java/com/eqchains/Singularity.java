@@ -30,9 +30,12 @@
 package com.eqchains;
 
 
+import com.eqchains.configuration.Configuration;
+import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.rpc.avro.SyncblockNetwork;
 import com.eqchains.service.MinerService;
 import com.eqchains.service.SyncblockNetworkService;
+import com.eqchains.test.Test;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
@@ -51,12 +54,16 @@ public class Singularity {
 //		Test.testVerifyBlock();
 //		Test.testTransaction();
 //		Test.testKeystore();
+//		Test.ping("14.221.176.138", "129.28.138.37");
+//		Log.info("" + (int)'-');
 //		System.out.println("Begin testKeystore");
 		try {
-//			Configuration.getInstance().updateIsInitSingularityBlock(false); // Test stub
 			Util.init();
-//			MinerService.getInstance().start();
-			SyncblockNetworkService.getInstance().start();
+			MinerService.getInstance().start();
+//			SyncblockNetworkService.getInstance().start();
+//			while(true) {
+//				Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.HUNDREDPULS, true, false);
+//			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

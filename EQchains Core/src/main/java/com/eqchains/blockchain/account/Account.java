@@ -32,6 +32,7 @@ package com.eqchains.blockchain.account;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.math.BigInteger;
 import java.security.acl.Owner;
 import java.sql.SQLException;
@@ -46,12 +47,10 @@ import javax.print.attribute.standard.RequestingUserName;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TransferTransaction;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.serialization.EQCHashInheritable;
 import com.eqchains.serialization.EQCHashTypable;
@@ -59,6 +58,7 @@ import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
+import com.eqchains.serialization.SoleUpdate;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -76,20 +76,20 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	 */
 	protected AccountType accountType;
 	protected ID createHeight;
-	protected byte[] createHeightHash;
 	protected ID version;
 	protected ID versionUpdateHeight;
-	protected byte[] versionUpdateHeightHash;
 	/**
-	 * Body field include Version, Key, AssetList
+	 * Body field include Version, Passport, Publickey, AssetList
 	 */
-	protected Key key;
+	protected Passport passport;
+	protected ID passportCreateHeight;
+	protected Publickey publickey;
 	protected Vector<Asset> assetList;
 	protected ID assetListSize;
 	protected ID assetUpdateHeight;
-	protected byte[] assetUpdateHeightHash;
+	protected SoleUpdate soleUpdate;
 //	private String email; // KYC
-	public final static byte MAX_VERSION = 0;
+	protected final static ID MAX_VERSION = ID.ZERO;
 	
 	/**
 	 * AccountType include ASSET Account and SmartContract Account.
@@ -99,7 +99,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	 * @email 10509759@qq.com
 	 */
 	public enum AccountType {
-		ASSET, SMARTCONTRACT, ASSETSUBCHAIN, MISC, INVALID;
+		ASSET, SMARTCONTRACT, ASSETSUBCHAIN, EQCOINSUBCHAIN, MISC, INVALID;
 		public static AccountType get(int ordinal) {
 			AccountType accountType = null;
 			switch (ordinal) {
@@ -110,6 +110,9 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 				accountType = AccountType.ASSETSUBCHAIN;
 				break;
 			case 3:
+				accountType = AccountType.EQCOINSUBCHAIN;
+				break;
+			case 4:
 				accountType = AccountType.MISC;
 				break;
 			default:
@@ -119,7 +122,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 			return accountType;
 		}
 		public boolean isSanity() {
-			if((this.ordinal() < ASSET.ordinal()) || (this.ordinal() > INVALID.ordinal())) {
+			if((this.ordinal() < ASSET.ordinal()) || (this.ordinal() > INVALID.ordinal()) || (this.ordinal() == INVALID.ordinal())) {
 				return false;
 			}
 			return true;
@@ -143,7 +146,11 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		try {
 			if (accountType == AccountType.ASSET) {
 				account = new AssetAccount(bytes);
-			} else if (accountType == accountType.ASSETSUBCHAIN) {
+			} 
+			else if (accountType == accountType.EQCOINSUBCHAIN) {
+				account = new EQcoinSubchainAccount(bytes);
+			} 
+			else if (accountType == accountType.ASSETSUBCHAIN) {
 				account = new AssetSubchainAccount(bytes);
 			} 
 		} catch (NoSuchFieldException | UnsupportedOperationException | IOException e) {
@@ -154,28 +161,28 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		return account;
 	}
 	
-	public static AccountType parseAccountType(Address address) {
+	public static AccountType parseAccountType(Passport passport) {
 		AccountType accountType = AccountType.INVALID;
-		if(address.getType() == AddressType.T1 || address.getType() == AddressType.T2) {
+		if(passport.getAddressType() == AddressType.T1 || passport.getAddressType() == AddressType.T2) {
 			accountType = AccountType.ASSET;
 		}
-		else if(address.getType() == AddressType.T3) {
+		else if(passport.getAddressType() == AddressType.T3) {
 			// If code.SmartContractType == Subchain 
 		}
-		else if(address.getType() == AddressType.T4) {
+		else if(passport.getAddressType() == AddressType.T4) {
 			// If code.SmartContractType == Misc
 		}
 		return accountType;
 	}
 	
-	public static Account createAccount(Address address) {
+	public static Account createAccount(Passport passport) {
 		Account account = null;
-		AccountType accountType = parseAccountType(address);
+		AccountType accountType = parseAccountType(passport);
 
 		try {
 			if (accountType == AccountType.ASSET) {
 				account = new AssetAccount();
-				account.getKey().setAddress(address);
+				account.setPassport(passport);
 			} else if (accountType == accountType.ASSETSUBCHAIN) {
 				account = null;
 			} 
@@ -188,8 +195,8 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	public Account(byte[] bytes) throws NoSuchFieldException, IOException {
-		assetList = new Vector<>();
 		EQCType.assertNotNull(bytes);
+		init();
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		// Parse Header
 		parseHeader(is);
@@ -200,14 +207,22 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	
 	public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		// Parse AccountType
-		accountType = AccountType.get(new ID(EQCType.parseEQCBits(is)).intValue());
+ 		accountType = AccountType.get(new ID(EQCType.parseEQCBits(is)).intValue());
+ 		// Parse CreateHeight
+ 		createHeight = new ID(EQCType.parseEQCBits(is));
 		// Parse Version
 		version = new ID(EQCType.parseEQCBits(is));
+		// Parse VersionCreateHeight
+		versionUpdateHeight = new ID(EQCType.parseEQCBits(is));
 	}
 	
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		// Parse Key
-		key = new Key(is);
+		// Parse Passport
+		passport = new Passport(is);
+		// Parse AddressCreateHeight
+		passportCreateHeight = new ID(EQCType.parseEQCBits(is));
+		// Parse Publickey
+		publickey = new Publickey(is);
 		// Parse Asset
 		ARRAY array = null;
 		if (!(array = EQCType.parseARRAY(is)).isNULL()) {
@@ -220,33 +235,40 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		} else {
 			throw EQCType.NULL_OBJECT_EXCEPTION;
 		}
-
+		// Parse AssetUpdateHeight
+		assetUpdateHeight = new ID(EQCType.parseEQCBits(is));
 //		// Parse email
 //		if ((data = EQCType.parseEQCBits(is)) != null) {
 //			email = EQCType.bytesToASCIISting(data);
 //		}
 	}
 	
+	private void init() {
+		version = ID.ZERO;
+		versionUpdateHeight = ID.ZERO;
+		assetList = new Vector<>();
+		publickey = new Publickey();
+		soleUpdate = new SoleUpdate();
+	}
+	
 	public Account(AccountType accountType) {
 		super();
 		this.accountType = accountType;
-		version = ID.ZERO;
-		assetList = new Vector<>();
-		key = new Key();
+		init();
 	}
 	
 	/**
 	 * @return the ID's EQCBits
 	 */
 	public byte[] getIDEQCBits() {
-		return key.getAddress().getIDEQCBits();
+		return passport.getIDEQCBits();
 	}
 	
 	/**
 	 * @return the ID
 	 */
 	public ID getID() {
-		return key.getAddress().getID();
+		return passport.getID();
 	}
 
 	@Override
@@ -283,7 +305,14 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	public byte[] getBodyBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(key.getBytes());
+			os.write(passport.getBytes());
+			os.write(passportCreateHeight.getEQCBits());
+			if(publickey.isNULL()) {
+				os.write(EQCType.NULL);
+			}
+			else {
+				os.write(publickey.getBytes());
+			}
 			Collections.sort(assetList);
 			os.write(getAssetArray());
 			os.write(assetUpdateHeight.getEQCBits());
@@ -316,7 +345,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 	
 	public boolean isPublickeyExists() {
-		return !key.getPublickey().isNULL();
+		return !publickey.isNULL();
 	}
 	/**
 	 * @return the accountType
@@ -346,7 +375,9 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 				"\n{\n" +
 					"\"AccountType\":" + "\"" + accountType + "\"" + ",\n" +
 					"\"Version\":" + "\"" + version + "\"" + ",\n" +
-					key.toInnerJson() + ",\n" +
+					passport.toInnerJson() + ",\n" +
+					"\"AddressCreateHeight\":" + "\"" + passportCreateHeight + "\"" + ",\n" +
+					((publickey.isNULL())?Publickey.NULL():publickey.toInnerJson()) + ",\n" +
 					"\"AssetList\":" + "\n{\n" + "\"Size\":" + "\"" + assetList.size() + "\"" + ",\n" + 
 					"\"List\":" + "\n" + getAssetListString() + "\n}\n" +
 				"}";
@@ -366,10 +397,13 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 	@Override
 	public boolean isSanity() {
-		if(accountType == null || version == null || key == null || assetList == null || assetListSize == null) {
+		if(accountType == null || version == null || passport == null || passportCreateHeight == null || publickey == null || assetList == null || assetListSize == null) {
 			return false;
 		}
-		if(!accountType.isSanity() || !version.isSanity() || !key.isSanity() || !assetListSize.isSanity()) {
+		if(!accountType.isSanity() || !version.isSanity() || !passport.isSanity(null) || !passportCreateHeight.isSanity() || !publickey.isSanity() || !assetListSize.isSanity()) {
+			return false;
+		}
+		if(version.compareTo(MAX_VERSION) > 0) {
 			return false;
 		}
 		if(assetListSize.compareTo(new ID(assetList.size())) != 0) {
@@ -468,20 +502,6 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	/**
-	 * @return the key
-	 */
-	public Key getKey() {
-		return key;
-	}
-
-	/**
-	 * @param key the key to set
-	 */
-	public void setKey(Key key) {
-		this.key = key;
-	}
-
-	/**
 	 * @return the Asset
 	 */
 	public Asset getAsset(ID assetID) {
@@ -534,20 +554,17 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		return false;
 	}
 
-	public void updateHash(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		createHeightHash = accountsMerkleTree.getEQCHeaderHash(createHeight);
-		versionUpdateHeightHash = accountsMerkleTree.getEQCHeaderHash(versionUpdateHeight);
-		key.updateHash(accountsMerkleTree);
-		assetUpdateHeightHash = accountsMerkleTree.getEQCHeaderHash(assetUpdateHeight);
+	public byte[] getHashBytes() {
+		return getHashBytes(soleUpdate);
 	}
 	
 	@Override
-	public byte[] getHashBytes() {
+	public byte[] getHashBytes(SoleUpdate soleUpdate) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(getHeaderHashBytes());
-			os.write(getBodyHashBytes());
-		} catch (IOException e) {
+			os.write(getHeaderHashBytes(soleUpdate));
+			os.write(getBodyHashBytes(soleUpdate));
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
@@ -556,15 +573,15 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	@Override
-	public byte[] getHeaderHashBytes() {
+	public byte[] getHeaderHashBytes(SoleUpdate soleUpdate) throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(accountType.getEQCBits());
 			os.write(createHeight.getEQCBits());
-			os.write(createHeightHash);
+			soleUpdate.update(os, createHeight);
 			os.write(version.getEQCBits());
 			os.write(versionUpdateHeight.getEQCBits());
-			os.write(versionUpdateHeightHash);
+			soleUpdate.update(os, versionUpdateHeight);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -574,14 +591,22 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	@Override
-	public byte[] getBodyHashBytes() {
+	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(key.getHashBytes());
+			os.write(passport.getBytes());
+			os.write(passportCreateHeight.getEQCBits());
+			soleUpdate.update(os, passportCreateHeight);
+			if(publickey.isNULL()) {
+				os.write(EQCType.NULL);
+			}
+			else {
+				os.write(publickey.getHashBytes(soleUpdate));
+			}
 			Collections.sort(assetList);
 			os.write(getAssetArray());
 			os.write(assetUpdateHeight.getEQCBits());
-			os.write(assetUpdateHeightHash);
+			soleUpdate.update(os, assetUpdateHeight);
 //			// In MVP Phase email always be null so here just append EQCType.NULL
 //			os.write(EQCType.NULL);
 		} catch (IOException e) {
@@ -621,31 +646,69 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	/**
-	 * @return the createHeightHash
+	 * @return the assetUpdateHeight
 	 */
-	public byte[] getCreateHeightHash() {
-		return createHeightHash;
+	public ID getAssetUpdateHeight() {
+		return assetUpdateHeight;
 	}
 
 	/**
-	 * @param createHeightHash the createHeightHash to set
+	 * @param assetUpdateHeight the assetUpdateHeight to set
 	 */
-	public void setCreateHeightHash(byte[] createHeightHash) {
-		this.createHeightHash = createHeightHash;
+	public void setAssetUpdateHeight(ID assetUpdateHeight) {
+		this.assetUpdateHeight = assetUpdateHeight;
+	}
+
+	public byte[] getSignatureHash() throws Exception {
+		SoleUpdate soleUpdate = new SoleUpdate();
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		os.write(passport.getIDEQCBits());
+		soleUpdate.update(os, createHeight);
+		soleUpdate.update(os, versionUpdateHeight);
+		soleUpdate.update(os, passportCreateHeight);
+		return os.toByteArray();
 	}
 
 	/**
-	 * @return the versionUpdateHeightHash
+	 * @return the passport
 	 */
-	public byte[] getVersionUpdateHeightHash() {
-		return versionUpdateHeightHash;
+	public Passport getPassport() {
+		return passport;
 	}
 
 	/**
-	 * @param versionUpdateHeightHash the versionUpdateHeightHash to set
+	 * @param passport the passport to set
 	 */
-	public void setVersionUpdateHeightHash(byte[] versionUpdateHeightHash) {
-		this.versionUpdateHeightHash = versionUpdateHeightHash;
+	public void setPassport(Passport passport) {
+		this.passport = passport;
+	}
+
+	/**
+	 * @return the passportCreateHeight
+	 */
+	public ID getPassportCreateHeight() {
+		return passportCreateHeight;
+	}
+
+	/**
+	 * @param passportCreateHeight the passportCreateHeight to set
+	 */
+	public void setPassportCreateHeight(ID passportCreateHeight) {
+		this.passportCreateHeight = passportCreateHeight;
+	}
+
+	/**
+	 * @return the publickey
+	 */
+	public Publickey getPublickey() {
+		return publickey;
+	}
+
+	/**
+	 * @param publickey the publickey to set
+	 */
+	public void setPublickey(Publickey publickey) {
+		this.publickey = publickey;
 	}
 	
 }

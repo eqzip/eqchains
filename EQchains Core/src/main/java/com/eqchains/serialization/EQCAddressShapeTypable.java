@@ -33,8 +33,8 @@ import java.io.IOException;
 
 import org.rocksdb.RocksDBException;
 
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 
 /**
  * @author Xun Wang

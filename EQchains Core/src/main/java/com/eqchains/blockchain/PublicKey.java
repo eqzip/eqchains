@@ -39,8 +39,8 @@ import java.util.Arrays;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -232,12 +232,12 @@ public class PublicKey implements EQCTypable {
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		Account account = accountsMerkleTree.getAccount(id);
 		if(!account.isPublickeyExists()) {
-			if(!AddressTool.verifyAddressPublickey(account.getKey().getAddress().getReadableAddress(), publicKey)) {
+			if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), publicKey)) {
 				return false;
 			}
 		}
 		else {
-			if(!Arrays.equals(account.getKey().getPublickey().getPublickey(), publicKey)) {
+			if(!Arrays.equals(account.getPublickey().getPublickey(), publicKey)) {
 				return false;
 			}
 		}

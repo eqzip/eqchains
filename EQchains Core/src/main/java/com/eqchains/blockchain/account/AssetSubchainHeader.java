@@ -33,13 +33,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
@@ -53,16 +54,12 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	private String symbol;
 	private String decimals;
 	private ID maxSupply;
-	private ID maxSupplyUpdateHeight;
 	private boolean ifCanChangeMaxSupply;
 	private ID totalSupply;
-	private ID totalSupplyUpdateHeight;
 	private boolean ifCanChangeTotalSupply;
 	private boolean ifCanBurn;
 	private ID totalAccountNumbers;
-	private ID totalAccountNumbersUpdateHeight;
 	private ID totalTransactionNumbers;
-	private ID totalTransactionNumbersUpdateHeight;
 	// Need do more job to use full regression check the url's format if is valid
 	// length less than 20
 	private String url;
@@ -74,13 +71,11 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseBody(is);
-		EQCType.assertNoRedundantData(is);
 	}
 	
 	public AssetSubchainHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		EQCType.assertNotNull(is);
 		parseBody(is);
-		EQCType.assertNoRedundantData(is);
 	}
 	
 	@Override
@@ -366,6 +361,7 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 				toInnerJson() +
 				"\n}";
 	}
+	
 	public String toInnerJson() {
 		return 
 				"\"AssetSubchainHeader\":" + 
@@ -382,7 +378,8 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 					"\"IfCanBurn\":" + "\"" + ifCanBurn + "\"" + ",\n" +
 					"\"TotalAccountNumbers\":" + "\"" + totalAccountNumbers + "\"" + ",\n" +
 					"\"TotalTransactionNumbers\":" + "\"" + totalTransactionNumbers + "\"" + ",\n" +
-					"\"Url\":" + "\"" + url + "\""  + "\n}\n";
+					"\"URL\":" + "\"" + url + "\"" + ",\n" +
+					"\"LOGO\":" + "\"" + Util.dumpBytes(logo, 16) + "\""  + "\n}\n";
 	}
 
 	/**

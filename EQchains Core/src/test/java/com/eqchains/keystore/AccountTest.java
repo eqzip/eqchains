@@ -147,7 +147,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#getAddress()}.
+	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#getPassport()}.
 	 */
 	@Test
 	void testGetAddress() {
@@ -155,7 +155,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#setAddress(java.lang.String)}.
+	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#setPassport(java.lang.String)}.
 	 */
 	@Test
 	void testSetAddress() {

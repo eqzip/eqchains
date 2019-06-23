@@ -44,17 +44,17 @@ import javax.print.attribute.Size2DSyntax;
 
 import org.rocksdb.RocksDBException;
 
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree.Statistics;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.operation.UpdateAddressOperation;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
@@ -213,7 +213,7 @@ public class EQCHive implements EQCTypable {
 		 */
 
 		// Create CoinBase Transaction
-		Address address = new Address();
+		Passport address = new Passport();
 		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
 
 		// Add CoinBase into Transactions
@@ -240,11 +240,11 @@ public class EQCHive implements EQCTypable {
 				}
 				// Prepare Transaction
 				transaction.prepareAccounting(accountsMerkleTree,
-						transactions.getAccountListInitId(accountsMerkleTree));
+						transactions.getNewPassportListInitId(accountsMerkleTree));
 				// Add CoinBaseTransaction
 				transactions.addTransaction(transaction);
 			} else if (transaction.isCoinBase() || transaction.getTxIn() == null
-					|| !accountsMerkleTree.isAccountExists(transaction.getTxIn().getAddress(), false)
+					|| !accountsMerkleTree.isAccountExists(transaction.getTxIn().getPassport(), false)
 					|| !transaction.isNonceCorrect(accountsMerkleTree)) {
 				// In MVP phase just directly delete the Transaction which has the wrong nonce
 				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
@@ -255,16 +255,7 @@ public class EQCHive implements EQCTypable {
 			} else {
 				// Prepare Transaction
 				transaction.prepareAccounting(accountsMerkleTree,
-						transactions.getAccountListInitId(accountsMerkleTree));
-
-				// If Transaction is OperationTransaction check if meet the preconditions
-				if (transaction instanceof OperationTransaction) {
-					if (!isMeetPreconditions(transaction, accountsMerkleTree)) {
-						EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-						Log.Error("OperationTransaction doesn't meet preconditions: " + transaction);
-						continue;
-					}
-				}
+						transactions.getNewPassportListInitId(accountsMerkleTree));
 
 				if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
 					EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
@@ -301,7 +292,7 @@ public class EQCHive implements EQCTypable {
 		AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
 		eqcoin.getAssetSubchainHeader().setTotalSupply(new ID(Util.cypherTotalSupply(eqcHeader.getHeight())));
 		eqcoin.getAssetSubchainHeader().setTotalAccountNumbers(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()
-				.add(BigInteger.valueOf(transactions.getNewAccountList().size())));
+				.add(BigInteger.valueOf(transactions.getNewPassportList().size())));
 		eqcoin.getAssetSubchainHeader().setTotalTransactionNumbers(eqcoin.getAssetSubchainHeader()
 				.getTotalTransactionNumbers().add(BigInteger.valueOf(transactions.getNewTransactionList().size())));
 		// Save EQcoin Subchain's Header
@@ -362,7 +353,7 @@ public class EQCHive implements EQCTypable {
 			}
 
 			// Check if AccountList is valid
-			if (!transactions.isNewAccountListValid(accountsMerkleTree)) {
+			if (!transactions.isNewPassportListValid(accountsMerkleTree)) {
 				Log.Error("EQCHeader AccountList is invalid");
 				return false;
 			}
@@ -389,7 +380,7 @@ public class EQCHive implements EQCTypable {
 				Transaction transaction = transactionList.get(i);
 				
 				// Check if TxIn exists in previous block
-				if(!accountsMerkleTree.isAccountExists(transaction.getTxIn().getAddress(), false)) {
+				if(!accountsMerkleTree.isAccountExists(transaction.getTxIn().getPassport(), false)) {
 					Log.Error("Transaction Account doesn't exist in previous block have to exit");
 					return false;
 				}
@@ -407,23 +398,10 @@ public class EQCHive implements EQCTypable {
 					return false;
 				}
 
-				// If is OperationTransaction check it's isMeetPreconditions
-				if (transaction instanceof OperationTransaction) {
-					if (!isMeetPreconditions(transaction, accountsMerkleTree)) {
-						Log.Error("OperationTransaction doesn't meet preconditions: " + transaction);
-						return false;
-					}
-				}
-
 				if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
 					Log.info("Transaction is invalid: " + transaction);
 					return false;
 				} else {
-					// If is OperationTransaction just execute it
-					if (transaction instanceof OperationTransaction) {
-						((OperationTransaction) transaction).execute(accountsMerkleTree,
-								(OperationTransaction) transaction);
-					}
 					// Update AccountsMerkleTree relevant Account's status
 					transaction.update(accountsMerkleTree);
 					totalTxFee += transaction.getTxFee();
@@ -446,7 +424,7 @@ public class EQCHive implements EQCTypable {
 			AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
 			eqcoin.getAssetSubchainHeader().setTotalSupply(new ID(Util.cypherTotalSupply(eqcHeader.getHeight())));
 			eqcoin.getAssetSubchainHeader().setTotalAccountNumbers(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()
-					.add(BigInteger.valueOf(transactions.getNewAccountList().size())));
+					.add(BigInteger.valueOf(transactions.getNewPassportList().size())));
 			eqcoin.getAssetSubchainHeader().setTotalTransactionNumbers(eqcoin.getAssetSubchainHeader()
 					.getTotalTransactionNumbers().add(BigInteger.valueOf(transactions.getNewTransactionList().size())));
 			// Save EQcoin Subchain's Header
@@ -678,7 +656,7 @@ public class EQCHive implements EQCTypable {
 			// Set Address for every Transaction
 			// Set TxOut Address
 			for (TxOut txOut : transaction.getTxOutList()) {
-				txOut.getAddress().setReadableAddress(Util.getAddress(txOut.getAddress().getID(), this));
+				txOut.getPassport().setReadableAddress(Util.getAddress(txOut.getPassport().getID(), this));
 			}
 			return;
 		}
@@ -695,14 +673,14 @@ public class EQCHive implements EQCTypable {
 			// Set PublicKey for every Transaction
 			// Bug fix before add in Transactions every transaction should have signature &
 			// PublicKey.
-			transaction.setPublickey(Util.getPublicKey(transaction.getTxIn().getAddress().getID(), this));
+			transaction.setPublickey(Util.getPublicKey(transaction.getTxIn().getPassport().getID(), this));
 			// Set Address for every Transaction
 			// Set TxIn Address
-			transaction.getTxIn().getAddress()
-					.setReadableAddress(Util.getAddress(transaction.getTxIn().getAddress().getID(), this));
+			transaction.getTxIn().getPassport()
+					.setReadableAddress(Util.getAddress(transaction.getTxIn().getPassport().getID(), this));
 			// Set TxOut Address
 			for (TxOut txOut : transaction.getTxOutList()) {
-				txOut.getAddress().setReadableAddress(Util.getAddress(txOut.getAddress().getID(), this));
+				txOut.getPassport().setReadableAddress(Util.getAddress(txOut.getPassport().getID(), this));
 			}
 		}
 	}
@@ -711,14 +689,14 @@ public class EQCHive implements EQCTypable {
 		for (Transaction transaction : transactions.getNewTransactionList()) {
 			// Check if TxIn Address exists
 			if (!transaction.isCoinBase()) {
-				if (Util.getAddress(transaction.getTxIn().getAddress().getID(), this) == null) {
+				if (Util.getAddress(transaction.getTxIn().getPassport().getID(), this) == null) {
 					return false;
 				}
 			}
 
 			// Check if All TxOut Address exists
 			for (TxOut txOut : transaction.getTxOutList()) {
-				if (Util.getAddress(txOut.getAddress().getID(), this) == null) {
+				if (Util.getAddress(txOut.getPassport().getID(), this) == null) {
 					return false;
 				}
 			}
@@ -795,7 +773,7 @@ public class EQCHive implements EQCTypable {
 				return false;
 			}
 		} else {
-			for (int i = 1; i < transactions.getNewAccountList().size(); ++i) {
+			for (int i = 1; i < transactions.getNewPassportList().size(); ++i) {
 				if (transactions.getNewTransactionList().get(i).isCoinBase()) {
 					return false;
 				}
@@ -819,7 +797,7 @@ public class EQCHive implements EQCTypable {
 //			transactionsMerkelTreeRootList.add(Util.NULL_HASH);
 //		}
 
-		if ((bytes = transactions.getNewAccountListMerkelTreeRoot()) != null) {
+		if ((bytes = transactions.getNewPassportListMerkelTreeRoot()) != null) {
 			transactionsMerkelTreeRootList.add(bytes);
 		}
 //		else {

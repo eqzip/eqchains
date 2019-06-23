@@ -37,7 +37,6 @@ import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
  * @email 10509759@qq.com
  */
 public interface EQCHashInheritable extends EQCInheritable {
-	public byte[] getHeaderHashBytes();
-	public byte[] getBodyHashBytes();
-	public void updateHash(AccountsMerkleTree accountsMerkleTree) throws Exception;
+	public byte[] getHeaderHashBytes(SoleUpdate soleUpdate) throws Exception;
+	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws Exception;
 }

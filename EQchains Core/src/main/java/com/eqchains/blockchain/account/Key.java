@@ -32,17 +32,21 @@ package com.eqchains.blockchain.account;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
+
+import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account.AccountType;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.serialization.EQCHashInheritable;
 import com.eqchains.serialization.EQCHashTypable;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
+import com.eqchains.serialization.SoleUpdate;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
@@ -51,9 +55,8 @@ import com.eqchains.util.Log;
  */
 public class Key implements EQCHashTypable, EQCHashInheritable  {
 
-	private Address address;
-	private ID addressCreateHeight;
-	private byte[] addressCreateHeightHash;
+	private Passport passport;
+	private ID passportCreateHeight;
 	private Publickey publickey;
 	
 	public Key() {
@@ -84,31 +87,31 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 		this.publickey = publickey;
 	}
 	/**
-	 * @return the address
+	 * @return the Passport
 	 */
-	public Address getAddress() {
-		return address;
+	public Passport getPassport() {
+		return passport;
 	}
 
 	/**
-	 * @param address the address to set
+	 * @param Passport the Passport to set
 	 */
-	public void setAddress(Address address) {
-		this.address = address;
+	public void setPassport(Passport passport) {
+		this.passport = passport;
 	}
 
 	/**
-	 * @return the addressCreateHeight
+	 * @return the PassportCreateHeight
 	 */
-	public ID getAddressCreateHeight() {
-		return addressCreateHeight;
+	public ID getPassportCreateHeight() {
+		return passportCreateHeight;
 	}
 
 	/**
-	 * @param addressCreateHeight the addressCreateHeight to set
+	 * @param PassportCreateHeight the PassportCreateHeight to set
 	 */
-	public void setAddressCreateHeight(ID addressCreateHeight) {
-		this.addressCreateHeight = addressCreateHeight;
+	public void setPassportCreateHeight(ID passportCreateHeight) {
+		this.passportCreateHeight = passportCreateHeight;
 	}
 
 	@Override
@@ -142,20 +145,20 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	}
 	public String toInnerJson() {
 		return "\"Key\":" + "\n{\n" + 
-				address.toInnerJson() + ",\n" +
-				"\"AddressCreateHeight\":" + "\"" + addressCreateHeight + "\"" + ",\n" +
+				passport.toInnerJson() + ",\n" +
+				"\"AddressCreateHeight\":" + "\"" + passportCreateHeight + "\"" + ",\n" +
 				((publickey.isNULL())?Publickey.NULL():publickey.toInnerJson()) + "\n" +
 				"\n" + "}";
 	}
 	@Override
 	public boolean isSanity() {
-		if(address == null || addressCreateHeight == null || publickey == null) {
+		if(passport == null || passportCreateHeight == null || publickey == null) {
 			return false;
 		}
-		if(!address.isSanity(null)) {
+		if(!passport.isSanity(null)) {
 			return false;
 		}
-		if(!addressCreateHeight.isSanity()) {
+		if(!passportCreateHeight.isSanity()) {
 			return false;
 		}
 		if(!publickey.isSanity()) {
@@ -168,10 +171,10 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	}
 
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		// Parse Address
-		address = new Address(is);
+		// Parse Passport
+		passport = new Passport(is);
 		// Parse addressCreateHeight
-		addressCreateHeight = new ID(EQCType.parseEQCBits(is));
+		passportCreateHeight = new ID(EQCType.parseEQCBits(is));
 		// Parse publickey
 		publickey = new Publickey(is);
 	}
@@ -191,8 +194,8 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	public byte[] getBodyBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(address.getBytes());
-			os.write(addressCreateHeight.getEQCBits());
+			os.write(passport.getBytes());
+			os.write(passportCreateHeight.getEQCBits());
 			if(publickey.isNULL()) {
 				os.write(EQCType.NULL);
 			}
@@ -208,41 +211,43 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	}
 
 	@Override
-	public byte[] getHeaderHashBytes() {
+	public byte[] getHeaderHashBytes(SoleUpdate soleUpdate) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public byte[] getBodyHashBytes() {
-		// TODO Auto-generated method stub
-		return null;
+	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(passport.getBytes());
+			os.write(passportCreateHeight.getEQCBits());
+			soleUpdate.update(os, passportCreateHeight);
+			if(publickey.isNULL()) {
+				os.write(EQCType.NULL);
+			}
+			else {
+				os.write(publickey.getHashBytes(soleUpdate));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
 	}
 
 	@Override
-	public byte[] getHashBytes() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void updateHash(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		addressCreateHeightHash = accountsMerkleTree.getEQCHeaderHash(addressCreateHeight);
-		publickey.updateHash(accountsMerkleTree);
-	}
-
-	/**
-	 * @return the addressCreateHeightHash
-	 */
-	public byte[] getAddressCreateHeightHash() {
-		return addressCreateHeightHash;
-	}
-
-	/**
-	 * @param addressCreateHeightHash the addressCreateHeightHash to set
-	 */
-	public void setAddressCreateHeightHash(byte[] addressCreateHeightHash) {
-		this.addressCreateHeightHash = addressCreateHeightHash;
+	public byte[] getHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(getBodyHashBytes(soleUpdate));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
 	}
 
 //	/* (non-Javadoc)

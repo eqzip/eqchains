@@ -46,10 +46,11 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.Publickey;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
@@ -81,7 +82,7 @@ public class TransferTransaction extends Transaction {
 		init();
 	}
 
-	public TransferTransaction(byte[] bytes, Address.AddressShape addressShape)
+	public TransferTransaction(byte[] bytes, Passport.AddressShape addressShape)
 			throws NoSuchFieldException, IOException, UnsupportedOperationException, NoSuchFieldException, IllegalStateException {
 		super(TransactionType.TRANSFER);
 		EQCType.assertNotNull(bytes);
@@ -104,7 +105,7 @@ public class TransferTransaction extends Transaction {
 	public byte[] getRPCBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(EQCType.bytesToBIN(getBytes(Address.AddressShape.READABLE)));
+			os.write(EQCType.bytesToBIN(getBytes(Passport.AddressShape.READABLE)));
 			os.write(EQCType.bytesToBIN(publickey.getPublicKey()));
 			os.write(EQCType.bytesToBIN(signature));
 		} catch (IOException e) {
@@ -222,7 +223,7 @@ public class TransferTransaction extends Transaction {
 	 */
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
 		
-		Account txInAccount = accountsMerkleTree.getAccount(txIn.getAddress());
+		Account txInAccount = accountsMerkleTree.getAccount(txIn.getPassport());
 		
 		if(!isSanity(addressShape)) {
 			return false;
@@ -234,18 +235,18 @@ public class TransferTransaction extends Transaction {
 		}
 
 		// Check if Publickey's ID is equal to TxIn's ID
-		if (!publickey.getID().equals(txIn.getAddress().getID())) {
+		if (!publickey.getID().equals(txIn.getPassport().getID())) {
 			return false;
 		}
 
 		// Check if Publickey exists in Account and equal to current Publickey
 		if (txInAccount.isPublickeyExists()) {
-			if (!Arrays.equals(txInAccount.getKey().getPublickey().getPublickey(), publickey.getPublicKey())) {
+			if (!Arrays.equals(txInAccount.getPublickey().getPublickey(), publickey.getPublicKey())) {
 				return false;
 			}
 		} else {
 			// Verify Publickey
-			if (AddressTool.verifyAddressPublickey(txIn.getAddress().getReadableAddress(), publickey.getPublicKey())) {
+			if (AddressTool.verifyAddressPublickey(txIn.getPassport().getReadableAddress(), publickey.getPublicKey())) {
 				return false;
 			}
 		}
@@ -316,17 +317,17 @@ public class TransferTransaction extends Transaction {
 
 		// Transaction's AddressList size which storage the Address
 		for (TxOut txOut : txOutList) {
-			size += txOut.getAddress().getBillingSize();
+			size += txOut.getPassport().getBillingSize();
 		}
 
 		// Transaction's PublickeyList size
 		size += publickey.getBillingSize();
 
 		// Transaction's Signature size
-		if(txIn.getAddress().getType() == AddressType.T1) {
+		if(txIn.getPassport().getAddressType() == AddressType.T1) {
 			size += Util.P256_BASIC_SIGNATURE_LEN;
 		}
-		else if(txIn.getAddress().getType() == AddressType.T2) {
+		else if(txIn.getPassport().getAddressType() == AddressType.T2) {
 			size += Util.P521_BASIC_SIGNATURE_LEN;
 		}
 		Log.info("Total size: " + size);
@@ -371,7 +372,7 @@ public class TransferTransaction extends Transaction {
 	 * AddressShape)
 	 */
 	@Override
-	public byte[] getBytes(Address.AddressShape addressShape) {
+	public byte[] getBytes(Passport.AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization body
@@ -392,7 +393,7 @@ public class TransferTransaction extends Transaction {
 	 * AddressShape)
 	 */
 	@Override
-	public byte[] getBin(Address.AddressShape addressShape) {
+	public byte[] getBin(Passport.AddressShape addressShape) {
 		return EQCType.bytesToBIN(getBytes(addressShape));
 	}
 	
@@ -413,7 +414,7 @@ public class TransferTransaction extends Transaction {
 		if (!txIn.isSanity(addressShape)) {
 			return false;
 		} else {
-			if (!txIn.getAddress().isGood()) {
+			if (!txIn.getPassport().isGood()) {
 				return false;
 			}
 		}
@@ -432,7 +433,7 @@ public class TransferTransaction extends Transaction {
 			return false;
 		}
 		for (TxOut txOut : txOutList) {
-			if(txOut.getAddress().getType() != AddressType.T1 || txOut.getAddress().getType() != AddressType.T2) {
+			if(txOut.getPassport().getAddressType() != AddressType.T1 || txOut.getPassport().getAddressType() != AddressType.T2) {
 				return false;
 			}
 		}
@@ -500,7 +501,7 @@ public class TransferTransaction extends Transaction {
 		if(txIn == null) {
 			return false;
 		}
-		return txOut.getAddress().getReadableAddress().equals(txIn.getAddress().getReadableAddress());
+		return txOut.getPassport().getReadableAddress().equals(txIn.getPassport().getReadableAddress());
 	}
 
 	public boolean isTxOutNumberValid() {
@@ -532,9 +533,10 @@ public class TransferTransaction extends Transaction {
 		boolean boolIsValid = true;
 		if (getTxFeeLimit() < getDefaultTxFeeLimit()) {
 			boolIsValid = false;
-		} else if ((getTxFeeLimit() <= getMaxTxFeeLimit()) && (getTxFeeLimit() % getDefaultTxFeeLimit()) != 0) {
-			boolIsValid = false;
-		}
+		} 
+//		else if ((getTxFeeLimit() <= getMaxTxFeeLimit()) && (getTxFeeLimit() % getDefaultTxFeeLimit()) != 0) {
+//			boolIsValid = false;
+//		}
 		return boolIsValid;
 	}
 	
@@ -554,7 +556,7 @@ public class TransferTransaction extends Transaction {
 	public boolean isTxOutAddressExists(TxOut txOut) {
 		boolean boolIsExists = false;
 		for (TxOut txOut2 : txOutList) {
-			if (txOut2.getAddress().getReadableAddress().equals(txOut.getAddress().getReadableAddress())) {
+			if (txOut2.getPassport().getReadableAddress().equals(txOut.getPassport().getReadableAddress())) {
 				boolIsExists = true;
 //				Log.info("TxOutAddressExists" + " a: " + txOut2.getAddress().getAddress() + " b: " + txOut.getAddress().getAddress());
 				break;
@@ -566,7 +568,7 @@ public class TransferTransaction extends Transaction {
 	public boolean isTxOutAddressUnique() {
 		for (int i = 0; i < txOutList.size(); ++i) {
 			for (int j = i + 1; j < txOutList.size(); ++j) {
-				if (txOutList.get(i).getAddress().equals(txOutList.get(j).getAddress())) {
+				if (txOutList.get(i).getPassport().equals(txOutList.get(j).getPassport())) {
 					return false;
 				}
 			}
@@ -604,7 +606,7 @@ public class TransferTransaction extends Transaction {
 
 	public boolean isTxOutAddressValid() {
 		for (TxOut txOut : txOutList) {
-			if (!txOut.getAddress().isGood(null)) {
+			if (!txOut.getPassport().isGood(null)) {
 				return false;
 			}
 		}
@@ -627,9 +629,9 @@ public class TransferTransaction extends Transaction {
 	
 	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) throws Exception {
 		// Fill in TxIn's Address
-		txIn.getAddress().setID(accountsMerkleTree.getAddressID(txIn.getAddress()));
+		txIn.getPassport().setID(accountsMerkleTree.getAddressID(txIn.getPassport()));
 		// Fill in Publickey's Serial Number
-		publickey.setID(txIn.getAddress().getID());
+		publickey.setID(txIn.getPassport().getID());
 
 		// Update Publickey's isNew status if need
 			if (!accountsMerkleTree.isPublicKeyExists(getPublickey())) {
@@ -638,14 +640,14 @@ public class TransferTransaction extends Transaction {
 
 		// Update TxOut's Address' isNew status if need
 		for (TxOut txOut : txOutList) {
-			if (!accountsMerkleTree.isAccountExists(txOut.getAddress(), true)) {
-				txOut.getAddress().setID(initID);
+			if (!accountsMerkleTree.isAccountExists(txOut.getPassport(), true)) {
+				txOut.getPassport().setID(initID);
 				txOut.setNew(true);
 				initID = initID.getNextID();
 			} else {
 				// For security issue need retrieve and fill in every Address' ID
 				// according to it's AddressAI
-				txOut.getAddress().setID(accountsMerkleTree.getAddressID(txOut.getAddress()));
+				txOut.getPassport().setID(accountsMerkleTree.getAddressID(txOut.getPassport()));
 			}
 		}
 	}
@@ -655,7 +657,7 @@ public class TransferTransaction extends Transaction {
 			return false;
 		}
 		for(TxOut txOut : txOutList) {
-			if(txOut.getAddress().getID().compareTo(accountsMerkleTree.getTotalAccountNumbers()) > 0) {
+			if(txOut.getPassport().getID().compareTo(accountsMerkleTree.getTotalAccountNumbers()) > 0) {
 				return false;
 			}
 		}
@@ -666,7 +668,7 @@ public class TransferTransaction extends Transaction {
 		super.prepareVerify(accountsMerkleTree, signature);
 		// Fill in TxOut's Address' ReadableAddress
 		for (TxOut txOut : getTxOutList()) {
-			txOut.getAddress().setReadableAddress(accountsMerkleTree.getAddress(txOut.getAddress().getID()).getReadableAddress());
+			txOut.getPassport().setReadableAddress(accountsMerkleTree.getAddress(txOut.getPassport().getID()).getReadableAddress());
 		}
 	}
 	
@@ -675,39 +677,38 @@ public class TransferTransaction extends Transaction {
 		WriteBatch writeBatch = new WriteBatch();
 		// Update current Transaction's relevant Account's AccountsMerkleTree's data
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce&Balance
-		Account account = accountsMerkleTree.getAccount(txIn.getAddress().getID());
+		Account account = accountsMerkleTree.getAccount(txIn.getPassport().getID());
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
-		account.getAsset(getAssetID()).getBalance().subtract(new ID(getBillingValue()));
+		account.getAsset(getAssetID()).withdraw(new ID(getBillingValue()));
 		// Update current Transaction's TxIn Publickey if need
 		if (publickey.isNew()) {
 			Publickey publickey = new Publickey();
 			publickey.setPublickey(this.publickey.getPublicKey());
 			publickey.setPublickeyCreateHeight(accountsMerkleTree.getHeight().getNextID());
-			account.getKey().setPublickey(publickey);
+			account.setPublickey(publickey);
 		}
 		writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(),
 				account.getBytes());
 		writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1),
-				account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
+				account.getPassport().getAddressAI(), account.getIDEQCBits());
 
 		// Update current Transaction's TxOut Account
 		for (TxOut txOut : txOutList) {
 			if (txOut.isNew()) {
 				account = new AssetAccount();
-				account.getKey().setAddress(txOut.getAddress());
-				account.getKey().setAddressCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				account.setPassport(txOut.getPassport());
+				account.setPassportCreateHeight(accountsMerkleTree.getHeight().getNextID());
 				accountsMerkleTree.increaseTotalAccountNumbers();
 			} else {
-				account = accountsMerkleTree.getAccount(txOut.getAddress().getID());
+				account = accountsMerkleTree.getAccount(txOut.getPassport().getID());
 			}
-			account.getAsset(getAssetID()).getBalance().add(new ID(txOut.getValue()));
-			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight().getNextID());
+			account.getAsset(getAssetID()).deposit(new ID(txOut.getValue()));
 			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(),
 					account.getBytes());
 			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1),
-					account.getKey().getAddress().getAddressAI(), account.getIDEQCBits());
+					account.getPassport().getAddressAI(), account.getIDEQCBits());
 		}
 		accountsMerkleTree.getFilter().batchUpdate(writeBatch);
 	}

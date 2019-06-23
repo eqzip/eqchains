@@ -106,17 +106,20 @@ import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.CoinAsset;
+import com.eqchains.blockchain.account.EQcoinSubchainAccount;
+import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.account.Account.AccountType;
 import com.eqchains.blockchain.account.Asset.AssetType;
 import com.eqchains.blockchain.account.SmartContractAccount.LanguageType;
+import com.eqchains.blockchain.account.SmartContractAccount.State;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
-import com.eqchains.blockchain.transaction.Address;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.crypto.MerkleTree;
@@ -133,7 +136,6 @@ import com.eqchains.test.Test;
 import com.eqchains.util.Util.AddressTool.AddressType;
 import com.eqchains.util.Util.AddressTool.P2SHAddress.Peer;
 
-
 /**
  * @author Xun Wang
  * @date 9-11-2018
@@ -146,7 +148,7 @@ public final class Util {
 	 */
 	public final static long ABC = 10000;
 	
-	public final static byte[] MAGIC_HASH = UnsignedBiginteger(new BigInteger("200189AC5AFA3CF07356C09C311B01619BC5513AF0792434F2F9CBB7E1473F39711981A4D8AB36CA2BEF35673EA7BF12F0673F6040659832E558FAEFBE4075E5", 16)).toByteArray();
+	public final static byte[] MAGIC_HASH = new BigInteger("200189AC5AFA3CF07356C09C311B01619BC5513AF0792434F2F9CBB7E1473F39711981A4D8AB36CA2BEF35673EA7BF12F0673F6040659832E558FAEFBE4075E5", 16).toByteArray();
 
 	public final static byte[] SINGULARITY_HASH = {};
 
@@ -294,9 +296,9 @@ public final class Util {
 
 	public static final int MAX_DIFFICULTY_MULTIPLE = 4;
 	
-	public static final BigInteger EUROPA = UnsignedBiginteger(BigInteger.valueOf(1008));
+	public static final BigInteger EUROPA = BigInteger.valueOf(1008);
 	
-	public static final byte[] NULL_HASH = UnsignedBiginteger(new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16)).toByteArray();
+	public static final byte[] NULL_HASH = new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16).toByteArray();
 	
 	public static final byte[] SINGULARITY = ".".getBytes();
 	
@@ -354,11 +356,38 @@ public final class Util {
 	}
 
 	public enum PERSISTENCE {
-		AVRO, H2, RPC
+		ROCKSDB, H2, RPC
 	}
 	
-	public enum DB {
-		H2, ROCKSDB
+	public enum MODE {
+		LIGHT, FULL, MINER;
+		public static MODE get(int ordinal) {
+			MODE mode = null;
+			switch (ordinal) {
+			case 0:
+				mode = LIGHT;
+				break;
+			case 1:
+				mode = FULL;
+				break;
+			case 2:
+				mode = MINER;
+				break;
+			default:
+				mode = LIGHT;
+				break;
+			}
+			return mode;
+		}
+		public boolean isSanity() {
+			if((this.ordinal() < LIGHT.ordinal()) || (this.ordinal() > MINER.ordinal())) {
+				return false;
+			}
+			return true;
+		}
+		public byte[] getEQCBits() {
+			return EQCType.intToEQCBits(this.ordinal());
+		}
 	}
 
 	private Util() {
@@ -371,14 +400,15 @@ public final class Util {
 		createDir(DB_PATH);
 		createDir(H2_PATH);
 		createDir(ROCKSDB_PATH);
-		Test.testKeystore(); // Test stub
+//		Test.testKeystore(); // Test stub
 //		createDir(BLOCK_PATH);
 		if (!Configuration.getInstance().isInitSingularityBlock()
-				&& Keystore.getInstance().getUserAccounts().size() > 0/* Will Remove when Cold Wallet ready */) {
-			Log.info("0");
+				/* && Keystore.getInstance().getUserAccounts().size() > 0 Will Remove when Cold Wallet ready */) {
+//			Log.info("0");
+			Test.testKeystore();
 			EQCHive eqcBlock = gestationSingularityBlock();
 //			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
-			Log.info("1");
+//			Log.info("1");
 			EQCBlockChainRocksDB.getInstance().saveEQCBlock(eqcBlock);
 //			Address address = eqcBlock.getTransactions().getAddressList().get(0);
 //			if(!EQCBlockChainH2.getInstance().isAddressExists(address)) {
@@ -387,11 +417,11 @@ public final class Util {
 //			EQCBlockChainH2.getInstance().addAllTransactions(eqcBlock);// .addTransaction(eqcBlock.getTransactions().getTransactionList().get(0),
 																		// SerialNumber.ZERO, 0);
 //			EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.ZERO));
-			Log.info("2");
+//			Log.info("2");
 			EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(ID.ZERO);
-			Log.info("3");
+//			Log.info("3");
 			Configuration.getInstance().updateIsInitSingularityBlock(true);
-			Log.info("4");
+//			Log.info("4");
 		}
 		cookie = new Cookie();
 		cookie.setIp(getIP());
@@ -621,11 +651,12 @@ public final class Util {
 //		return BigInteger.valueOf(Long.valueOf(target & 0x00ffffff)).shiftLeft((target & 0xff000000) >>> 24);
 //		Log.info("" + (target << 9));
 //		Log.info(bigIntegerTo512String(BigInteger.valueOf(Long.valueOf((target << 9) >>> 9)).shiftLeft(target >>> 23)));
-		return UnsignedBiginteger(BigInteger.valueOf(Long.valueOf((target << 9) >>> 9))).shiftLeft(target >>> 23);
+		return BigInteger.valueOf(Long.valueOf((target << 9) >>> 9)).shiftLeft(target >>> 23);
 	}
 
 	public static byte[] bigIntegerToTargetBytes(BigInteger foo) {
-		byte[] bytes = UnsignedBiginteger(foo).toByteArray();
+		EQCType.assertNotNegative(foo);
+		byte[] bytes = foo.toByteArray();
 		byte[] target;
 		int offset;
 		// Exists Leading zero
@@ -1037,29 +1068,6 @@ public final class Util {
 		return foo;
 	}
 
-	public static EQCBlockChain getEQCBlockChain(PERSISTENCE persistence) throws ClassNotFoundException, SQLException {
-		EQCBlockChain eqcBlockChain;
-		switch (persistence) {
-//		case AVRO:
-//			eqcBlockChain = EQCBlockChainAvro.getInstance();
-//			break;
-		case H2:
-		default:
-			eqcBlockChain = EQCBlockChainH2.getInstance();
-			break;
-		}
-		return eqcBlockChain;
-	}
-
-	public static EQCBlockChain getEQCBlockChain() throws ClassNotFoundException, SQLException {
-		return EQCBlockChainH2.getInstance();
-	}
-
-	public static AddressType getAddressType(ID addressSerialNumber) throws Exception {
-		return AddressTool
-				.getAddressType(getEQCBlockChain(PERSISTENCE.H2).getAddress(addressSerialNumber).getReadableAddress());
-	}
-
 	public static ECPrivateKey getPrivateKey(byte[] privateKeyBytes, AddressType addressType) {
 		ECPrivateKey privateKey = null;
 		try {
@@ -1113,7 +1121,7 @@ public final class Util {
 			if(SN.length == 1) {
 				signature.update(intToBytes(SN[0]));
 			}
-			signature.update(transaction.getBytes(Address.AddressShape.AI));
+			signature.update(transaction.getBytes(AddressShape.AI));
 			isTransactionValid = signature.verify(userSignature);
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			// TODO Auto-generated catch block
@@ -1145,7 +1153,7 @@ public final class Util {
 			if(SN.length == 1) {
 				ecdsa.update(intToBytes(SN[0]));
 			}
-			ecdsa.update(transaction.getBytes(Address.AddressShape.AI));
+			ecdsa.update(transaction.getBytes(AddressShape.AI));
 			sign = ecdsa.sign();
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			// TODO Auto-generated catch block
@@ -2151,16 +2159,16 @@ public final class Util {
 		
 	}
 
-	public static Transaction generateCoinBaseTransaction(Address address, ID height,
+	public static Transaction generateCoinBaseTransaction(Passport passport, ID height,
 			AccountsMerkleTree accountsMerkleTree) {
 		TransferTransaction transaction = new CoinbaseTransaction();
 		TxOut eqcFoundationTxOut = new TxOut();
 		TxOut eqzipTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		try {
-			eqcFoundationTxOut.setAddress(Util.DB().getAddress(ID.ONE));
-			eqzipTxOut.setAddress(Util.DB().getAddress(ID.TWO));
-			minerTxOut.setAddress(address);
+			eqcFoundationTxOut.setPassport(Util.DB().getAddress(ID.ONE));
+			eqzipTxOut.setPassport(Util.DB().getAddress(ID.TWO));
+			minerTxOut.setPassport(passport);
 			if (height.compareTo(getMaxCoinbaseHeight(height)) < 0) {
 //				if (accountsMerkleTree.isAccountExists(address, true)) {
 //					transaction.setNonce(
@@ -2204,22 +2212,22 @@ public final class Util {
 		// Create Transaction
 		TransferTransaction transaction = new CoinbaseTransaction();
 		TxOut txOut = new TxOut();
-		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		txOut.getAddress().setID(ID.ONE);
+		txOut.getPassport().setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		txOut.getPassport().setID(ID.ONE);
 		txOut.setValue(EQC_FOUNDATION_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
-		AssetSubchainAccount account = new AssetSubchainAccount();
+		EQcoinSubchainAccount account = new EQcoinSubchainAccount();
+		account.setCreateHeight(ID.ZERO);
 		account.setLeasePeriod(ID.ZERO);
 		account.setLanguageType(LanguageType.JAVA);
-		account.getKey().setAddress(txOut.getAddress());
-		account.getKey().setAddressCreateHeight(ID.ZERO);
+		account.setPassport(txOut.getPassport());
+		account.setPassportCreateHeight(ID.ZERO);
 		Asset asset = new CoinAsset();
-		asset.setAssetCreateHeight(ID.ZERO);
-		asset.setBalance(new ID(EQC_FOUNDATION_COINBASE_REWARD));
-		asset.setBalanceUpdateHeight(ID.ZERO);
+		asset.deposit(new ID(EQC_FOUNDATION_COINBASE_REWARD));
 		asset.setNonce(ID.ZERO);
 		account.setAsset(asset);
+		account.setAssetUpdateHeight(ID.ZERO);
 		account.getAssetSubchainHeader().setFounderID(ID.ONE);
 		account.getAssetSubchainHeader().setDecimals("0.0001");
 		account.getAssetSubchainHeader().setIfCanBurn(false);
@@ -2234,42 +2242,45 @@ public final class Util {
 		account.getAssetSubchainHeader().setTotalTransactionNumbers(ID.ONE);
 		account.getAssetSubchainHeader().setUrl("www.eqchains.com");
 		account.getAssetSubchainHeader().setLogo(new byte[64]);
+		account.setTxFeeRate((byte) 10);
+		account.setState(State.ACTIVE);
+		account.setTotalStateSize(account.getBytes().length);
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 
 		txOut = new TxOut();
-		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
-		txOut.getAddress().setID(ID.TWO);
+		txOut.getPassport().setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
+		txOut.getPassport().setID(ID.TWO);
 		txOut.setValue(EQZIP_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
 		AssetAccount account1 = new AssetAccount();
-		account1.getKey().setAddress(txOut.getAddress());
-		account1.getKey().setAddressCreateHeight(ID.ZERO);
+		account1.setCreateHeight(ID.ZERO);
+		account1.setPassport(txOut.getPassport());
+		account1.setPassportCreateHeight(ID.ZERO);
 		asset = new CoinAsset();
-		asset.setAssetCreateHeight(ID.ZERO);
-		asset.setBalance(new ID(EQZIP_COINBASE_REWARD));
-		asset.setBalanceUpdateHeight(ID.ZERO);
+		asset.deposit(new ID(EQZIP_COINBASE_REWARD));
 		asset.setNonce(ID.ZERO);
 		account1.setAsset(asset);
+		account1.setAssetUpdateHeight(ID.ZERO);
 		accountsMerkleTree.saveAccount(account1);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		
 		txOut = new TxOut();
-		txOut.getAddress().setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
-		txOut.getAddress().setID(new ID(3));
+		txOut.getPassport().setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
+		txOut.getPassport().setID(new ID(3));
 		txOut.setValue(MINER_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
 		account1 = new AssetAccount();
-		account1.getKey().setAddress(txOut.getAddress());
-		account1.getKey().setAddressCreateHeight(ID.ZERO);
+		account1.setCreateHeight(ID.ZERO);
+		account1.setPassport(txOut.getPassport());
+		account1.setPassportCreateHeight(ID.ZERO);
 		asset = new CoinAsset();
-		asset.setAssetCreateHeight(ID.ZERO);
-		asset.setBalance(new ID(MINER_COINBASE_REWARD));
-		asset.setBalanceUpdateHeight(ID.ZERO);
+		asset.deposit(new ID(MINER_COINBASE_REWARD));
 		asset.setNonce(ID.ONE);
 		account1.setAsset(asset);
+		account1.setAssetUpdateHeight(ID.ZERO);
 		accountsMerkleTree.saveAccount(account1);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		transaction.setNonce(ID.ONE);
@@ -2329,7 +2340,7 @@ public final class Util {
 		byte[] target = null;
 		BigInteger oldDifficulty;
 		BigInteger newDifficulty;
-		if (height.longValue() < 9) {
+		if (height.longValue() <= 9) {
 			return getDefaultTargetBytes();
 		}
 		ID serialNumber_end = new ID(height.subtract(BigInteger.ONE));
@@ -2389,18 +2400,18 @@ public final class Util {
 	}
 
 	public static String getAddress(ID serialNumber, EQCHive eqcBlock) throws ClassNotFoundException, SQLException {
-		Address address = null;
-		address = EQCBlockChainH2.getInstance().getAddress(serialNumber);
-		if (address == null) {
-			Vector<Address> addressList = eqcBlock.getTransactions().getNewAccountList();
-			for (Address address2 : addressList) {
-				if (address2.equals(serialNumber)) {
-					address = address2;
+		Passport passport = null;
+		passport = EQCBlockChainH2.getInstance().getAddress(serialNumber);
+		if (passport == null) {
+			Vector<Passport> passportList = eqcBlock.getTransactions().getNewPassportList();
+			for (Passport passport2 : passportList) {
+				if (passport2.equals(serialNumber)) {
+					passport = passport2;
 					break;
 				}
 			}
 		}
-		return (address == null) ? null : address.getReadableAddress();
+		return (passport == null) ? null : passport.getReadableAddress();
 	}
 
 //	public static long getBillingFee(Transaction transaction, TXFEE_RATE rate, SerialNumber height){
@@ -2485,7 +2496,7 @@ public final class Util {
 
 	@Deprecated
 	public static long getBalance(String address) throws ClassNotFoundException, SQLException {
-		Address strAddress = new Address();
+		Passport strAddress = new Passport();
 		strAddress.setReadableAddress(address);
 		strAddress.setID(EQCBlockChainH2.getInstance().getAddressID(strAddress));
 		return EQCBlockChainH2.getInstance().getBalance(strAddress);
@@ -2592,7 +2603,7 @@ public final class Util {
 	
 	public static byte[] getBlockHeaderHash(Transaction transaction) throws ClassNotFoundException, SQLException {
 		return EQCBlockChainH2.getInstance().getEQCHeaderHash(
-				EQCBlockChainH2.getInstance().getTxInHeight(transaction.getTxIn().getAddress()));
+				EQCBlockChainH2.getInstance().getTxInHeight(transaction.getTxIn().getPassport()));
 	}
 	
 	public static byte[] CRC32C(byte[] bytes) {
@@ -2604,19 +2615,22 @@ public final class Util {
 		return intToBytes((int) (crc32c.getValue() & 0xFFFFFFFF));
 	}
 	
-	public static EQCBlockChain DB(DB db) throws RocksDBException, ClassNotFoundException, SQLException {
+	public static EQCBlockChain DB(PERSISTENCE persistence) throws RocksDBException, ClassNotFoundException, SQLException {
 		EQCBlockChain eqcBlockChain = null;
-		if(db == DB.H2) {
+		switch (persistence) {
+		case H2:
 			eqcBlockChain = EQCBlockChainH2.getInstance();
-		}
-		else if(db == DB.ROCKSDB) {
+			break;
+		case ROCKSDB:
+		default:
 			eqcBlockChain = EQCBlockChainRocksDB.getInstance();
+			break;
 		}
 		return eqcBlockChain;
 	}
 	
 	public static EQCBlockChain DB() throws RocksDBException, ClassNotFoundException, SQLException {
-		return DB(DB.ROCKSDB);
+		return DB(PERSISTENCE.ROCKSDB);
 	}
 	
 	public static BigInteger UnsignedBiginteger(BigInteger foo) {
@@ -2682,7 +2696,5 @@ public final class Util {
 		}
 		return maxCoinbaseHeight;
 	}
-	
-	
 	
 }

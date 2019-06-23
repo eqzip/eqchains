@@ -36,9 +36,9 @@ import java.security.acl.Owner;
 import java.util.Collections;
 
 import com.eqchains.blockchain.account.Account.AccountType;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.account.SmartContractAccount.LanguageType;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -52,13 +52,17 @@ import com.eqchains.util.Log;
  */
 public class AssetSubchainAccount extends SmartContractAccount {
 	/**
-	 * Body field include version and assetSubchainHeader
+	 * Body field include AssetSubchainHeader
 	 */
-	private AssetSubchainHeader assetSubchainHeader;
-	public final static byte MAX_VERSION = 0;
+	protected AssetSubchainHeader assetSubchainHeader;
 	
 	public AssetSubchainAccount() {
 		super(AccountType.ASSETSUBCHAIN);
+		assetSubchainHeader = new AssetSubchainHeader();
+	}
+	
+	protected AssetSubchainAccount(AccountType accountType) {
+		super(accountType);
 		assetSubchainHeader = new AssetSubchainHeader();
 	}
 	
@@ -112,16 +116,35 @@ public class AssetSubchainAccount extends SmartContractAccount {
 	
 	public String toInnerJson() {
 		return 
-				"\"Account\":" + 
+				"\"AssetSubchainAccount\":" + 
 				"\n{\n" +
 					"\"AccountType\":" + "\"" + accountType + "\"" + ",\n" +
 					"\"Version\":" + "\"" + version + "\"" + ",\n" +
-					key.toInnerJson() + ",\n" +
+					passport.toInnerJson() + ",\n" +
+					"\"AddressCreateHeight\":" + "\"" + passportCreateHeight + "\"" + ",\n" +
+					((publickey.isNULL())?Publickey.NULL():publickey.toInnerJson()) + ",\n" +
 					super.toInnerJson() +
 					assetSubchainHeader.toInnerJson() + ",\n" +
 					"\"AssetList\":" + "\n{\n" + "\"Size\":" + "\"" + assetList.size() + "\"" + ",\n" + 
 					"\"List\":" + "\n" + getAssetListString() + "\n}\n" +
 				"}";
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.account.SmartContractAccount#isSanity()
+	 */
+	@Override
+	public boolean isSanity() {
+		if(!super.isSanity()) {
+			return false;
+		}
+		if(assetSubchainHeader == null) {
+			return false;
+		}
+		if(!assetSubchainHeader.isSanity()) {
+			return false;
+		}
+		return true;
 	}
 	
 }

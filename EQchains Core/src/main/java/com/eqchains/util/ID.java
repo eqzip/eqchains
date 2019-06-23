@@ -31,7 +31,7 @@ package com.eqchains.util;
 
 import java.math.BigInteger;
 
-import com.eqchains.blockchain.transaction.Address.AddressShape;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.serialization.EQCType;
 
 /**
@@ -51,6 +51,8 @@ public class ID extends BigInteger {
 	
 	public static ID TWO = new ID(BigInteger.TWO);
 	
+	public static ID FIVE = new ID(5);
+	
 	/**
 	 * @param EQCBits
 	 */
@@ -62,14 +64,16 @@ public class ID extends BigInteger {
 	 * @param BigInteger
 	 */
 	public ID(final BigInteger value) {
-		super(Util.UnsignedBiginteger(value).toByteArray());
+		super(value.toByteArray());
+		EQCType.assertNotNegative(value);
 	}
 	
 	/**
 	 * @param long
 	 */
 	public ID(final long value) {
-		super(Util.UnsignedBiginteger(BigInteger.valueOf(value)).toByteArray());
+		super(BigInteger.valueOf(value).toByteArray());
+		EQCType.assertNotNegative(value);
 	}
 	
 	/**

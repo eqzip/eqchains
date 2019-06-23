@@ -39,9 +39,10 @@ import java.util.Vector;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Address.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.blockchain.transaction.operation.Operation;
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
@@ -71,7 +72,7 @@ public class OperationTransaction extends TransferTransaction {
 		super(TransactionType.OPERATION);
 	}
 
-	public OperationTransaction(byte[] bytes, Address.AddressShape addressShape)
+	public OperationTransaction(byte[] bytes, Passport.AddressShape addressShape)
 			throws NoSuchFieldException, IOException, UnsupportedOperationException, IllegalStateException {
 		super(TransactionType.OPERATION);
 		EQCType.assertNotNull(bytes);
@@ -103,7 +104,7 @@ public class OperationTransaction extends TransferTransaction {
 	 * AddressShape)
 	 */
 	@Override
-	public byte[] getBytes(Address.AddressShape addressShape) {
+	public byte[] getBytes(Passport.AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Header
@@ -173,91 +174,28 @@ public class OperationTransaction extends TransferTransaction {
 	 * AddressShape)
 	 */
 	@Override
-	public byte[] getBin(Address.AddressShape addressShape) {
+	public byte[] getBin(Passport.AddressShape addressShape) {
 		// TODO Auto-generated method stub
 		return super.getBin(addressShape);
 	}
 
-//	/*
-//	 * (non-Javadoc)
-//	 * 
-//	 * @see
-//	 * com.eqzip.eqcoin.blockchain.Transaction#isValid(com.eqzip.eqcoin.blockchain.
-//	 * AccountsMerkleTree)
-//	 */
-//	@Override
-//	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
-//		
-//		Account txInAccount = accountsMerkleTree.getAccount(txIn.getAddress());
-//		
-//		if(!isSanity(addressShape)) {
-//			return false;
-//		}
-//
-//		// Check Nonce is positive
-//		if (!isNoncePositive()) {
-//			return false;
-//		}
-//
-//		// Check if Publickey's ID is equal to TxIn's ID
-//		if (!publickey.getID().equals(txIn.getAddress().getID())) {
-//			return false;
-//		}
-//
-//		// Check if Publickey exists in Account and equal to current Publickey
-//		if (txInAccount.isPublickeyExists()) {
-//			if (!Arrays.equals(txInAccount.getKey().getPublickey().getPublickey(), publickey.getPublicKey())) {
-//				return false;
-//			}
-//		} else {
-//			// Verify Publickey
-//			if (AddressTool.verifyAddressPublickey(txIn.getAddress().getReadableAddress(), publickey.getPublicKey())) {
-//				return false;
-//			}
-//		}
-//
-//		// Check balance
-//		if (txIn.getValue() + Util.MIN_EQC > txInAccount.getAsset(getAssetID()).getBalance().longValue()) {
-//			return false;
-//		}
-//
-//		// Check if the number of TxOut is greater than or equal to 0 and less than or equal to 10
-//		if (!isTxOutNumberValid()) {
-//			return false;
-//		}
-//
-//		// Check if the TxOut's Address is unique
-//		if (!isTxOutAddressUnique()) {
-//			return false;
-//		}
-//
-//		// Check if TxOut's Address is valid
-//		if (!isTxOutAddressValid()) {
-//			return false;
-//		}
-//
-//		// Check if TxOut's Address doesn't include TxIn
-//		if (isTxOutAddressIncludeTxInAddress()) {
-//			return false;
-//		}
-//
-//		// Check if all TxIn and TxOut's value is valid
-//		if (!isAllValueValid()) {
-//			return false;
-//		}
-//
-//		// Check if TxFeeLimit is valid
-//		if (!isTxFeeLimitValid()) {
-//			return false;
-//		}
-//
-//		// Verify if Transaction's signature can pass
-//		if (!verify(accountsMerkleTree)) {
-//			return false;
-//		}
-//
-//		return true;
-//	}
+	
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.transaction.TransferTransaction#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree, com.eqchains.blockchain.account.Passport.AddressShape)
+	 */
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
+			throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
+		if(!operation.isMeetPreconditions(this, accountsMerkleTree)) {
+			Log.Error("Operation " + operation + " doesn't meet preconditions.");
+			return false;
+		}
+		if(!super.isValid(accountsMerkleTree, addressShape)) {
+			return false;
+		}
+		return true;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -267,12 +205,6 @@ public class OperationTransaction extends TransferTransaction {
 	@Override
 	public boolean isTxOutNumberValid() {
 		return (txOutList.size() >= MIN_TXOUT) && (txOutList.size() <= MAX_TXOUT);
-	}
-
-	public void execute(AccountsMerkleTree accountsMerkleTree, OperationTransaction operationTransaction) throws Exception {
-			if(!operation.execute(accountsMerkleTree, operationTransaction)) {
-				throw new IllegalStateException("During execute operation error occur: " + operation);
-			}
 	}
 
 	/* (non-Javadoc)
@@ -355,7 +287,9 @@ public class OperationTransaction extends TransferTransaction {
 	
 	public void update(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		super.update(accountsMerkleTree);
-		execute(accountsMerkleTree, this);
+		if(!operation.execute(this, accountsMerkleTree)) {
+			throw new IllegalStateException("During execute operation error occur: " + operation);
+		}
 	}
 	
 	public byte[] getBodyBytes(AddressShape addressShape) {

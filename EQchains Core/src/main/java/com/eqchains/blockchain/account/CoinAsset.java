@@ -51,10 +51,10 @@ public class CoinAsset extends Asset {
 	}
 	@Override
 	public boolean isSanity() {
-		if(assetType == null || version == null || assetID == null || assetCreateHeight == null || balance == null || balanceUpdateHeight == null || nonce == null) {
+		if(assetType == null || version == null || assetID == null || balance == null || nonce == null) {
 			return false;
 		}
-		if(!version.isSanity() || !assetID.isSanity() || !assetCreateHeight.isSanity() || !balanceUpdateHeight.isSanity() || !nonce.isSanity()) {
+		if(!version.isSanity() || !assetID.isSanity() || !nonce.isSanity()) {
 			return false;
 		}
 		if(assetType != AssetType.COIN) {
@@ -79,7 +79,6 @@ public class CoinAsset extends Asset {
 				"\n{\n" +
 					"\"AssetID\":" + "\"" + assetID + "\"" + ",\n" +
 					"\"Balance\":" + "\"" + balance + "\"" + ",\n" +
-					"\"BalanceUpdateHeight\":" + "\"" + balanceUpdateHeight + "\"" + ",\n" +
 					"\"Nonce\":" + "\"" + nonce + "\"" + "\n" +
 				"}";
 	}

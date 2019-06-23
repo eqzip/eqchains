@@ -650,9 +650,11 @@ public class EQCType {
 	 * @return byte[] the original number's EQCBits
 	 */
 	public static byte[] bigIntegerToEQCBits(final BigInteger value) {
-		String strFoo = null;
+		EQCType.assertNotNegative(value);
+		
 		// Get the original binary sequence with the high digits on the left.
-		strFoo = Util.UnsignedBiginteger(value).toString(2);
+		String strFoo = null;
+		strFoo = value.toString(2);
 		StringBuilder sb = new StringBuilder();
 		sb.append(strFoo);
 		int len = strFoo.length();
@@ -662,7 +664,7 @@ public class EQCType {
 				sb.insert(len - i, '1');
 			}
 		}
-		return Util.reverseBytes(Util.UnsignedBiginteger(new BigInteger(sb.toString(), 2)).toByteArray());
+		return Util.reverseBytes(new BigInteger(sb.toString(), 2).toByteArray());
 	}
 
 	public static BigInteger eqcBitsToBigInteger(final byte[] bytes) {
@@ -675,7 +677,7 @@ public class EQCType {
 				sb.deleteCharAt(len - i);
 			}
 		}
-		return Util.UnsignedBiginteger(new BigInteger(sb.toString(), 2));
+		return new BigInteger(sb.toString(), 2);
 	}
 	
 	public static ID eqcBitsToID(final byte[] bytes) {
@@ -688,7 +690,7 @@ public class EQCType {
 				sb.deleteCharAt(len - i);
 			}
 		}
-		return new ID(Util.UnsignedBiginteger(new BigInteger(sb.toString(), 2)));
+		return new ID(new BigInteger(sb.toString(), 2));
 	}
 
 	public static byte[] stringToASCIIBytes(String foo) {
@@ -724,40 +726,64 @@ public class EQCType {
 		}
 	}
 	
-	public static void assertNotNull(ByteArrayInputStream is) throws NoSuchFieldException {
+	public static void assertNotNull(ByteArrayInputStream is) throws IllegalStateException {
 		if(isInputStreamEnd(is)) {
-			throw new NoSuchFieldException("The Object shouldn't be null.");
+			throw new IllegalStateException("The Object shouldn't be null.");
 		}
 	}
 	
-	public static void assertNotNull(byte[] bytes) throws NoSuchFieldException {
+	public static void assertNotNull(byte[] bytes) throws IllegalStateException {
 		if(isNULL(bytes)) {
-			throw new NoSuchFieldException("The Object shouldn't be null.");
+			throw new IllegalStateException("The Object shouldn't be null.");
 		}
 	}
 	
-	public static void assertNotNull(Object object) throws NoSuchFieldException {
+	public static void assertNotNull(Object object) throws IllegalStateException {
 		if(object == null) {
-			throw new NoSuchFieldException("The Object shouldn't be null.");
+			throw new IllegalStateException("The Object shouldn't be null.");
 		}
 	}
 	
-	public static void assertNotZero(ID id) throws NoSuchFieldException {
+	public static void assertNotZero(ID id) throws IllegalStateException {
 		if(id.compareTo(ID.ZERO) == 0) {
-			throw new NoSuchFieldException("The ID shouldn't be zero.");
+			throw new IllegalStateException("The ID shouldn't be zero.");
 		}
 	}
 	
-	public static void assertNotZero(long value) throws NoSuchFieldException {
+	public static void assertNotNegative(ID id) throws IllegalStateException {
+		if(id.compareTo(ID.ZERO) < 0) {
+			throw new IllegalStateException("The ID shouldn't be negative.");
+		}
+	}
+	
+	public static void assertNotNegative(BigInteger bigInteger) throws IllegalStateException {
+		if(bigInteger.compareTo(BigInteger.ZERO) < 0) {
+			throw new IllegalStateException("The BigInteger shouldn't be negative.");
+		}
+	}
+	
+	public static void assertNotNegative(long value) throws IllegalStateException {
+		if(value < 0) {
+			throw new IllegalStateException("The long Value shouldn't be negative.");
+		}
+	}
+	
+	public static void assertNotZero(long value) throws IllegalStateException {
 		if(value == 0) {
-			throw new NoSuchFieldException("The ID shouldn't be zero.");
+			throw new IllegalStateException("The value shouldn't be zero.");
 		}
 	}
 	
-	public static void assertNotEOF(int type) throws NoSuchFieldException {
+	public static void assertNotEOF(int type) throws IllegalStateException {
 		if(type == EOF) {
 			throw new IllegalStateException("The ByteArrayInputStream shouldn't end but read EOF.");
 		}
 	}
 
+	public static void assertNotHigher(ID amount0, ID amount1) throws IllegalStateException {
+		if(amount0.compareTo(amount1) > 0) {
+			throw new IllegalStateException("Amount0 shouldn't bigger than Amount1.");
+		}
+	}
+	
 }
