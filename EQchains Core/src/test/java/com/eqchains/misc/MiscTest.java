@@ -65,14 +65,14 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  */
 public class MiscTest {
 	
-	   @Test
+	@Test
 	void saveAccount() {
 		Account account = new AssetAccount();
 		Passport passport = new Passport();
 		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		passport.setID(ID.ONE);
 		account.setPassport(passport);
-		account.setPassportCreateHeight(ID.ZERO);
+		account.setLockCreateHeight(ID.ZERO);
 		account.getAsset(Asset.EQCOIN).deposit(new ID(Util.MIN_EQC));
 		try {
 			EQCBlockChainRocksDB.getInstance().saveAccount(account);

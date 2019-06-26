@@ -64,8 +64,8 @@ import java.sql.SQLException;
 
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCHeader;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.TransactionsHeader;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
@@ -75,7 +75,6 @@ import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
-import com.eqchains.rpc.avro.Height;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;

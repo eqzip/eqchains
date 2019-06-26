@@ -29,6 +29,8 @@
  */
 package com.eqchains.service;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -40,15 +42,16 @@ import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificResponder;
 import org.apache.avro.util.Utf8;
 
+import com.eqchains.avro.IO;
+import com.eqchains.avro.SyncblockNetwork;
+import com.eqchains.blockchain.EQCHive;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.rpc.avro.Block;
-import com.eqchains.rpc.avro.Cookie;
-import com.eqchains.rpc.avro.Europa;
-import com.eqchains.rpc.avro.FullNodeList;
-import com.eqchains.rpc.avro.Height;
-import com.eqchains.rpc.avro.MinerList;
-import com.eqchains.rpc.avro.Status;
-import com.eqchains.rpc.avro.SyncblockNetwork;
+import com.eqchains.rpc.Cookie;
+import com.eqchains.rpc.Europa;
+import com.eqchains.rpc.Status;
+import com.eqchains.serialization.EQCType;
 import com.eqchains.test.Test;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -66,11 +69,12 @@ public class SyncblockNetworkService extends Thread {
 	public static class SyncblockNetworkImpl implements SyncblockNetwork {
 
 		@Override
-		public Status ping(Cookie cookie) throws AvroRemoteException {
+		public IO ping(IO cookie) throws AvroRemoteException {
+			IO io = null;
 			// Here need add function to test ping
 //			Test.ping(Util.getStatus().getCookie().getIp().toString(), Util.getStatus().getCookie().getIp().toString());
 			Cookie cookie1 = new Cookie();
-			cookie1.setIp("14.221.177.198");
+			cookie1.setIp("14.221.177.201");
 			cookie1.setVersion(Util.PROTOCOL_VERSION);
 			if (cookie1.getIp().length() == 0) {
 				Log.Error("During get IP error occur please check your network");
@@ -79,53 +83,63 @@ public class SyncblockNetworkService extends Thread {
 			}
 			Status status = new Status();
 			status.setCookie(cookie1);
-			status.setCode(STATUS.OK.ordinal());
+			status.setCode(ID.valueOf(STATUS.OK.ordinal()));
 			status.setMessage(new Date().toString());
-			return status;//Util.getStatus();
-		}
-
-		@Override
-		public MinerList getMinerList(Cookie cookie) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public FullNodeList getFullNodeList(Cookie cookie) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Europa getBlockTail(Cookie cookie) throws AvroRemoteException {
-			Europa europa = new Europa();
-			Height height = new Height();
-			height.setCookie(Util.getCookie());
 			try {
-				height.setHeight(Util.DB().getEQCBlockTailHeight().longValue());
+				 io = status.getIO();//Util.getStatus();
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				Log.Error(e.getMessage());
 			}
-			europa.setHeight(height);
-			europa.setNonce(0l);
-			return europa;
+			return io;
 		}
 
 		@Override
-		public Block getBlock(Height height) throws AvroRemoteException {
-			Block block = new Block();
+		public IO getMinerList() throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO getFullNodeList() throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO getBlockTail() throws AvroRemoteException {
+			IO io = null;
+			Europa europa = null;
+			Account account = null;
+			try {
+				europa = new Europa();
+				europa.setHeight(Util.DB().getEQCBlockTailHeight());
+				account = Util.DB().getAccount(ID.THREE);
+				europa.setNonce(account.getAsset(Asset.EQCOIN).getNonce());
+				io = europa.getIO();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.Error(e.getMessage());
+			}
+			return io;
+		}
+
+		@Override
+		public IO getBlock(IO height) throws AvroRemoteException {
+			IO block = null;
 			ByteBuffer byteBuffer = null;
+			EQCHive eqcHive = null;
 			try {
-				byteBuffer = ByteBuffer.wrap(Util.DB().getEQCBlock(new ID(height.getHeight()), false).getBytes());
+				eqcHive = Util.DB().getEQCBlock(new ID(height), false);
+				if(eqcHive != null) {
+					block = eqcHive.getIO();
+				}
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 				Log.Error(e.getMessage());
 			}
-			block.setBlock(byteBuffer);
-			block.setCookie(Util.getCookie());
 			return block;
 		}
 

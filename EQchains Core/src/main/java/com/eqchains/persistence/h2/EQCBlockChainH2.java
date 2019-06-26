@@ -53,13 +53,13 @@ import javax.naming.spi.DirStateFactory.Result;
 import javax.security.sasl.RealmCallback;
 
 import com.eqchains.blockchain.EQCHive;
+import com.eqchains.blockchain.EQCRoot;
+import com.eqchains.blockchain.EQCSignatures;
+import com.eqchains.blockchain.EQChains;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Index;
 import com.eqchains.blockchain.PublicKey;
-import com.eqchains.blockchain.Root;
-import com.eqchains.blockchain.Signatures;
-import com.eqchains.blockchain.Transactions;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetAccount;
@@ -67,6 +67,7 @@ import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.configuration.Configuration;
+import com.eqchains.rpc.Max;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -238,7 +239,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getAddressSerialNumber(com.eqzip.eqcoin.blockchain.Address)
 	 */
-	@Override
 	@Deprecated
 	public synchronized ID getAddressID(Passport address) {
 		ID serialNumber = null;
@@ -261,7 +261,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getAddress(com.eqzip.eqcoin.util.SerialNumber)
 	 */
-	@Override
 	@Deprecated
 	public synchronized Passport getAddress(ID serialNumber) {
 		Passport address = null;
@@ -379,7 +378,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#isAddressExists(com.eqzip.eqcoin.blockchain.Address)
 	 */
-	@Override
 	@Deprecated
 	public synchronized boolean isAddressExists(Passport address) {
 		try {
@@ -705,7 +703,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				// Parse Root
 				bytes = null;
 				if ((bytes = EQCType.parseBIN(bis)) != null) {
-					eqcBlock.setRoot(new Root(bytes));
+					eqcBlock.setRoot(new EQCRoot(bytes));
 				}
 //				// Parse Index
 //				bytes = null;
@@ -721,15 +719,15 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //					if (!Transactions.isValid(bytes)) {
 //						throw new ClassCastException("getEQCBlock during parse Transactions error occur wrong format");
 //					}
-					Transactions transactions = null;
+					EQChains eqChains = null;
 					try {
-						transactions = new Transactions(bytes);
+						eqChains = new EQChains(bytes);
 					}
 					catch(Exception e) {
 						Log.info(e.getMessage());
 					}
-					if(transactions != null) {
-						eqcBlock.setTransactions(transactions);
+					if(eqChains != null) {
+						eqcBlock.setTransactions(eqChains);
 					}
 					else {
 						throw new ClassCastException("getEQCBlock during parse Transactions error occur wrong format");
@@ -739,11 +737,11 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					// Parse Signatures
 					bytes = null;
 					if ((bytes = EQCType.parseBIN(bis)) != null) {
-						if (!Signatures.isValid(bytes)) {
+						if (!EQCSignatures.isValid(bytes)) {
 							throw new ClassCastException(
 									"getEQCBlock during parse Signatures error occur wrong format");
 						}
-						eqcBlock.setSignatures(new Signatures(bytes));
+						eqcBlock.setSignatures(new EQCSignatures(bytes));
 					}
 				}
 			} catch (IOException | NoSuchFieldException e) {
@@ -763,7 +761,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * com.eqzip.eqcoin.blockchain.EQCBlockChain#isEQCBlockExists(com.eqzip.eqcoin.
 	 * util.SerialNumber)
 	 */
-	@Override
 	@Deprecated
 	public synchronized boolean isEQCBlockExists(ID height) {
 		boolean isEQCBlockExists = false;
@@ -862,7 +859,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getTransactionsHash(com.EQCOIN Foundation.
 	 * eqcoin.util.SerialNumber)
 	 */
-	@Override
 	@Deprecated
 	public synchronized byte[] getTransactionsHash(ID height) {
 		// TODO Auto-generated method stub
@@ -1520,7 +1516,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		close();
 	}
 
-	@Override
 	public ID getTransactionMaxNonce(Transaction transaction) throws SQLException {
 		ID nonce = null;
 			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_MAX_NONCE WHERE id=?");
@@ -1532,7 +1527,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return nonce;
 	}
 
-	@Override
 	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException {
 		int result = 0;
 			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_MAX_NONCE (id, max_nonce) VALUES (?, ?)");
@@ -1546,6 +1540,18 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public Max getTransactionMax(ID id) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean saveTransactionMax(ID id, Max max) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

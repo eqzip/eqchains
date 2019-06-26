@@ -254,7 +254,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 			if (txOut.isNew()) {
 				account = new AssetAccount();
 				account.setPassport(txOut.getPassport());
-				account.setPassportCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				account.setLockCreateHeight(accountsMerkleTree.getHeight().getNextID());
 				Asset asset = new CoinAsset();
 				asset.setAssetID(getAssetID());
 				asset.setNonce(ID.ZERO);

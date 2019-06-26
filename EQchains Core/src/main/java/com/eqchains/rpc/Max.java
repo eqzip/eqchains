@@ -27,112 +27,95 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
-import com.eqchains.blockchain.account.Account.AccountType;
+import com.eqchains.avro.IO;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
-import com.eqchains.util.Log;
+import com.eqchains.util.ID;
 
 /**
  * @author Xun Wang
- * @date Jun 22, 2019
+ * @date Jun 26, 2019
  * @email 10509759@qq.com
  */
-public class EQcoinSubchainAccount extends AssetSubchainAccount {
-	/**
-	 * Body field include TxFeeRate
-	 */
-	private byte txFeeRate;
-
-	public EQcoinSubchainAccount() {
-		super(AccountType.EQCOINSUBCHAIN);
+public class Max extends AvroIO {
+	private ID nonce;
+	private ID balance;
+	
+	public Max(ByteArrayInputStream is) throws Exception {
+		super(is);
 	}
 	
-	public EQcoinSubchainAccount(byte[] bytes) throws NoSuchFieldException, IOException {
-		super(bytes);
+	public Max() {
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.account.AssetSubchainAccount#parseBody(java.io.ByteArrayInputStream)
-	 */
-	@Override
-	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		// TODO Auto-generated method stub
-		super.parseBody(is);
-		// Parse TxFeeRate
-		txFeeRate = EQCType.parseBIN(is)[0];
+	public Max(IO io) throws Exception {
+		super(io);
 	}
 
 	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.account.AssetSubchainAccount#getBodyBytes()
-	 */
-	@Override
-	public byte[] getBodyBytes() {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			os.write(super.getBodyBytes());
-			os.write(EQCType.bytesToBIN(new byte[]{txFeeRate}));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		return os.toByteArray();
-	}
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		return "{\n" +
-				toInnerJson() +
-				"\n}";
-	}
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.account.AssetSubchainAccount#toInnerJson()
-	 */
-	@Override
-	public String toInnerJson() {
-		return 
-				"\"EQcoinSubchainAccount\":" + 
-				"\n{\n" +
-					super.toInnerJson() + ",\n" +
-					"\"TxFeeRate\":" + "\"" + txFeeRate + "\"" +
-				"\n}";
-	}
-	
-	
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.account.SmartContractAccount#isSanity()
+	 * @see com.eqchains.serialization.EQCTypable#isSanity()
 	 */
 	@Override
 	public boolean isSanity() {
-		if(!super.isSanity()) {
+		if(nonce == null || balance == null) {
 			return false;
 		}
-		if(txFeeRate < 1 || txFeeRate >10) {
+		if(!nonce.isSanity() || !balance.isSanity()) {
 			return false;
 		}
 		return true;
 	}
 
-	/**
-	 * @return the txFeeRate
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
 	 */
-	public byte getTxFeeRate() {
-		return txFeeRate;
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
-	/**
-	 * @param txFeeRate the txFeeRate to set
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
 	 */
-	public void setTxFeeRate(byte txFeeRate) {
-		this.txFeeRate = txFeeRate;
+	@Override
+	public void parseHeader(ByteArrayInputStream is) throws Exception {
+		// TODO Auto-generated method stub
+
 	}
-	
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
+	 */
+	@Override
+	public void parseBody(ByteArrayInputStream is) throws Exception {
+		nonce = new ID(EQCType.parseEQCBits(is));
+		balance = EQCType.parseID(is);
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
+	 */
+	@Override
+	public byte[] getHeaderBytes() throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
+	 */
+	@Override
+	public byte[] getBodyBytes() throws Exception {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		os.write(nonce.getEQCBits());
+		os.write(balance.getEQCBits());
+		return null;
+	}
+
 }

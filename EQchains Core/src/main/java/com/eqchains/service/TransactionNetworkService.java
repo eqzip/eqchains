@@ -38,13 +38,10 @@ import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
+import com.eqchains.avro.IO;
+import com.eqchains.avro.SyncblockNetwork;
+import com.eqchains.avro.TransactionNetwork;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.rpc.avro.Cookie;
-import com.eqchains.rpc.avro.MinerList;
-import com.eqchains.rpc.avro.Status;
-import com.eqchains.rpc.avro.SyncblockNetwork;
-import com.eqchains.rpc.avro.TransactionNetwork;
-import com.eqchains.rpc.avro.TransactionRPC;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
@@ -59,19 +56,37 @@ public class TransactionNetworkService extends Thread {
 	public static class TransactionNetworkImpl implements TransactionNetwork {
 
 		@Override
-		public Status ping(Cookie cookie) throws AvroRemoteException {
-			// Here need add function to test ping
-			return Util.getStatus();
-		}
-
-		@Override
-		public MinerList getMinerList(Cookie cookie) throws AvroRemoteException {
+		public IO ping(IO cookie) throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public Status sendTransaction(TransactionRPC transaction) throws AvroRemoteException {
+		public IO getMinerList() throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO sendTransaction(IO transactionRPC) throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO getID(IO readableAddress) throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO getAccount(IO ID) throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO getMaxNonce(IO ID) throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}

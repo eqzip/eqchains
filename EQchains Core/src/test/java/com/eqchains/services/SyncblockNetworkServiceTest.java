@@ -36,9 +36,10 @@ import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.junit.jupiter.api.Test;
 
-import com.eqchains.rpc.avro.Cookie;
-import com.eqchains.rpc.avro.Status;
-import com.eqchains.rpc.avro.SyncblockNetwork;
+import com.eqchains.avro.SyncblockNetwork;
+import com.eqchains.rpc.Cookie;
+import com.eqchains.rpc.Status;
+import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 import com.eqchains.util.Util.STATUS;
@@ -60,8 +61,7 @@ public class SyncblockNetworkServiceTest {
     		cookie.setIp("14.221.177.1918");
     		cookie.setVersion(Util.PROTOCOL_VERSION);
     		Status status = new Status();
-    		status.setCookie(cookie);
-    		status.setCode(STATUS.OK.ordinal());
+    		status.setCode(ID.valueOf(STATUS.OK.ordinal()));
     		status.setMessage("");
     		System.out.println("Begin link remote: " + time);
     		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName("14.221.177.198"), 7997), 3000l);
@@ -73,7 +73,7 @@ public class SyncblockNetworkServiceTest {
 //            cookie.setIp(Util.getCookie().getIp().toString());
 //            cookie.setVersion("0.01");
             System.out.println("Calling proxy.send with message:  " + cookie);
-            System.out.println("Result: " + proxy.ping(cookie));
+            System.out.println("Result: " + proxy.ping(cookie.getIO()));
 
 //            // cleanup
 //            client.close();

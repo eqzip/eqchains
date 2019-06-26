@@ -1,46 +1,38 @@
-{"namespace": "com.eqchains.rpc.avro",
+{"namespace": "com.eqchains.avro",
  "protocol": "TransactionNetwork",
 
  "types": [
-     {"name": "Cookie", "type": "record",
+     {"name": "IO", "type": "record",
       "fields": [
-          {"name": "ip",   "type": "string"},
-          {"name": "version", "type": "string"}
-      ]
-     },
-     {"name": "Status", "type": "record",
-      "fields": [
-          {"name": "cookie",   "type": "Cookie"},
-          {"name": "code", "type": "int"},
-          {"name": "message", "type": "string"}
-      ]
-     },
-     {"name": "MinerList", "type": "record",
-      "fields": [
-          {"name": "cookie",   "type": "Cookie"},
-          {"name": "minerList", "type": "bytes"}
-      ]
-     },
-     {"name": "TransactionRPC", "type": "record",
-      "fields": [
-          {"name": "cookie",   "type": "Cookie"},
-          {"name": "data", "type": "bytes"}
+          {"name": "object", "type": "bytes"}
       ]
      }
  ],
 
  "messages": {
      "ping": {
-         "request": [{"name": "cookie", "type": "Cookie"}],
-         "response": "Status"
+         "request": [{"name": "cookie", "type": "IO"}],
+         "response": "IO"
      },
      "getMinerList": {
-         "request": [{"name": "cookie", "type": "Cookie"}],
-         "response": "MinerList"
+         "request": [],
+         "response": "IO"
    	  },
      "sendTransaction": {
-         "request": [{"name": "transaction", "type": "TransactionRPC"}],
-         "response": "Status"
-     }
+         "request": [{"name": "transactionRPC", "type": "IO"}],
+         "response": "IO"
+     },
+     "getID": {
+         "request": [{"name": "readableAddress", "type": "IO"}],
+         "response": "IO"
+   	  },
+   	  "getAccount": {
+         "request": [{"name": "ID", "type": "IO"}],
+         "response": "IO"
+   	  },
+   	  "getMaxNonce": {
+         "request": [{"name": "ID", "type": "IO"}],
+         "response": "IO"
+   	  }
  }
 }

@@ -54,12 +54,16 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	private String symbol;
 	private String decimals;
 	private ID maxSupply;
+	private ID maxSupplyUpdateHeight;
 	private boolean ifCanChangeMaxSupply;
 	private ID totalSupply;
+	private ID totalSupplyUpdateHeight;
 	private boolean ifCanChangeTotalSupply;
 	private boolean ifCanBurn;
 	private ID totalAccountNumbers;
+	private ID totalAccountNumbersUpdateHeight;
 	private ID totalTransactionNumbers;
+	private ID totalTransactionNumbersUpdateHeight;
 	// Need do more job to use full regression check the url's format if is valid
 	// length less than 20
 	private String url;
@@ -283,18 +287,22 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 		decimals = EQCType.bytesToASCIISting(EQCType.parseBIN(is));
 		// Parse maxSupply
 		maxSupply = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
+		maxSupplyUpdateHeight = EQCType.parseID(is);
 		// Parse ifCanChangeMaxSupply
 		ifCanChangeMaxSupply = EQCType.eqcBitsToBoolean(EQCType.parseEQCBits(is));
 		// Parse totalSupply
 		totalSupply = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
+		totalSupplyUpdateHeight = EQCType.parseID(is);
 		// Parse ifCanChangeTotalSupply
 		ifCanChangeTotalSupply = EQCType.eqcBitsToBoolean(EQCType.parseEQCBits(is));
 		// Parse ifCanBurn
 		ifCanBurn = EQCType.eqcBitsToBoolean(EQCType.parseEQCBits(is));
 		// Parse totalAccountNumbers
 		totalAccountNumbers = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
+		totalAccountNumbersUpdateHeight = EQCType.parseID(is);
 		// Parse totalTransactionNumbers
 		totalTransactionNumbers = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
+		totalTransactionNumbersUpdateHeight = EQCType.parseID(is);
 		// Parse url
 		url = EQCType.bytesToASCIISting(EQCType.parseBIN(is));
 		// Parse logo
@@ -317,12 +325,16 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 			os.write(EQCType.stringToBIN(symbol));
 			os.write(EQCType.stringToBIN(decimals));
 			os.write(maxSupply.getEQCBits());
+			os.write(maxSupplyUpdateHeight.getEQCBits());
 			os.write(EQCType.booleanToEQCBits(ifCanChangeMaxSupply));
 			os.write(totalSupply.getEQCBits());
+			os.write(totalSupplyUpdateHeight.getEQCBits());
 			os.write(EQCType.booleanToEQCBits(ifCanChangeTotalSupply));
 			os.write(EQCType.booleanToEQCBits(ifCanBurn));
 			os.write(totalAccountNumbers.getEQCBits());
+			os.write(totalAccountNumbersUpdateHeight.getEQCBits());
 			os.write(totalTransactionNumbers.getEQCBits());
+			os.write(totalTransactionNumbersUpdateHeight.getEQCBits());
 			os.write(EQCType.stringToBIN(url));
 			os.write(EQCType.bytesToBIN(logo));
 		} catch (IOException e) {
@@ -335,12 +347,13 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 
 	@Override
 	public boolean isSanity() {
-		if(founderID == null || subchainID == null || subchainName == null || symbol == null || decimals == null || maxSupply == null ||
-				totalSupply == null || totalAccountNumbers == null || totalTransactionNumbers == null) {
+		if(founderID == null || subchainID == null || subchainName == null || symbol == null || decimals == null || maxSupply == null || maxSupplyUpdateHeight == null ||
+				totalSupply == null || totalSupplyUpdateHeight == null || totalAccountNumbers == null || totalAccountNumbersUpdateHeight == null || totalTransactionNumbers == null || totalTransactionNumbersUpdateHeight == null) {
 			return false;
 		}
 		if(!founderID.isSanity() || !subchainID.isSanity() || !(subchainName.length() > 0) || !(symbol.length() > 0) || !(decimals.length() > 0) ||
-				!maxSupply.isSanity() || !totalSupply.isSanity() || !totalAccountNumbers.isSanity() || !totalTransactionNumbers.isSanity()) {
+				!maxSupply.isSanity() || !maxSupplyUpdateHeight.isSanity() || !totalSupply.isSanity() || !totalSupplyUpdateHeight.isSanity() ||
+				!totalAccountNumbers.isSanity() || !totalAccountNumbersUpdateHeight.isSanity() || !totalTransactionNumbers.isSanity() || !totalTransactionNumbersUpdateHeight.isSanity()) {
 			return false;
 		}
 		return true;
@@ -372,14 +385,18 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 					"\"Symbol\":" + "\"" + symbol + "\"" + ",\n" +
 					"\"Decimals\":" + "\"" + decimals + "\"" + ",\n" +
 					"\"MaxSupply\":" + "\"" + maxSupply + "\"" + ",\n" +
+					"\"MaxSupplyUpdateHeight\":" + "\"" + maxSupplyUpdateHeight + "\"" + ",\n" +
 					"\"IfCanChangeMaxSupply\":" + "\"" + ifCanChangeMaxSupply + "\"" + ",\n" +
 					"\"TotalSupply\":" + "\"" + totalSupply + "\"" + ",\n" +
+					"\"TotalSupplyUpdateHeight\":" + "\"" + totalSupplyUpdateHeight + "\"" + ",\n" +
 					"\"IfCanChangeTotalSupply\":" + "\"" + ifCanChangeTotalSupply + "\"" + ",\n" +
 					"\"IfCanBurn\":" + "\"" + ifCanBurn + "\"" + ",\n" +
 					"\"TotalAccountNumbers\":" + "\"" + totalAccountNumbers + "\"" + ",\n" +
+					"\"TotalAccountNumbersUpdateHeight\":" + "\"" + totalAccountNumbersUpdateHeight + "\"" + ",\n" +
 					"\"TotalTransactionNumbers\":" + "\"" + totalTransactionNumbers + "\"" + ",\n" +
+					"\"TotalTransactionNumbersUpdateHeight\":" + "\"" + totalTransactionNumbersUpdateHeight + "\"" + ",\n" +
 					"\"URL\":" + "\"" + url + "\"" + ",\n" +
-					"\"LOGO\":" + "\"" + Util.dumpBytes(logo, 16) + "\""  + "\n}\n";
+					"\"LOGO\":" + "\"" + Util.dumpBytes(logo, 16) + "\""  + "\n}";
 	}
 
 	/**
@@ -408,6 +425,62 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	 */
 	public void setLogo(byte[] logo) {
 		this.logo = logo;
+	}
+
+	/**
+	 * @return the maxSupplyUpdateHeight
+	 */
+	public ID getMaxSupplyUpdateHeight() {
+		return maxSupplyUpdateHeight;
+	}
+
+	/**
+	 * @param maxSupplyUpdateHeight the maxSupplyUpdateHeight to set
+	 */
+	public void setMaxSupplyUpdateHeight(ID maxSupplyUpdateHeight) {
+		this.maxSupplyUpdateHeight = maxSupplyUpdateHeight;
+	}
+
+	/**
+	 * @return the totalSupplyUpdateHeight
+	 */
+	public ID getTotalSupplyUpdateHeight() {
+		return totalSupplyUpdateHeight;
+	}
+
+	/**
+	 * @param totalSupplyUpdateHeight the totalSupplyUpdateHeight to set
+	 */
+	public void setTotalSupplyUpdateHeight(ID totalSupplyUpdateHeight) {
+		this.totalSupplyUpdateHeight = totalSupplyUpdateHeight;
+	}
+
+	/**
+	 * @return the totalAccountNumbersUpdateHeight
+	 */
+	public ID getTotalAccountNumbersUpdateHeight() {
+		return totalAccountNumbersUpdateHeight;
+	}
+
+	/**
+	 * @param totalAccountNumbersUpdateHeight the totalAccountNumbersUpdateHeight to set
+	 */
+	public void setTotalAccountNumbersUpdateHeight(ID totalAccountNumbersUpdateHeight) {
+		this.totalAccountNumbersUpdateHeight = totalAccountNumbersUpdateHeight;
+	}
+
+	/**
+	 * @return the totalTransactionNumbersUpdateHeight
+	 */
+	public ID getTotalTransactionNumbersUpdateHeight() {
+		return totalTransactionNumbersUpdateHeight;
+	}
+
+	/**
+	 * @param totalTransactionNumbersUpdateHeight the totalTransactionNumbersUpdateHeight to set
+	 */
+	public void setTotalTransactionNumbersUpdateHeight(ID totalTransactionNumbersUpdateHeight) {
+		this.totalTransactionNumbersUpdateHeight = totalTransactionNumbersUpdateHeight;
 	}
 	
 }

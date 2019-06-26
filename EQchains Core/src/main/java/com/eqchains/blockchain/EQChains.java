@@ -71,7 +71,7 @@ import avro.shaded.com.google.common.base.Objects;
  * @date Oct 1, 2018
  * @email 10509759@qq.com
  */
-public class Transactions implements EQCTypable {
+public class EQChains implements EQCTypable {
 	private Vector<Transaction> newTransactionList;
 	private long newTransactionListSize;
 	private Vector<Passport> newPassportList;
@@ -79,7 +79,7 @@ public class Transactions implements EQCTypable {
 	private Vector<PublicKey> newPublicKeyList;
 	private long newPublickeyListSize;
 	
-	public Transactions() {
+	public EQChains() {
 		super();
 		init();
 	}
@@ -93,11 +93,11 @@ public class Transactions implements EQCTypable {
 		newPublickeyListSize = 0;
 	}
 	
-	public Transactions(ByteBuffer byteBuffer) throws NoSuchFieldException, IOException {
+	public EQChains(ByteBuffer byteBuffer) throws NoSuchFieldException, IOException {
 		parseTransactions(byteBuffer.array());
 	}
 	
-	public Transactions(byte[] bytes) throws NoSuchFieldException, IOException {
+	public EQChains(byte[] bytes) throws NoSuchFieldException, IOException {
 		parseTransactions(bytes);
 	}
 	
@@ -204,7 +204,7 @@ public class Transactions implements EQCTypable {
 	}
 	
 	@Deprecated
-	public boolean isAddressExists(Passport address) {
+	public boolean isAccountExists(Passport address) {
 		return newPassportList.contains(address);
 	}
 	
@@ -582,7 +582,7 @@ public class Transactions implements EQCTypable {
 					// Save new Account in Filter
 					Account account = new AssetAccount();
 					account.setPassport(newPassportList.get(i));
-					account.setPassportCreateHeight(accountsMerkleTree.getHeight().getNextID());
+					account.setLockCreateHeight(accountsMerkleTree.getHeight().getNextID());
 					Asset asset = new CoinAsset();
 					asset.setAssetID(Asset.EQCOIN);
 					asset.setNonce(ID.ZERO);

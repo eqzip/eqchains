@@ -131,17 +131,17 @@ public class AccountsMerkleTree {
 	 * 
 	 * @param address
 	 * @param isFiltering When need searching in Filter table just set it to true
-	 * @return true if Address exists
+	 * @return true if Account exists
 	 * @throws Exception 
 	 */
 	public synchronized boolean isAccountExists(Passport address, boolean isFiltering) throws Exception {
 		boolean isExists = false;
-		if(isFiltering && filter.isAddressExists(address)) {
+		if(isFiltering && filter.isAccountExists(address)) {
 			isExists = true;
 		}
-		else if(Util.DB().isAddressExists(address)) {
+		else {
 			Account account = Util.DB().getAccount(address.getAddressAI());
-			if(account != null && account.getPassportCreateHeight().compareTo(height) <= 0) {
+			if(account != null && account.getLockCreateHeight().compareTo(height) <= 0) {
 				isExists = true;
 			}
 		}

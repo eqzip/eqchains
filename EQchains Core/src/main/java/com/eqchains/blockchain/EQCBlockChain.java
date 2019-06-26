@@ -39,6 +39,7 @@ import org.rocksdb.RocksDBException;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.transaction.Transaction;
+import com.eqchains.rpc.Max;
 import com.eqchains.util.ID;
 
 /**
@@ -48,84 +49,24 @@ import com.eqchains.util.ID;
  */
 public interface EQCBlockChain {
 	
-	// Address relevant interface for H2, avro(optional).
-	public ID getAddressID(Passport address) throws Exception;
-	
-	public Passport getAddress(ID serialNumber) throws Exception;
-	
-//	public boolean appendAddress(Address address, SerialNumber address_create_height);
-	
-	public boolean isAddressExists(Passport address) throws Exception;
-	
-//	public boolean deleteAddress(Address address);
-	
-//	public boolean deleteAddressFromHeight(SerialNumber height);
-	
-//	public SerialNumber getLastAddressSerialNumber();
-	
-//	public long getAddressTotalNumbers();
-	
-//	public boolean addAllAddress(EQCBlock eqcBlock);
-	
 	// Account relevant interface for H2, avro(optional).
-//	public Vector<Account> getAllAccounts(SerialNumber height);
-	
-//	public Vector<Account> getAccounts(SerialNumber begin, SerialNumber end, SerialNumber height);
-	
-//	public ID getTotalAccountNumber(ID height);
-	
 	public void saveAccount(Account account) throws Exception;
 	
-	public Account getAccount(ID serialNumber) throws Exception;
+	public Account getAccount(ID id) throws Exception;
 	
 	public Account getAccount(byte[] addressAI) throws Exception;
 	
-	public void deleteAccount(ID serialNumber) throws Exception;
-	
-	// Public key relevant interface for H2, avro(optional).
-//	public SerialNumber getPublicKeySerialNumber(Address address);
-	
-//	public PublicKey getPublicKey(ID serialNumber) throws Exception;
-//	
-//	public boolean savePublicKey(PublicKey publicKey, ID height);
-//	
-//	public boolean isPublicKeyExists(PublicKey publicKey);
-//	
-//	public boolean deletePublicKey(PublicKey publicKey);
-	
-//	public boolean deletePublicKeyFromHeight(SerialNumber height);
-//	
-//	public SerialNumber getLastPublicKeySerialNumber();
-//	
-//	public long getPublicKeyTotalNumbers();
-//	
-//	public boolean addAllPublicKeys(EQCBlock eqcBlock);
+	public void deleteAccount(ID id) throws Exception;
 	
 	// Block relevant interface for for avro, H2(optional).
-	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws Exception;
-	
-	public boolean isEQCBlockExists(ID height) throws Exception;
-	
-//	public boolean isEQCBlockExists(EQCBlock eqcBlock);
-	
 	public void saveEQCBlock(EQCHive eqcBlock) throws Exception;
+	
+	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws Exception;
 	
 	public void deleteEQCBlock(ID height) throws Exception;
 	
-//	public EQCHeader getEQCHeader(SerialNumber height);
-	
-	// Transactions relevant interface for H2, avro.
-	public byte[] getTransactionsHash(ID height);
-	
-	// Balance relevant interface
-//	public long getBalance(Address address);
-//	
-//	public long getBalance(Address address, SerialNumber height);
-	
 	// TransactionPool relevant interface for H2, avro.
 	public Vector<Transaction> getTransactionListInPool() throws SQLException, Exception;
-	
-//	public Vector<Transaction> getTransactionList(Address address, SerialNumber height);
 	
 	public boolean saveTransactionInPool(Transaction transaction) throws SQLException;
 	
@@ -135,36 +76,14 @@ public interface EQCBlockChain {
 	
 	public boolean isTransactionExistsInPool(Transaction transaction) throws SQLException;
 	
-	public ID getTransactionMaxNonce(Transaction transaction) throws SQLException;
+	public Max getTransactionMax(ID id) throws SQLException;
 	
-	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException;
-	
-	// Transaction relevant interface for H2, avro. Save all the Transaction record in the EQC block chain.
-//	public Vector<Transaction> getTransactionList(Address address);
-//	
-//	public Vector<Transaction> getTransactionList(Address address, SerialNumber height);
-//	
-//	public boolean addTransaction(Transaction transaction, SerialNumber height, int trans_sn);
-//	
-//	public boolean addAllTransactions(EQCBlock eqcBlock);
-//	
-//	public boolean deleteTransactionFromHeight(SerialNumber height);
-//	
-//	public boolean isTransactionExists(Transaction transaction);
-	
-	// Get the TxIn's Address's EQC block height which record the TxIn's Address.
-//	public SerialNumber getTxInHeight(Address txInAddress);
+	public boolean saveTransactionMax(ID id, Max max) throws SQLException;
 	
 	// For sign and verify Transaction need use relevant TxIn's EQC block header's hash via this function to get it from xxx.EQC.
 	public byte[] getEQCHeaderHash(ID height) throws Exception;
 	
 	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception;
-	
-//	public int getTransactionNumbersIn24hours(Address address, SerialNumber currentHeight);
-	
-//	public byte[] getTxInBlockHeaderHash(Address txInAddress);
-//	
-//	public boolean addTxInBlockHeaderHash(byte[] hash, SerialNumber addressSerialNumber, SerialNumber height);
 	
 	public ID getEQCBlockTailHeight() throws Exception;
 	
@@ -172,26 +91,9 @@ public interface EQCBlockChain {
 	
 	public ID getTotalAccountNumbers(ID height) throws Exception;
 	
-//	public boolean saveTotalAccountNumbers(ID numbers);
-	
-	// Signature relevant interface for H2, avro.
-//	public boolean isSignatureExists(byte[] signature);
-	
-//	public boolean appendSignature(SerialNumber height, int trans_sn, SerialNumber txin_sn, byte[] signature);
-	
-//	public boolean addAllSignatures(EQCBlock eqcBlock);
-	
-	// Account relevant interface for H2, avro.
-//	public long getBalanceFromAccount(Address address);
-	
-//	public boolean updateBalanceInAccount(Address address, long balance);
-	
-//	public int getNonce(Address address);
-	
-//	public boolean updateNonce(Address address, int nonce);
-	
 	// Release the relevant database resource
 	public boolean close() throws SQLException, Exception;
+	
 	// Clear the relevant database table
 	public void dropTable() throws Exception, SQLException;
 	

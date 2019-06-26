@@ -43,8 +43,8 @@ import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
  * @email 10509759@qq.com
  */
 public interface EQCTypable {
-	public byte[] getBytes();
-	public byte[] getBin();
+	public byte[] getBytes() throws Exception;
+	public byte[] getBin() throws Exception;
 	public boolean isSanity();
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception;
 }

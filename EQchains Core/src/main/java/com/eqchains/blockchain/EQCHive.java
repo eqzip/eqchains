@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -45,6 +46,7 @@ import javax.print.attribute.Size2DSyntax;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Passport;
+import com.eqchains.avro.IO;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
@@ -59,7 +61,6 @@ import com.eqchains.blockchain.transaction.operation.UpdateAddressOperation;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
-import com.eqchains.rpc.avro.Height;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.service.MinerService;
@@ -76,12 +77,12 @@ import com.sun.org.apache.bcel.internal.generic.I2F;
  */
 public class EQCHive implements EQCTypable {
 	private EQCHeader eqcHeader;
-	private Root root;
-	private Transactions transactions;
+	private EQCRoot eqcRoot;
+	private EQChains transactions;
 	// The following is Transactions' Segregated Witness members it's hash will be
 	// recorded in the Root's accountsMerkelTreeRoot together with
 	// Transaction&Publickey.
-	private Signatures signatures;
+	private EQCSignatures signatures;
 	// private txReceipt;
 	// The min size of the EQCHeader's is 142 bytes.
 	private int size = 142;
@@ -93,26 +94,45 @@ public class EQCHive implements EQCTypable {
 		eqcHeader = new EQCHeader(EQCType.parseBIN(is));
 
 		// Parse Root
-		root = new Root(EQCType.parseBIN(is));
+		eqcRoot = new EQCRoot(EQCType.parseBIN(is));
 
 		// Parse Transactions
-		transactions = new Transactions(EQCType.parseBIN(is));
+		transactions = new EQChains(EQCType.parseBIN(is));
 
 		if (!isSegwit) {
-			signatures = new Signatures(EQCType.parseBIN(is));
+			signatures = new EQCSignatures(EQCType.parseBIN(is));
 			EQCType.assertNoRedundantData(is);
 		}
 	}
 
+	public EQCHive(IO io, boolean isSegwit) throws NoSuchFieldException, IOException {
+		byte[] bytes = io.getObject().array();
+		EQCType.assertNotNull(bytes);
+		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		// Parse EqcHeader
+		eqcHeader = new EQCHeader(EQCType.parseBIN(is));
+
+		// Parse Root
+		eqcRoot = new EQCRoot(EQCType.parseBIN(is));
+
+		// Parse Transactions
+		transactions = new EQChains(EQCType.parseBIN(is));
+
+		if (!isSegwit) {
+			signatures = new EQCSignatures(EQCType.parseBIN(is));
+			EQCType.assertNoRedundantData(is);
+		}
+	}
+	
 	public EQCHive() {
 		init();
 	}
 
 	private void init() {
 		eqcHeader = new EQCHeader();
-		root = new Root();
-		transactions = new Transactions();
-		signatures = new Signatures();
+		eqcRoot = new EQCRoot();
+		transactions = new EQChains();
+		signatures = new EQCSignatures();
 	}
 
 	public EQCHive(ID currentBlockHeight, byte[] previousBlockHeaderHash) throws RocksDBException, Exception {
@@ -148,28 +168,28 @@ public class EQCHive implements EQCTypable {
 	/**
 	 * @return the transactions
 	 */
-	public Transactions getTransactions() {
+	public EQChains getTransactions() {
 		return transactions;
 	}
 
 	/**
 	 * @param transactions the transactions to set
 	 */
-	public void setTransactions(Transactions transactions) {
+	public void setTransactions(EQChains transactions) {
 		this.transactions = transactions;
 	}
 
 	/**
 	 * @param signatures the signatures to set
 	 */
-	public void setSignatures(Signatures signatures) {
+	public void setSignatures(EQCSignatures signatures) {
 		this.signatures = signatures;
 	}
 
 	/**
 	 * @return the signatures
 	 */
-	public Signatures getSignatures() {
+	public EQCSignatures getSignatures() {
 		return signatures;
 	}
 
@@ -193,7 +213,7 @@ public class EQCHive implements EQCTypable {
 	public String toInnerJson() {
 		return
 
-		"\"EQCBlock\":{\n" + eqcHeader.toInnerJson() + ",\n" + root.toInnerJson() + ",\n" + transactions.toInnerJson()
+		"\"EQCBlock\":{\n" + eqcHeader.toInnerJson() + ",\n" + eqcRoot.toInnerJson() + ",\n" + transactions.toInnerJson()
 				+ ",\n" + signatures.toInnerJson() + "\n" + "}";
 
 	}
@@ -310,11 +330,11 @@ public class EQCHive implements EQCTypable {
 
 		// Initial Root
 		// Need do more job
-		root.setTxFeeRate(Util.DEFAULT_TXFEE_RATE);
-		root.setAccountsMerkelTreeRoot(accountsMerkleTree.getRoot());
-		root.setTransactionsMerkelTreeRoot(getTransactionsMerkelTreeRoot());
+		eqcRoot.setTxFeeRate(Util.DEFAULT_TXFEE_RATE);
+		eqcRoot.setAccountsMerkelTreeRoot(accountsMerkleTree.getRoot());
+		eqcRoot.setTransactionsMerkelTreeRoot(getTransactionsMerkelTreeRoot());
 		// Set EQCHeader's Root's hash
-		eqcHeader.setRootHash(root.getHash());
+		eqcHeader.setRootHash(eqcRoot.getHash());
 
 	}
 
@@ -478,17 +498,17 @@ public class EQCHive implements EQCTypable {
 //			return false;
 //		}
 			// Check AccountsMerkelTreeRoot
-			if (!Arrays.equals(root.getAccountsMerkelTreeRoot(), accountsMerkleTree.getRoot())) {
+			if (!Arrays.equals(eqcRoot.getAccountsMerkelTreeRoot(), accountsMerkleTree.getRoot())) {
 				Log.Error("AccountsMerkelTreeRoot is invalid!");
 				return false;
 			}
 			// Check TransactionsMerkelTreeRoot
-			if (!Arrays.equals(root.getTransactionsMerkelTreeRoot(), getTransactionsMerkelTreeRoot())) {
+			if (!Arrays.equals(eqcRoot.getTransactionsMerkelTreeRoot(), getTransactionsMerkelTreeRoot())) {
 				Log.Error("AccountsMerkelTreeRoot is invalid!");
 				return false;
 			}
 			// Verify EQCHeader
-			if (!eqcHeader.isValid(accountsMerkleTree, root.getHash())) {
+			if (!eqcHeader.isValid(accountsMerkleTree, eqcRoot.getHash())) {
 				Log.Error("EQCHeader is invalid!");
 				return false;
 			}
@@ -719,7 +739,7 @@ public class EQCHive implements EQCTypable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(eqcHeader.getBin());
-			os.write(root.getBin());
+			os.write(eqcRoot.getBin());
 			os.write(transactions.getBin());
 			os.write(signatures.getBin());
 		} catch (IOException e) {
@@ -742,15 +762,15 @@ public class EQCHive implements EQCTypable {
 	/**
 	 * @return the root
 	 */
-	public Root getRoot() {
-		return root;
+	public EQCRoot getRoot() {
+		return eqcRoot;
 	}
 
 	/**
 	 * @param root the root to set
 	 */
-	public void setRoot(Root root) {
-		this.root = root;
+	public void setRoot(EQCRoot root) {
+		this.eqcRoot = root;
 	}
 
 	public byte[] getHash() {
@@ -759,7 +779,7 @@ public class EQCHive implements EQCTypable {
 
 	@Override
 	public boolean isSanity() {
-		if (eqcHeader == null || root == null || transactions == null) {
+		if (eqcHeader == null || eqcRoot == null || transactions == null) {
 			return false;
 		}
 		if (transactions.getNewTransactionList().size() == 0) {
@@ -831,4 +851,8 @@ public class EQCHive implements EQCTypable {
 //		return true;
 //	}
 
+	public IO getIO() {
+		return new IO(ByteBuffer.wrap(this.getBytes()));
+	}
+	
 }

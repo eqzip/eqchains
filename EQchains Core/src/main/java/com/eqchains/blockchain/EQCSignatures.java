@@ -53,7 +53,7 @@ import com.eqchains.util.Util;
  * @date Sep 28, 2018
  * @email 10509759@qq.com
  */
-public class Signatures implements EQCTypable {
+public class EQCSignatures implements EQCTypable {
 	private Vector<byte[]> signatureList;
 	private long signatureListSize;
 	/*
@@ -62,16 +62,16 @@ public class Signatures implements EQCTypable {
 	 */
 	private final static byte VERIFICATION_COUNT = 0;
 
-	public Signatures() {
+	public EQCSignatures() {
 		super();
 		signatureList = new Vector<byte[]>();
 	}
 
-	public Signatures(byte[] bytes) throws NoSuchFieldException, IOException {
+	public EQCSignatures(byte[] bytes) throws NoSuchFieldException, IOException {
 		parseSignatures(bytes);
 	}
 	
-	public Signatures(ByteBuffer byteBuffer) throws NoSuchFieldException, IOException {
+	public EQCSignatures(ByteBuffer byteBuffer) throws NoSuchFieldException, IOException {
 		parseSignatures(byteBuffer.array());
 	}
 	

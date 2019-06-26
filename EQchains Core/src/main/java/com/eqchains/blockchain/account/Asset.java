@@ -57,12 +57,16 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	 */
 	protected AssetType assetType;
 	protected ID version;
+	protected ID versionUpdateHeight;
 	/*
 	 * Body
 	 */
 	protected ID assetID;
+	protected ID assetCreateHeight;
 	protected ID balance;
+	protected ID balanceUpdateHeight;
 	protected ID nonce;
+	protected ID nonceUpdateHeight;
 	
 	public enum AssetType {
 		COIN, MISC, INVALID;
@@ -73,7 +77,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 				assetType = AssetType.COIN;
 				break;
 			case 1:
-				assetType = AssetType.COIN;
+				assetType = AssetType.MISC;
 				break;
 			default:
 				assetType = AssetType.INVALID;
@@ -153,19 +157,14 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	}
 	@Override
 	public boolean isSanity() {
-		if(assetType == null || version == null || assetID == null || balance == null || nonce == null) {
+		if(assetType == null || version == null || versionUpdateHeight == null || assetID == null || assetCreateHeight == null || balance == null || balanceUpdateHeight == null || nonce == null || nonceUpdateHeight == null) {
 			return false;
 		}
-		if(!version.isSanity() || !assetID.isSanity() || !nonce.isSanity()) {
+		if(!version.isSanity() || !versionUpdateHeight.isSanity() || !assetID.isSanity() || !assetCreateHeight.isSanity() || !balance.isSanity() || !balanceUpdateHeight.isSanity() || !nonce.isSanity() || !nonceUpdateHeight.isSanity()) {
 			return false;
 		}
 		if(assetID.equals(Asset.EQCOIN)) {
 			if(balance.compareTo(new ID(Util.MIN_EQC)) < 0) {
-				return false;
-			}
-		}
-		else {
-			if(!balance.isSanity()) {
 				return false;
 			}
 		}
@@ -218,9 +217,15 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		return 
 				"\"Asset\":" + 
 				"\n{\n" +
+					"\"AssetType\":" + "\"" + assetType + "\"" + ",\n" +
+					"\"Version\":" + "\"" + version + "\"" + ",\n" +
+					"\"VersionUpdateHeight\":" + "\"" + versionUpdateHeight + "\"" + ",\n" +
 					"\"AssetID\":" + "\"" + assetID + "\"" + ",\n" +
+					"\"AssetCreateHeight\":" + "\"" + assetCreateHeight + "\"" + ",\n" +
 					"\"Balance\":" + "\"" + balance + "\"" + ",\n" +
-					"\"Nonce\":" + "\"" + nonce + "\"" + "\n" +
+					"\"BalanceUpdateHeight\":" + "\"" + balanceUpdateHeight + "\"" + ",\n" +
+					"\"Nonce\":" + "\"" + nonce + "\"" + ",\n" +
+					"\"NonceUpdateHeight\":" + "\"" + nonceUpdateHeight + "\"" + "\n" +
 				"}";
 	}
 	@Override
@@ -232,7 +237,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	public int compare(Asset o1, Asset o2) {
 		return o1.getAssetID().compareTo(o2.getAssetID());
 	}
-
+	
 	@Override
 	public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		// Parse AssetType
@@ -240,26 +245,37 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		
 		// Parse Version
 		version = new ID(EQCType.parseEQCBits(is));
+		
+		// Parse VersionUpdateHeight
+		versionUpdateHeight = new ID(EQCType.parseEQCBits(is));
 	}
-
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		// Parse AssetID
 		assetID = new ID(EQCType.parseEQCBits(is));
 		
+		// Parse AssetCreateHeight
+		assetCreateHeight = new ID(EQCType.parseEQCBits(is));
+		
 		// Parse Balance
 		balance = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
 		
+		// Parse BalanceUpdateHeight
+		balanceUpdateHeight = new ID(EQCType.parseEQCBits(is)); 
+		
 		// Parse Nonce
 		nonce = new ID(EQCType.parseEQCBits(is));
+		
+		// Parse NonceUpdateHeight
+		nonceUpdateHeight = new ID(EQCType.parseEQCBits(is)); 
 	}
-
 	@Override
 	public byte[] getHeaderBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(assetType.getEQCBits());
 			os.write(version.getEQCBits());
+			os.write(versionUpdateHeight.getEQCBits());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -267,14 +283,16 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		}
 		return os.toByteArray();
 	}
-
 	@Override
 	public byte[] getBodyBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(assetID.getEQCBits());
+			os.write(assetCreateHeight.getEQCBits());
 			os.write(balance.getEQCBits());
+			os.write(balanceUpdateHeight.getEQCBits());
 			os.write(nonce.getEQCBits());
+			os.write(nonceUpdateHeight.getEQCBits());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -317,12 +335,76 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		this.version = version;
 	}
 
+	/**
+	 * For system's security here need check if balance is enough for example SmartContract maybe provide wrong input amount
+	 * @param amount
+	 */
 	public void withdraw(ID amount) {
+		EQCType.assertNotHigher(amount, balance);
 		balance = balance.subtract(amount);
 	}
 	
 	public void deposit(ID amount) {
+		if(assetID.equals(EQCOIN)) {
+			EQCType.assertNotHigher(amount, ID.valueOf(Util.MAX_EQC));
+		}
 		balance = balance.add(amount);
+	}
+
+	/**
+	 * @return the versionUpdateHeight
+	 */
+	public ID getVersionUpdateHeight() {
+		return versionUpdateHeight;
+	}
+
+	/**
+	 * @param versionUpdateHeight the versionUpdateHeight to set
+	 */
+	public void setVersionUpdateHeight(ID versionUpdateHeight) {
+		this.versionUpdateHeight = versionUpdateHeight;
+	}
+
+	/**
+	 * @return the assetCreateHeight
+	 */
+	public ID getAssetCreateHeight() {
+		return assetCreateHeight;
+	}
+
+	/**
+	 * @param assetCreateHeight the assetCreateHeight to set
+	 */
+	public void setAssetCreateHeight(ID assetCreateHeight) {
+		this.assetCreateHeight = assetCreateHeight;
+	}
+
+	/**
+	 * @return the balanceUpdateHeight
+	 */
+	public ID getBalanceUpdateHeight() {
+		return balanceUpdateHeight;
+	}
+
+	/**
+	 * @param balanceUpdateHeight the balanceUpdateHeight to set
+	 */
+	public void setBalanceUpdateHeight(ID balanceUpdateHeight) {
+		this.balanceUpdateHeight = balanceUpdateHeight;
+	}
+
+	/**
+	 * @return the nonceUpdateHeight
+	 */
+	public ID getNonceUpdateHeight() {
+		return nonceUpdateHeight;
+	}
+
+	/**
+	 * @param nonceUpdateHeight the nonceUpdateHeight to set
+	 */
+	public void setNonceUpdateHeight(ID nonceUpdateHeight) {
+		this.nonceUpdateHeight = nonceUpdateHeight;
 	}
 	
 }

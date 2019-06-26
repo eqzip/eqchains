@@ -53,11 +53,13 @@ import java.security.spec.ECGenParameterSpec;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
 import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
+import org.junit.jupiter.api.TestInfo;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -69,9 +71,11 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.EQCHive;
+import com.eqchains.avro.IO;
+import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
-import com.eqchains.blockchain.Transactions;
+import com.eqchains.blockchain.EQChains;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
@@ -96,9 +100,9 @@ import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
-import com.eqchains.rpc.avro.Cookie;
-import com.eqchains.rpc.avro.Status;
-import com.eqchains.rpc.avro.SyncblockNetwork;
+import com.eqchains.rpc.Cookie;
+import com.eqchains.rpc.Europa;
+import com.eqchains.rpc.Status;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.Base58;
 import com.eqchains.util.ID;
@@ -381,17 +385,6 @@ public class Test {
 //			}
 		}
 		Log.info("end");
-	}
-
-	public static void testH2Account() {
-		Passport passport;
-		try {
-			passport = new Passport(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
-			EQCBlockChainH2.getInstance().isAddressExists(passport);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	public static void testAIToAddress() {
@@ -832,7 +825,7 @@ public class Test {
 		transaction.setTxIn(txIn);
 		transaction.addTxOut(txOut);
 		Log.info(transaction.toString());
-		Transactions transactions = new Transactions();
+		EQChains transactions = new EQChains();
 		transactions.addTransaction(transaction);
 		transactions.addTransaction(transaction);
 		transactions.addTransaction(transaction);
@@ -925,13 +918,13 @@ public class Test {
 
 	public static void testMultiTransaction() {
 		// Create Transaction
-		Transactions transactions;
+		EQChains transactions;
 		TransferTransaction transaction;
 		TxIn txIn;
 		TxOut txOut;
 		Passport passport;
 		ID serialNumber = new ID(BigInteger.ZERO);
-		transactions = new Transactions();
+		transactions = new EQChains();
 
 		transaction = new TransferTransaction();
 		txIn = new TxIn();
@@ -1293,7 +1286,7 @@ public class Test {
 		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		passport.setID(ID.TWO);
 		account.setPassport(passport);
-		account.setPassportCreateHeight(ID.ZERO);
+		account.setLockCreateHeight(ID.ZERO);
 		Asset asset = new CoinAsset();
 		asset.deposit(new ID(500000));
 		account.setAsset(asset);
@@ -1531,7 +1524,7 @@ public class Test {
 		passport.setID(ID.ZERO);
 		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 		account.setPassport(passport);
-		account.setPassportCreateHeight(ID.ZERO);
+		account.setLockCreateHeight(ID.ZERO);
 		Asset asset = new CoinAsset();
 		asset.deposit(new ID(150000));
 		account.setAsset(asset);
@@ -1540,7 +1533,7 @@ public class Test {
 			passport.setID(ID.ZERO);
 			passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 			account.setPassport(passport);
-			account.setPassportCreateHeight(ID.ZERO);
+			account.setLockCreateHeight(ID.ZERO);
 			asset = new CoinAsset();
 			asset.deposit(new ID(150001));
 			account.setAsset(asset);
@@ -1549,7 +1542,7 @@ public class Test {
 			passport.setID(ID.ZERO);
 			passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
 			account.setPassport(passport);
-			account.setPassportCreateHeight(ID.ZERO);
+			account.setLockCreateHeight(ID.ZERO);
 			asset = new CoinAsset();
 			asset.deposit(new ID(150002));
 			account.setAsset(asset);
@@ -1673,7 +1666,7 @@ public class Test {
 		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
 		passport.setID(ID.ONE);
 		account.setPassport(passport);
-		account.setPassportCreateHeight(ID.ONE);
+		account.setLockCreateHeight(ID.ONE);
 		Asset asset = new CoinAsset();
 		asset.deposit(new ID(50 * Util.ABC));
 		account.setAsset(asset);
@@ -1868,7 +1861,7 @@ public class Test {
 //            cookie.setIp(Util.getCookie().getIp().toString());
 //            cookie.setVersion("0.01");
             System.out.println("Calling proxy.send with message:  " + cookie);
-            System.out.println("Result: " + proxy.ping(cookie));
+            System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + proxy.ping(cookie.getIO()));
 
 //            // cleanup
 //            client.close();
@@ -1882,6 +1875,81 @@ public class Test {
 			if(client != null) {
 				client.close();
 			}
+		}
+	}
+	
+	public static void getBlockTail(String remoteIP) {
+		long time = System.currentTimeMillis();
+    	NettyTransceiver client = null;
+    	try {
+    		Cookie cookie = new Cookie();
+    		cookie.setIp("10.0.0.1");
+    		cookie.setVersion(Util.PROTOCOL_VERSION);
+    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), 7997), 3000l);
+    		 // client code - attach to the server and send a message
+    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		Europa europa = new Europa(proxy.getBlockTail());
+            System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + europa.getHeight());
+    	}
+    	catch (Exception e) {
+			// TODO: handle exception
+    		System.out.println("Exception occur during link remote: " + (System.currentTimeMillis() - time));
+    		System.out.println(e.getMessage());
+		}
+    	finally {
+			if(client != null) {
+				client.close();
+			}
+		}
+	}
+	
+	public static void getBlock(String remoteIP, ID height) {
+		long time = System.currentTimeMillis();
+    	NettyTransceiver client = null;
+    	try {
+    		Cookie cookie = new Cookie();
+    		cookie.setIp("10.0.0.1");
+    		cookie.setVersion(Util.PROTOCOL_VERSION);
+    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), 7997), 3000l);
+    		 // client code - attach to the server and send a message
+    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		EQCHive eqcHive = new EQCHive(proxy.getBlock(height.getIO()), false);
+            System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + eqcHive);
+    	}
+    	catch (Exception e) {
+			// TODO: handle exception
+    		System.out.println("Exception occur during link remote: " + (System.currentTimeMillis() - time));
+    		System.out.println(e.getMessage());
+		}
+    	finally {
+			if(client != null) {
+				client.close();
+			}
+		}
+	}
+	
+	public static void TestIO() {
+		IO io = null;
+		// Here need add function to test ping
+//		Test.ping(Util.getStatus().getCookie().getIp().toString(), Util.getStatus().getCookie().getIp().toString());
+		Cookie cookie1 = new Cookie();
+		cookie1.setIp("14.221.177.201");
+		cookie1.setVersion(Util.PROTOCOL_VERSION);
+		if (cookie1.getIp().length() == 0) {
+			Log.Error("During get IP error occur please check your network");
+		} else {
+			Log.info(cookie1.toString());
+		}
+		Status status = new Status();
+		status.setCookie(cookie1);
+		status.setCode(ID.valueOf(STATUS.OK.ordinal()));
+		status.setMessage(new Date().toString());
+		try {
+			 io = status.getIO();//Util.getStatus();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
 		}
 	}
 	

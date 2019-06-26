@@ -74,20 +74,19 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	/**
 	 * Header field include AccountType
 	 */
-	protected AccountType accountType;
-	protected ID createHeight;
-	protected ID version;
-	protected ID versionUpdateHeight;
+	private AccountType accountType;
+	private ID createHeight;
+	private ID version;
+	private ID versionUpdateHeight;
 	/**
 	 * Body field include Version, Passport, Publickey, AssetList
 	 */
-	protected Passport passport;
-	protected ID passportCreateHeight;
-	protected Publickey publickey;
-	protected Vector<Asset> assetList;
-	protected ID assetListSize;
-	protected ID assetUpdateHeight;
-	protected SoleUpdate soleUpdate;
+	private Passport passport;
+	private ID lockCreateHeight;
+	private Publickey publickey;
+	private Vector<Asset> assetList;
+	private ID assetListSize;
+	private SoleUpdate soleUpdate;
 //	private String email; // KYC
 	protected final static ID MAX_VERSION = ID.ZERO;
 	
@@ -220,7 +219,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		// Parse Passport
 		passport = new Passport(is);
 		// Parse AddressCreateHeight
-		passportCreateHeight = new ID(EQCType.parseEQCBits(is));
+		lockCreateHeight = new ID(EQCType.parseEQCBits(is));
 		// Parse Publickey
 		publickey = new Publickey(is);
 		// Parse Asset
@@ -235,8 +234,6 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		} else {
 			throw EQCType.NULL_OBJECT_EXCEPTION;
 		}
-		// Parse AssetUpdateHeight
-		assetUpdateHeight = new ID(EQCType.parseEQCBits(is));
 //		// Parse email
 //		if ((data = EQCType.parseEQCBits(is)) != null) {
 //			email = EQCType.bytesToASCIISting(data);
@@ -306,7 +303,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(passport.getBytes());
-			os.write(passportCreateHeight.getEQCBits());
+			os.write(lockCreateHeight.getEQCBits());
 			if(publickey.isNULL()) {
 				os.write(EQCType.NULL);
 			}
@@ -315,7 +312,6 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 			}
 			Collections.sort(assetList);
 			os.write(getAssetArray());
-			os.write(assetUpdateHeight.getEQCBits());
 //			// In MVP Phase email always be null so here just append EQCType.NULL
 //			os.write(EQCType.NULL);
 		} catch (IOException e) {
@@ -371,16 +367,15 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 	public String toInnerJson() {
 		return 
-				"\"Account\":" + 
-				"\n{\n" +
 					"\"AccountType\":" + "\"" + accountType + "\"" + ",\n" +
+					"\"CreateHeight\":" + "\"" + createHeight + "\"" + ",\n" +
 					"\"Version\":" + "\"" + version + "\"" + ",\n" +
+					"\"VersionUpdateHeight\":" + "\"" + versionUpdateHeight + "\"" + ",\n" +
 					passport.toInnerJson() + ",\n" +
-					"\"AddressCreateHeight\":" + "\"" + passportCreateHeight + "\"" + ",\n" +
+					"\"LockCreateHeight\":" + "\"" + lockCreateHeight + "\"" + ",\n" +
 					((publickey.isNULL())?Publickey.NULL():publickey.toInnerJson()) + ",\n" +
 					"\"AssetList\":" + "\n{\n" + "\"Size\":" + "\"" + assetList.size() + "\"" + ",\n" + 
-					"\"List\":" + "\n" + getAssetListString() + "\n}\n" +
-				"}";
+					"\"List\":" + "\n" + getAssetListString() + "\n}";
 	}
 	public String getAssetListString() {
 		String asset = "[\n";
@@ -397,10 +392,10 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 	@Override
 	public boolean isSanity() {
-		if(accountType == null || version == null || passport == null || passportCreateHeight == null || publickey == null || assetList == null || assetListSize == null) {
+		if(accountType == null || version == null || passport == null || lockCreateHeight == null || publickey == null || assetList == null || assetListSize == null) {
 			return false;
 		}
-		if(!accountType.isSanity() || !version.isSanity() || !passport.isSanity(null) || !passportCreateHeight.isSanity() || !publickey.isSanity() || !assetListSize.isSanity()) {
+		if(!accountType.isSanity() || !version.isSanity() || !passport.isSanity(null) || !lockCreateHeight.isSanity() || !publickey.isSanity() || !assetListSize.isSanity()) {
 			return false;
 		}
 		if(version.compareTo(MAX_VERSION) > 0) {
@@ -529,6 +524,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	public void setAsset(Asset asset) {
 		if(isAssetExists(asset.getAssetID())) {
 			Asset asset2 = getAsset(asset.getAssetID());
+			// Here maybe exists bug
 			asset2 = asset;
 		}
 		else {
@@ -595,18 +591,17 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(passport.getBytes());
-			os.write(passportCreateHeight.getEQCBits());
-			soleUpdate.update(os, passportCreateHeight);
+			os.write(lockCreateHeight.getEQCBits());
+			soleUpdate.update(os, lockCreateHeight);
 			if(publickey.isNULL()) {
 				os.write(EQCType.NULL);
 			}
 			else {
 				os.write(publickey.getHashBytes(soleUpdate));
+				soleUpdate.update(os, publickey.getPublickeyCreateHeight());
 			}
 			Collections.sort(assetList);
 			os.write(getAssetArray());
-			os.write(assetUpdateHeight.getEQCBits());
-			soleUpdate.update(os, assetUpdateHeight);
 //			// In MVP Phase email always be null so here just append EQCType.NULL
 //			os.write(EQCType.NULL);
 		} catch (IOException e) {
@@ -645,27 +640,13 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		this.versionUpdateHeight = versionUpdateHeight;
 	}
 
-	/**
-	 * @return the assetUpdateHeight
-	 */
-	public ID getAssetUpdateHeight() {
-		return assetUpdateHeight;
-	}
-
-	/**
-	 * @param assetUpdateHeight the assetUpdateHeight to set
-	 */
-	public void setAssetUpdateHeight(ID assetUpdateHeight) {
-		this.assetUpdateHeight = assetUpdateHeight;
-	}
-
 	public byte[] getSignatureHash() throws Exception {
 		SoleUpdate soleUpdate = new SoleUpdate();
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(passport.getIDEQCBits());
 		soleUpdate.update(os, createHeight);
 		soleUpdate.update(os, versionUpdateHeight);
-		soleUpdate.update(os, passportCreateHeight);
+		soleUpdate.update(os, lockCreateHeight);
 		return os.toByteArray();
 	}
 
@@ -684,17 +665,17 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	/**
-	 * @return the passportCreateHeight
+	 * @return the lockCreateHeight
 	 */
-	public ID getPassportCreateHeight() {
-		return passportCreateHeight;
+	public ID getLockCreateHeight() {
+		return lockCreateHeight;
 	}
 
 	/**
-	 * @param passportCreateHeight the passportCreateHeight to set
+	 * @param lockCreateHeight the lockCreateHeight to set
 	 */
-	public void setPassportCreateHeight(ID passportCreateHeight) {
-		this.passportCreateHeight = passportCreateHeight;
+	public void setLockCreateHeight(ID lockCreateHeight) {
+		this.lockCreateHeight = lockCreateHeight;
 	}
 
 	/**

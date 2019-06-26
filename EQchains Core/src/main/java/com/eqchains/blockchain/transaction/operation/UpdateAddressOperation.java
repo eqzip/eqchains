@@ -114,7 +114,7 @@ public class UpdateAddressOperation extends Operation {
 		}
 		address.setID(account.getID());
 		account.setPassport(address);
-		account.setPassportCreateHeight(accountsMerkleTree.getHeight().getNextID());
+		account.setLockCreateHeight(accountsMerkleTree.getHeight().getNextID());
 		accountsMerkleTree.saveAccount(account);
 		return true;
 	}

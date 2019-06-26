@@ -40,8 +40,8 @@ import com.eqchains.blockchain.account.Passport.AddressShape;
  * @email 10509759@qq.com
  */
 public interface EQCAddressShapeInheritable {
-	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException, IllegalArgumentException;
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException, IllegalArgumentException;
-	public byte[] getHeaderBytes(AddressShape addressShape);
-	public byte[] getBodyBytes(AddressShape addressShape);
+	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape)  throws Exception;
+	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)  throws Exception;
+	public byte[] getHeaderBytes(AddressShape addressShape) throws Exception;
+	public byte[] getBodyBytes(AddressShape addressShape) throws Exception;
 }

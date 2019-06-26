@@ -37,6 +37,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Vector;
 
+import com.eqchains.avro.IO;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -96,7 +97,9 @@ public class EQCType {
 	 * save a NULL(0) in the bytes.
 	 */
 	public final static byte NULL = 0;
-
+	
+	public final static byte[] NULL_ARRAY = {NULL};
+	
 	/**
 	 * BIN8 stores a byte array whose length is from 1 to 8 bytes. | 0x1 | XXXXXXXX
 	 * | data | | XXXXXXXX | is a 8-bit unsigned integer which represents the length
@@ -235,6 +238,9 @@ public class EQCType {
 	 * @return
 	 */
 	public static byte[] stringToBIN(final String foo) {
+		if(foo == null) {
+			return NULL_ARRAY;
+		}
 		return bytesToBIN(foo.getBytes(StandardCharsets.US_ASCII));
 	}
 
@@ -543,6 +549,10 @@ public class EQCType {
 		}
 		return bytes;
 	}
+	
+	public static ID parseID(ByteArrayInputStream is) throws NoSuchFieldException, IllegalStateException, IOException {
+		return new ID(parseEQCBits(is));
+	}
 
 	public static boolean isInputStreamEnd(ByteArrayInputStream is) {
 		return is.available() == 0;
@@ -694,6 +704,9 @@ public class EQCType {
 	}
 
 	public static byte[] stringToASCIIBytes(String foo) {
+		if(foo == null) {
+			return NULL_ARRAY;
+		}
 		return foo.getBytes(StandardCharsets.US_ASCII);
 	}
 

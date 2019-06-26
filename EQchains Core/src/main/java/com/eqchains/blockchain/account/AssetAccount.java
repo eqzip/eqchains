@@ -32,6 +32,7 @@ package com.eqchains.blockchain.account;
 import java.io.IOException;
 
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
@@ -46,6 +47,12 @@ public class AssetAccount extends Account {
 
 	public AssetAccount(byte[] bytes) throws NoSuchFieldException, IOException {
 		super(bytes);
+	}
+	
+	public String toInnerJson() {
+		return "\"AssetAccount\":" + "{\n" + 
+				super.toInnerJson() +
+				"\n}";
 	}
 
 }

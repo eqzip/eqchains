@@ -57,7 +57,7 @@ import com.eqchains.util.Util;
  */
 public class EQCHeader implements EQCTypable {
 	/*
-	 * previous block hash |  target  | Root hash | 	 Height 	 |     timestamp 	 |       nonce  
+	 * previous Hive hash |  target  | Root hash | 	 Height 	 |     timestamp 	 |       nonce  
    			 64 bytes	     4 bytes     64 bytes  lengthen(>=1bytes) lengthen(>=6bytes)  lengthen(<=4bytes)   
 	 */
 	private byte[]	preHash;

@@ -699,7 +699,7 @@ public class TransferTransaction extends Transaction {
 			if (txOut.isNew()) {
 				account = new AssetAccount();
 				account.setPassport(txOut.getPassport());
-				account.setPassportCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				account.setLockCreateHeight(accountsMerkleTree.getHeight().getNextID());
 				accountsMerkleTree.increaseTotalAccountNumbers();
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getPassport().getID());

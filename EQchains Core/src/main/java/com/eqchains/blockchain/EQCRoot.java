@@ -47,7 +47,7 @@ import com.eqchains.util.Util;
  * @date Nov 12, 2018
  * @email 10509759@qq.com
  */
-public class Root implements EQCTypable {
+public class EQCRoot implements EQCTypable {
 	private ID version;
 	private byte txFeeRate;
 	/**
@@ -61,11 +61,11 @@ public class Root implements EQCTypable {
 	 */
 	private byte[] transactionsMerkelTreeRoot;
 
-	public Root() {
+	public EQCRoot() {
 		version = ID.ZERO;
 	}
 
-	public Root(byte[] bytes) throws NoSuchFieldException, IOException {
+	public EQCRoot(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		// Parse Version
 		version = new ID(EQCType.parseEQCBits(is));

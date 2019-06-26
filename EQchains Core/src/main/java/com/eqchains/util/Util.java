@@ -99,7 +99,7 @@ import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Index;
 import com.eqchains.blockchain.PublicKey;
-import com.eqchains.blockchain.Root;
+import com.eqchains.blockchain.EQCRoot;
 import com.eqchains.blockchain.TransactionsHeader;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
@@ -127,8 +127,8 @@ import com.eqchains.keystore.Keystore;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
-import com.eqchains.rpc.avro.Cookie;
-import com.eqchains.rpc.avro.Status;
+import com.eqchains.rpc.Cookie;
+import com.eqchains.rpc.Status;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -274,9 +274,9 @@ public final class Util {
 
 	public final static int INIT_ADDRESS_SERIAL_NUMBER = 1;
 
-	public final static String DEFAULT_PROTOCOL_VERSION = "0.0.1";
+	public final static ID DEFAULT_PROTOCOL_VERSION = ID.ZERO;
 	
-	public final static String PROTOCOL_VERSION = DEFAULT_PROTOCOL_VERSION;
+	public final static ID PROTOCOL_VERSION = DEFAULT_PROTOCOL_VERSION;
 	
 	private static Cookie cookie = null;
 
@@ -301,6 +301,10 @@ public final class Util {
 	public static final byte[] NULL_HASH = new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16).toByteArray();
 	
 	public static final byte[] SINGULARITY = ".".getBytes();
+	
+	public static final String REGEX_IP = "";
+	
+	public static final String REGEX_VERSION = "";
 	
 //	public static ID [] FIBONACCI = {
 //			new ID(1597),
@@ -344,7 +348,31 @@ public final class Util {
 			new ID(521), new ID(523), new ID(541), new ID(547) };
 	
 	public enum STATUS {
-		OK, ERROR
+		OK, ERROR, INVALID;
+		public static STATUS get(int ordinal) {
+			STATUS status = null;
+			switch (ordinal) {
+			case 0:
+				status = OK;
+				break;
+			case 1:
+				status = STATUS.ERROR;
+				break;
+			default:
+				status = STATUS.INVALID;
+				break;
+			}
+			return status;
+		}
+		public boolean isSanity() {
+			if((this.ordinal() < OK.ordinal()) || (this.ordinal() > INVALID.ordinal())) {
+				return false;
+			}
+			return true;
+		}
+		public byte[] getEQCBits() {
+			return EQCType.intToEQCBits(this.ordinal());
+		}
 	}
 
 //	static {
@@ -395,6 +423,8 @@ public final class Util {
 
 	public static void init() throws RocksDBException, Exception {
 		System.setProperty("sun.net.client.defaultConnectTimeout", "3000");  
+		System.err.close();
+	    System.setErr(System.out);
 		createDir(PATH);
 //		createDir(AVRO_PATH);
 		createDir(DB_PATH);
@@ -432,8 +462,7 @@ public final class Util {
 			Log.info(cookie.toString());
 		}
 		status = new Status();
-		status.setCookie(cookie);
-		status.setCode(STATUS.OK.ordinal());
+		status.setCode(ID.valueOf(STATUS.OK.ordinal()));
 		status.setMessage("");
 	}
 
@@ -2166,8 +2195,8 @@ public final class Util {
 		TxOut eqzipTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		try {
-			eqcFoundationTxOut.setPassport(Util.DB().getAddress(ID.ONE));
-			eqzipTxOut.setPassport(Util.DB().getAddress(ID.TWO));
+			eqcFoundationTxOut.setPassport(Util.DB().getAccount(ID.ONE).getPassport());
+			eqzipTxOut.setPassport(Util.DB().getAccount(ID.TWO).getPassport());
 			minerTxOut.setPassport(passport);
 			if (height.compareTo(getMaxCoinbaseHeight(height)) < 0) {
 //				if (accountsMerkleTree.isAccountExists(address, true)) {
@@ -2219,32 +2248,49 @@ public final class Util {
 		transaction.addTxOut(txOut);
 		EQcoinSubchainAccount account = new EQcoinSubchainAccount();
 		account.setCreateHeight(ID.ZERO);
-		account.setLeasePeriod(ID.ZERO);
-		account.setLanguageType(LanguageType.JAVA);
+		account.setVersion(ID.ZERO);
+		account.setVersionUpdateHeight(ID.ZERO);
+		
 		account.setPassport(txOut.getPassport());
-		account.setPassportCreateHeight(ID.ZERO);
+		account.setLockCreateHeight(ID.ZERO);
 		Asset asset = new CoinAsset();
+		asset.setVersionUpdateHeight(ID.ZERO);
+		asset.setAssetCreateHeight(ID.ZERO);
 		asset.deposit(new ID(EQC_FOUNDATION_COINBASE_REWARD));
+		asset.setBalanceUpdateHeight(ID.ZERO);
 		asset.setNonce(ID.ZERO);
+		asset.setNonceUpdateHeight(ID.ZERO);
 		account.setAsset(asset);
-		account.setAssetUpdateHeight(ID.ZERO);
+		
+		account.setLanguageType(LanguageType.JAVA);
+		account.setLeasePeriod(ID.ZERO);
+		account.setLeasePeriodUpdateHeight(ID.ZERO);
+		account.setState(State.ACTIVE);
+		account.setStateUpdateHeight(ID.ZERO);
+		
 		account.getAssetSubchainHeader().setFounderID(ID.ONE);
 		account.getAssetSubchainHeader().setDecimals("0.0001");
 		account.getAssetSubchainHeader().setIfCanBurn(false);
 		account.getAssetSubchainHeader().setIfCanChangeMaxSupply(false);
 		account.getAssetSubchainHeader().setIfCanChangeTotalSupply(true);
 		account.getAssetSubchainHeader().setMaxSupply(new ID(Util.MAX_EQC));
+		account.getAssetSubchainHeader().setMaxSupplyUpdateHeight(ID.ZERO);
 		account.getAssetSubchainHeader().setSubchainID(ID.ONE);
 		account.getAssetSubchainHeader().setSubchainName("EQcoin");
 		account.getAssetSubchainHeader().setSymbol("EQC");
 		account.getAssetSubchainHeader().setTotalSupply(new ID(cypherTotalSupply(ID.ZERO)));
-		account.getAssetSubchainHeader().setTotalAccountNumbers(new ID(3));
+		account.getAssetSubchainHeader().setTotalSupplyUpdateHeight(ID.ZERO);
+		account.getAssetSubchainHeader().setTotalAccountNumbers(ID.THREE);
+		account.getAssetSubchainHeader().setTotalAccountNumbersUpdateHeight(ID.ZERO);
 		account.getAssetSubchainHeader().setTotalTransactionNumbers(ID.ONE);
+		account.getAssetSubchainHeader().setTotalTransactionNumbersUpdateHeight(ID.ZERO);
 		account.getAssetSubchainHeader().setUrl("www.eqchains.com");
 		account.getAssetSubchainHeader().setLogo(new byte[64]);
 		account.setTxFeeRate((byte) 10);
-		account.setState(State.ACTIVE);
+		
+		account.setTotalStateSizeUpdateHeight(ID.ZERO);
 		account.setTotalStateSize(account.getBytes().length);
+		
 		accountsMerkleTree.saveAccount(account);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 
@@ -2257,12 +2303,15 @@ public final class Util {
 		AssetAccount account1 = new AssetAccount();
 		account1.setCreateHeight(ID.ZERO);
 		account1.setPassport(txOut.getPassport());
-		account1.setPassportCreateHeight(ID.ZERO);
+		account1.setLockCreateHeight(ID.ZERO);
 		asset = new CoinAsset();
+		asset.setVersionUpdateHeight(ID.ZERO);
+		asset.setAssetCreateHeight(ID.ZERO);
 		asset.deposit(new ID(EQZIP_COINBASE_REWARD));
+		asset.setBalanceUpdateHeight(ID.ZERO);
 		asset.setNonce(ID.ZERO);
+		asset.setNonceUpdateHeight(ID.ZERO);
 		account1.setAsset(asset);
-		account1.setAssetUpdateHeight(ID.ZERO);
 		accountsMerkleTree.saveAccount(account1);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		
@@ -2275,12 +2324,15 @@ public final class Util {
 		account1 = new AssetAccount();
 		account1.setCreateHeight(ID.ZERO);
 		account1.setPassport(txOut.getPassport());
-		account1.setPassportCreateHeight(ID.ZERO);
+		account1.setLockCreateHeight(ID.ZERO);
 		asset = new CoinAsset();
+		asset.setVersionUpdateHeight(ID.ZERO);
+		asset.setAssetCreateHeight(ID.ZERO);
 		asset.deposit(new ID(MINER_COINBASE_REWARD));
+		asset.setBalanceUpdateHeight(ID.ZERO);
 		asset.setNonce(ID.ONE);
+		asset.setNonceUpdateHeight(ID.ZERO);
 		account1.setAsset(asset);
-		account1.setAssetUpdateHeight(ID.ZERO);
 		accountsMerkleTree.saveAccount(account1);
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		transaction.setNonce(ID.ONE);
@@ -2304,7 +2356,7 @@ public final class Util {
 //		index.setTransactionsHash(eqcBlock.getTransactions().getHash());
 
 		// Create Root
-		Root root = new Root();
+		EQCRoot root = new EQCRoot();
 //		root.setIndexHash(index.getHash());
 //		root.setTotalSupply(new ID(cypherTotalSupply(ID.ZERO)));
 //		root.setTotalAccountNumbers(ID.TWO);
@@ -2548,7 +2600,7 @@ public final class Util {
 	}
 
 	public static Status getStatus(STATUS _status, String message) {
-		status.setCode(_status.ordinal());
+		status.setCode(ID.valueOf(_status.ordinal()));
 		status.setMessage(message);
 		return status;
 	}
@@ -2695,6 +2747,13 @@ public final class Util {
 			maxCoinbaseHeight = new ID(MAX_EQC / COINBASE_REWARD);
 		}
 		return maxCoinbaseHeight;
+	}
+	
+	public static boolean regex(String regex, String value) {
+		if(value == null || value.equals("")) {
+			return false;
+		}
+		return value.matches(regex);
 	}
 	
 }

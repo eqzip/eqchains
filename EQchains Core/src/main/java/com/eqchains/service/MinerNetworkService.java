@@ -37,17 +37,10 @@ import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
+import com.eqchains.avro.IO;
+import com.eqchains.avro.MinerNetwork;
+import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.rpc.avro.Block;
-import com.eqchains.rpc.avro.Cookie;
-import com.eqchains.rpc.avro.FullNodeList;
-import com.eqchains.rpc.avro.MinerList;
-import com.eqchains.rpc.avro.MinerNetwork;
-import com.eqchains.rpc.avro.MineringBase;
-import com.eqchains.rpc.avro.Status;
-import com.eqchains.rpc.avro.SyncblockNetwork;
-import com.eqchains.rpc.avro.TransactionHashList;
-import com.eqchains.rpc.avro.TransactionList;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
@@ -62,49 +55,49 @@ public class MinerNetworkService extends Thread {
 	public static class MinerNetworkImpl implements MinerNetwork {
 
 		@Override
-		public Status ping(Cookie cookie) throws AvroRemoteException {
-			// Here need add function to test ping
-			return Util.getStatus();
-		}
-
-		@Override
-		public MinerList getMinerList(Cookie cookie) throws AvroRemoteException {
+		public IO ping(IO cookie) throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public FullNodeList getFullNodeList(Cookie cookie) throws AvroRemoteException {
+		public IO getMinerList() throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public Status sendNewBlock(Block newBlock) throws AvroRemoteException {
+		public IO getFullNodeList() throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public Status sendMineringBase(MineringBase mineringBase) throws AvroRemoteException {
+		public IO sendNewBlock(IO block) throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public MineringBase getMineringBase(Cookie cookie) throws AvroRemoteException {
+		public IO sendMineringBase(IO mineringBase) throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public TransactionHashList getTransactionHashList(Cookie cookie) throws AvroRemoteException {
+		public IO getMineringBase() throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public TransactionList getTransactionList(TransactionHashList transactionHashList) throws AvroRemoteException {
+		public IO getTransactionIndexList() throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO getTransactionList(IO transactionList) throws AvroRemoteException {
 			// TODO Auto-generated method stub
 			return null;
 		}

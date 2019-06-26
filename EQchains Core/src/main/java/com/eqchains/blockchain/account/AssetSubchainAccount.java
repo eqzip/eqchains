@@ -67,12 +67,7 @@ public class AssetSubchainAccount extends SmartContractAccount {
 	}
 	
 	public AssetSubchainAccount(byte[] bytes) throws NoSuchFieldException, IOException {
-		super(AccountType.ASSETSUBCHAIN);
-		EQCType.assertNotNull(bytes);
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		parseHeader(is);
-		parseBody(is);
-		EQCType.assertNoRedundantData(is);
+		super(bytes);
 	}
 	
 	/* (non-Javadoc)
@@ -114,20 +109,22 @@ public class AssetSubchainAccount extends SmartContractAccount {
 		this.assetSubchainHeader = assetSubchainHeader;
 	}
 	
-	public String toInnerJson() {
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
 		return 
 				"\"AssetSubchainAccount\":" + 
 				"\n{\n" +
-					"\"AccountType\":" + "\"" + accountType + "\"" + ",\n" +
-					"\"Version\":" + "\"" + version + "\"" + ",\n" +
-					passport.toInnerJson() + ",\n" +
-					"\"AddressCreateHeight\":" + "\"" + passportCreateHeight + "\"" + ",\n" +
-					((publickey.isNULL())?Publickey.NULL():publickey.toInnerJson()) + ",\n" +
+					toInnerJson() +
+				"\n}";
+	}
+
+	public String toInnerJson() {
+		return 
 					super.toInnerJson() +
-					assetSubchainHeader.toInnerJson() + ",\n" +
-					"\"AssetList\":" + "\n{\n" + "\"Size\":" + "\"" + assetList.size() + "\"" + ",\n" + 
-					"\"List\":" + "\n" + getAssetListString() + "\n}\n" +
-				"}";
+					assetSubchainHeader.toInnerJson();
 	}
 
 	/* (non-Javadoc)

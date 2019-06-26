@@ -103,14 +103,14 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	/**
 	 * @return the PassportCreateHeight
 	 */
-	public ID getPassportCreateHeight() {
+	public ID getLockUpdateHeight() {
 		return passportCreateHeight;
 	}
 
 	/**
 	 * @param PassportCreateHeight the PassportCreateHeight to set
 	 */
-	public void setPassportCreateHeight(ID passportCreateHeight) {
+	public void setLockUpdateHeight(ID passportCreateHeight) {
 		this.passportCreateHeight = passportCreateHeight;
 	}
 

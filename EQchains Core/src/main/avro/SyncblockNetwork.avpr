@@ -1,72 +1,34 @@
-{"namespace": "com.eqchains.rpc.avro",
+{"namespace": "com.eqchains.avro",
  "protocol": "SyncblockNetwork",
 
  "types": [
-     {"name": "Cookie", "type": "record",
+     {"name": "IO", "type": "record",
       "fields": [
-          {"name": "ip",   "type": "string"},
-          {"name": "version", "type": "string"}
-      ]
-     },
-     {"name": "Status", "type": "record",
-      "fields": [
-          {"name": "cookie",   "type": "Cookie"},
-          {"name": "code", "type": "int"},
-          {"name": "message", "type": "string"}
-      ]
-     },
-     {"name": "MinerList", "type": "record",
-      "fields": [
-          {"name": "cookie",   "type": "Cookie"},
-          {"name": "minerList", "type": "bytes"}
-      ]
-     },
-     {"name": "FullNodeList", "type": "record",
-      "fields": [
-          {"name": "cookie",   "type": "Cookie"},
-          {"name": "fullNodeList", "type": "bytes"}
-      ]
-     },
-     {"name": "Height", "type": "record",
-      "fields": [
-          {"name": "cookie",   "type": "Cookie"},
-          {"name": "height", "type": "long"}
-      ]
-     },
-     {"name": "Europa", "type": "record",
-      "fields": [
-          {"name": "height",   "type": "Height"},
-          {"name": "nonce", "type": "long"}
-      ]
-     },
-     {"name": "Block", "type": "record",
-      "fields": [
-          {"name": "cookie",   "type": "Cookie"},
-          {"name": "block", "type": "bytes"}
+          {"name": "object", "type": "bytes"}
       ]
      }
  ],
 
  "messages": {
      "ping": {
-         "request": [{"name": "cookie", "type": "Cookie"}],
-         "response": "Status"
+         "request": [{"name": "cookie", "type": "IO"}],
+         "response": "IO"
      },
      "getMinerList": {
-         "request": [{"name": "cookie", "type": "Cookie"}],
-         "response": "MinerList"
+         "request": [],
+         "response": "IO"
    	  },
      "getFullNodeList": {
-         "request": [{"name": "cookie", "type": "Cookie"}],
-         "response": "FullNodeList"
+         "request": [],
+         "response": "IO"
      },
      "getBlockTail": {
-         "request": [{"name": "cookie", "type": "Cookie"}],
-         "response": "Europa"
+         "request": [],
+         "response": "IO"
    	  },
    	 "getBlock": {
-         "request": [{"name": "height", "type": "Height"}],
-         "response": "Block"
+         "request": [{"name": "height", "type": "IO"}],
+         "response": "IO"
    	}
  }
 }

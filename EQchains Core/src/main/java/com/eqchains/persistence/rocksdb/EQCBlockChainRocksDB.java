@@ -65,6 +65,7 @@ import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.rpc.Max;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -248,51 +249,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return getTableItemNumbers(getTableHandle(TABLE.EQCBLOCK));
 	}
 	
-	@Override
-	public ID getAddressID(Passport passport) throws RocksDBException {
-		ID serialNumber = null;
-		byte[] bytes = null;
-			bytes = get(TABLE.ACCOUNT, passport.getAddressAI());
-		if(bytes != null) {
-			serialNumber = new ID(bytes);
-		}
-		return serialNumber;
-	}
-
-	@Override
-	public Passport getAddress(ID serialNumber) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
-		Passport passport = null;
-		byte[] bytes = null;
-			bytes = get(TABLE.ACCOUNT, serialNumber.getEQCBits());
-		if(bytes != null) {
-			Account account;
-				account = Account.parseAccount(bytes);
-				passport = account.getPassport();
-		}
-		return passport;
-	}
-
-	@Deprecated
-	public void appendAddress(Passport passport, ID address_create_height) throws RocksDBException {
-		Account account = Account.createAccount(passport);
-		account.setPassportCreateHeight(address_create_height);
-		WriteBatch writeBatch = new WriteBatch();
-			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getIDEQCBits(), account.getBytes());
-			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getPassport().getAddressAI(), account.getIDEQCBits());
-			writeBatch.put(getTableHandle(TABLE.ACCOUNT), addPrefixH(account.getIDEQCBits()), account.getHash());
-			rocksDB.write(writeOptions, writeBatch);
-	}
-
-	@Override
-	public boolean isAddressExists(Passport passport) throws RocksDBException {
-		boolean isSucc = false;
-			// For security issue only support search address via AddressAI
-			if(rocksDB.get(getTableHandle(TABLE.ACCOUNT_AI), passport.getAddressAI()) != null) {
-				isSucc = true;
-			}
-		return isSucc;
-	}
-
 	@Deprecated
 	public void deleteAddress(Passport passport) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
@@ -397,23 +353,12 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws NoSuchFieldException, RocksDBException, IOException {
 		EQCHive eqcBlock = null;
 		byte[] bytes = null;
-		
-			if((bytes = get(TABLE.EQCBLOCK, height.getEQCBits())) != null) {
-				eqcBlock = new EQCHive(bytes, isSegwit);
-			}
+		if ((bytes = get(TABLE.EQCBLOCK, height.getEQCBits())) != null) {
+			eqcBlock = new EQCHive(bytes, isSegwit);
+		}
 		return eqcBlock;
 	}
 	
-	@Override
-	public boolean isEQCBlockExists(ID height) throws RocksDBException {
-		boolean isSucc = false;
-		byte[] bytes = null;
-			if((bytes = get(TABLE.EQCBLOCK, height.getEQCBits())) != null) {
-				isSucc = true;
-			}
-		return isSucc;
-	}
-
 	@Override
 	public void saveEQCBlock(EQCHive eqcBlock) throws RocksDBException {
 			WriteBatch writeBatch = new WriteBatch();
@@ -428,12 +373,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			writeBatch.delete(getTableHandle(TABLE.EQCBLOCK), height.getEQCBits());
 			writeBatch.delete(getTableHandle(TABLE.EQCBLOCK), addPrefixH(height.getEQCBits()));
 			rocksDB.write(writeOptions, writeBatch);
-	}
-
-	@Override
-	public byte[] getTransactionsHash(ID height) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -620,18 +559,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public ID getTransactionMaxNonce(Transaction transaction) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
 	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
 		byte[] hash = null;
 		ID tail = getEQCBlockTailHeight();
@@ -644,6 +571,18 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(tail);
 		}
 		return hash;
+	}
+
+	@Override
+	public Max getTransactionMax(ID id) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean saveTransactionMax(ID id, Max max) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
 	}
 	
 }

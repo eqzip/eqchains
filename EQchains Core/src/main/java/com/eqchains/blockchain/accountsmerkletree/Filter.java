@@ -96,10 +96,10 @@ public class Filter {
 		return getAccount(id, isLoadInFilter);
 	}
 	
-	public boolean isAddressExists(Passport address) throws RocksDBException {
+	public boolean isAccountExists(Passport passport) throws RocksDBException {
 		boolean isSucc = false;
 		// For security issue only support search address via AddressAI
-		if ((EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI()) != null)) {
+		if ((EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), passport.getAddressAI()) != null)) {
 			isSucc = true;
 		}
 		return isSucc;
@@ -113,7 +113,7 @@ public class Filter {
 			if((bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI())) != null) {
 				// Here maybe still exists some issue
 				account = Account.parseAccount(bytes);
-				if(account.getPassportCreateHeight().compareTo(height) <= 0)
+				if(account.getLockCreateHeight().compareTo(height) <= 0)
 				isSucc = true;
 			}
 		return isSucc;
