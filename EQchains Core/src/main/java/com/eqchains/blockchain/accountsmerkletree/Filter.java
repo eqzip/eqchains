@@ -194,7 +194,7 @@ public class Filter {
 		boolean isSucc = true;
 		RocksIterator rocksIterator = EQCBlockChainRocksDB.getRocksDB().newIterator(columnFamilyHandles.get(0));
 		rocksIterator.seekToFirst();
-		AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
+		AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.ROCKSDB().getAccount(ID.ONE);
 		
 		while (rocksIterator.isValid()) {
 //				Log.info("Key: " + Util.dumpBytes(rocksIterator.key(), 16) + " Value: " + Util.dumpBytes(rocksIterator.value(), 16));

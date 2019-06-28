@@ -33,6 +33,7 @@ package com.eqchains;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.rpc.SyncblockNetworkProxy;
 import com.eqchains.service.MinerService;
 import com.eqchains.service.SyncblockNetworkService;
 import com.eqchains.test.Test;
@@ -56,13 +57,14 @@ public class Singularity {
 //		Test.testTransaction();
 //		Test.testKeystore();
 //		System.setProperty("illegal-access", "deny");
-//		System.err.close();
-//	    System.setErr(System.out);
-//		Test.ping("14.221.176.138", "129.28.138.37");
-////		Test.TestIO();
-//		Test.getBlockTail("129.28.138.37");
+		System.err.close();
+	    System.setErr(System.out);
+//		Test.ping("14.221.176.138", "129.28.206.27");
 //	    while(true)
-		Test.getBlock("129.28.138.37", ID.valueOf(77));
+		Log.info("Time: "+Test.ping("129.28.206.27"));
+////		Test.TestIO();
+//		Test.getBlockTail("129.28.206.27");
+//	    Test.getBlock("129.28.206.27", ID.valueOf(69));
 //		Log.info("" + (int)'-');
 //		System.out.println("Begin testKeystore");
 //		try {

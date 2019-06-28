@@ -39,7 +39,9 @@ import org.rocksdb.RocksDBException;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.rpc.Max;
+import com.eqchains.rpc.Balance;
+import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.MaxNonce;
 import com.eqchains.util.ID;
 
 /**
@@ -66,7 +68,7 @@ public interface EQCBlockChain {
 	public void deleteEQCBlock(ID height) throws Exception;
 	
 	// TransactionPool relevant interface for H2, avro.
-	public Vector<Transaction> getTransactionListInPool() throws SQLException, Exception;
+	public int isTransactionExistsInPool(Transaction transaction) throws SQLException;
 	
 	public boolean saveTransactionInPool(Transaction transaction) throws SQLException;
 	
@@ -74,11 +76,17 @@ public interface EQCBlockChain {
 	
 	public boolean deleteTransactionsInPool(EQCHive eqcBlock) throws SQLException;
 	
-	public boolean isTransactionExistsInPool(Transaction transaction) throws SQLException;
+	public Vector<Transaction> getTransactionListInPool() throws SQLException, Exception;
 	
-	public Max getTransactionMax(ID id) throws SQLException;
+	public boolean isTransactionMaxNonceExists(ID id) throws SQLException;
 	
-	public boolean saveTransactionMax(ID id, Max max) throws SQLException;
+	public boolean saveTransactionMaxNonce(ID id, MaxNonce maxNonce) throws SQLException;
+	
+	public MaxNonce getTransactionMaxNonce(ID id) throws SQLException;
+	
+	public boolean deleteTransactionMaxNonce(ID id) throws SQLException;
+	
+	public Balance getBalance(ID id, ID assetID) throws SQLException, Exception;
 	
 	// For sign and verify Transaction need use relevant TxIn's EQC block header's hash via this function to get it from xxx.EQC.
 	public byte[] getEQCHeaderHash(ID height) throws Exception;
@@ -90,6 +98,23 @@ public interface EQCBlockChain {
 	public void saveEQCBlockTailHeight(ID height) throws Exception;
 	
 	public ID getTotalAccountNumbers(ID height) throws Exception;
+	
+	// MinerNetwork and FullNodeNetwork relevant interface for H2, avro.
+	public boolean isMinerExists(String ip) throws SQLException, Exception;
+	
+	public boolean saveMiner(String ip) throws SQLException, Exception;
+	
+	public boolean deleteMiner(String ip) throws SQLException, Exception;
+	
+	public IPList getMinerList() throws SQLException, Exception;
+	
+	public boolean isFullNodeExists(String ip) throws SQLException, Exception;
+	
+	public boolean saveFullNode(String ip) throws SQLException, Exception;
+	
+	public boolean deleteFullNode(String ip) throws SQLException, Exception;
+	
+	public IPList getFullNodeList() throws SQLException, Exception;
 	
 	// Release the relevant database resource
 	public boolean close() throws SQLException, Exception;

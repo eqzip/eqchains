@@ -30,45 +30,23 @@
 package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 
-import com.eqchains.avro.IO;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.serialization.EQCType;
-import com.eqchains.util.ID;
 
 /**
  * @author Xun Wang
- * @date Jun 26, 2019
+ * @date Jun 27, 2019
  * @email 10509759@qq.com
  */
-public class Max extends AvroIO {
-	private ID nonce;
-	private ID balance;
-	
-	public Max(ByteArrayInputStream is) throws Exception {
-		super(is);
-	}
-	
-	public Max() {
-	}
-	
-	public Max(IO io) throws Exception {
-		super(io);
-	}
+public class TransactionIndexList extends AvroIO {
 
 	/* (non-Javadoc)
 	 * @see com.eqchains.serialization.EQCTypable#isSanity()
 	 */
 	@Override
 	public boolean isSanity() {
-		if(nonce == null || balance == null) {
-			return false;
-		}
-		if(!nonce.isSanity() || !balance.isSanity()) {
-			return false;
-		}
-		return true;
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 	/* (non-Javadoc)
@@ -94,8 +72,8 @@ public class Max extends AvroIO {
 	 */
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
-		nonce = new ID(EQCType.parseEQCBits(is));
-		balance = EQCType.parseID(is);
+		// TODO Auto-generated method stub
+
 	}
 
 	/* (non-Javadoc)
@@ -112,9 +90,7 @@ public class Max extends AvroIO {
 	 */
 	@Override
 	public byte[] getBodyBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(nonce.getEQCBits());
-		os.write(balance.getEQCBits());
+		// TODO Auto-generated method stub
 		return null;
 	}
 

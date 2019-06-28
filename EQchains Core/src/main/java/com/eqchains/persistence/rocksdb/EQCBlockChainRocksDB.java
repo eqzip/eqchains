@@ -65,7 +65,9 @@ import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.rpc.Max;
+import com.eqchains.rpc.Balance;
+import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.MaxNonce;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -113,7 +115,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		columnFamilyNames.addAll(defaultColumnFamilyNames);
 		columnFamilyHandles = new ArrayList<>();
 		writeOptions = new WriteOptions();
-		final DBOptions dbOptions = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
+		final DBOptions dbOptions = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true).setStatsDumpPeriodSec(0);
 			for(byte[] bytes: RocksDB.listColumnFamilies(new Options(), Util.ROCKSDB_PATH)) {
 				if(!isDefaultColumnFamily(bytes)) {
 					columnFamilyNames.add(bytes);
@@ -400,9 +402,9 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean isTransactionExistsInPool(Transaction transaction) {
+	public int isTransactionExistsInPool(Transaction transaction) {
 		// TODO Auto-generated method stub
-		return false;
+		return 0;
 	}
 
 	@Override
@@ -574,15 +576,81 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public Max getTransactionMax(ID id) throws SQLException {
+	public MaxNonce getTransactionMaxNonce(ID id) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean saveTransactionMax(ID id, Max max) throws SQLException {
+	public boolean saveTransactionMaxNonce(ID id, MaxNonce maxNonce) throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public boolean deleteTransactionMaxNonce(ID id) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isMinerExists(String ip) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean saveMiner(String ip) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteMiner(String ip) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public IPList getMinerList() throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isFullNodeExists(String ip) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean saveFullNode(String ip) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteFullNode(String ip) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public IPList getFullNodeList() throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isTransactionMaxNonceExists(ID id) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Balance getBalance(ID id, ID assetID) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }

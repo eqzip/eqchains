@@ -231,7 +231,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	/**
 	 * @return the nonce
 	 */
-	public BigInteger getNonce() {
+	public ID getNonce() {
 		return nonce;
 	}
 
@@ -680,6 +680,25 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			Log.Error(e.getMessage());
 		}
 		return os.toByteArray();
+	}
+	
+	public byte[] getProof() {
+		byte[] bytes = new byte[5];
+		if(signature.length < Util.P256_BASIC_SIGNATURE_LEN) {
+			bytes[0] = signature[9];
+			bytes[1] = signature[33];
+			bytes[2] = signature[41];
+			bytes[3] = signature[51];
+			bytes[4] = signature[65];
+		}
+		else {
+			bytes[0] = signature[33];
+			bytes[1] = signature[51];
+			bytes[2] = signature[87];
+			bytes[3] = signature[99];
+			bytes[4] = signature[101];
+		}
+		return bytes;
 	}
 	
 }

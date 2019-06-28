@@ -34,33 +34,33 @@ import java.io.ByteArrayOutputStream;
 
 import com.eqchains.avro.IO;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 
 /**
  * @author Xun Wang
- * @date Jun 24, 2019
+ * @date Jun 26, 2019
  * @email 10509759@qq.com
  */
-public class Europa extends AvroIO {
-	private ID height;
+public class MaxNonce extends AvroIO {
 	private ID nonce;
-	private byte[] tailProof;
-
-	public Europa() {
+	
+	public MaxNonce() {
 	}
 	
-	public Europa(IO io) throws Exception {
+	public MaxNonce(IO io) throws Exception {
 		super(io);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see com.eqchains.serialization.EQCTypable#isSanity()
 	 */
 	@Override
 	public boolean isSanity() {
-		if(height == null || nonce == null) {
+		if(nonce == null) {
+			return false;
+		}
+		if(!nonce.isSanity()) {
 			return false;
 		}
 		return true;
@@ -75,18 +75,40 @@ public class Europa extends AvroIO {
 		return false;
 	}
 
-	/**
-	 * @return the height
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
 	 */
-	public ID getHeight() {
-		return height;
+	@Override
+	public void parseHeader(ByteArrayInputStream is) throws Exception {
+		// TODO Auto-generated method stub
+
 	}
 
-	/**
-	 * @param height the height to set
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
 	 */
-	public void setHeight(ID height) {
-		this.height = height;
+	@Override
+	public void parseBody(ByteArrayInputStream is) throws Exception {
+		nonce = new ID(EQCType.parseEQCBits(is));
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
+	 */
+	@Override
+	public byte[] getHeaderBytes() throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
+	 */
+	@Override
+	public byte[] getBodyBytes() throws Exception {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		os.write(nonce.getEQCBits());
+		return null;
 	}
 
 	/**
@@ -103,30 +125,4 @@ public class Europa extends AvroIO {
 		this.nonce = nonce;
 	}
 
-	@Override
-	public void parseHeader(ByteArrayInputStream is) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void parseBody(ByteArrayInputStream is) throws Exception {
-		height = new ID(EQCType.parseEQCBits(is));
-		nonce = new ID(EQCType.parseEQCBits(is));
-	}
-
-	@Override
-	public byte[] getHeaderBytes() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBodyBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(height.getEQCBits());
-		os.write(nonce.getEQCBits());
-		return os.toByteArray();
-	}
-	
 }

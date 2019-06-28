@@ -29,104 +29,94 @@
  */
 package com.eqchains.rpc;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+
+import org.apache.avro.AvroRemoteException;
+import org.apache.avro.ipc.NettyTransceiver;
+import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import com.eqchains.avro.IO;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.serialization.EQCType;
-import com.eqchains.util.ID;
+import com.eqchains.avro.SyncblockNetwork;
+import com.eqchains.test.Test;
+import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 24, 2019
+ * @date Jun 28, 2019
  * @email 10509759@qq.com
  */
-public class Europa extends AvroIO {
-	private ID height;
-	private ID nonce;
-	private byte[] tailProof;
-
-	public Europa() {
-	}
-	
-	public Europa(IO io) throws Exception {
-		super(io);
-	}
-	
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isSanity()
-	 */
-	@Override
-	public boolean isSanity() {
-		if(height == null || nonce == null) {
-			return false;
-		}
-		return true;
-	}
+public class SyncblockNetworkProxy implements SyncblockNetwork {
 
 	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
+	 * @see com.eqchains.avro.SyncblockNetwork#ping(com.eqchains.avro.IO)
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	/**
-	 * @return the height
-	 */
-	public ID getHeight() {
-		return height;
-	}
-
-	/**
-	 * @param height the height to set
-	 */
-	public void setHeight(ID height) {
-		this.height = height;
-	}
-
-	/**
-	 * @return the nonce
-	 */
-	public ID getNonce() {
-		return nonce;
-	}
-
-	/**
-	 * @param nonce the nonce to set
-	 */
-	public void setNonce(ID nonce) {
-		this.nonce = nonce;
-	}
-
-	@Override
-	public void parseHeader(ByteArrayInputStream is) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void parseBody(ByteArrayInputStream is) throws Exception {
-		height = new ID(EQCType.parseEQCBits(is));
-		nonce = new ID(EQCType.parseEQCBits(is));
-	}
-
-	@Override
-	public byte[] getHeaderBytes() throws Exception {
+	public IO ping(IO cookie) throws AvroRemoteException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	/* (non-Javadoc)
+	 * @see com.eqchains.avro.SyncblockNetwork#getMinerList()
+	 */
 	@Override
-	public byte[] getBodyBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(height.getEQCBits());
-		os.write(nonce.getEQCBits());
-		return os.toByteArray();
+	public IO getMinerList() throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.avro.SyncblockNetwork#getFullNodeList()
+	 */
+	@Override
+	public IO getFullNodeList() throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.avro.SyncblockNetwork#getBlockTail()
+	 */
+	@Override
+	public IO getBlockTail() throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.avro.SyncblockNetwork#getBlock(com.eqchains.avro.IO)
+	 */
+	@Override
+	public IO getBlock(IO height) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public static long ping(String remoteIP) {
+//		Test.ping("14.221.176.138", "129.28.206.27");
+		Cookie cookie = new Cookie();
+		cookie.setIp(Util.IP);
+		cookie.setVersion(Util.PROTOCOL_VERSION);
+		long time = System.currentTimeMillis();
+    	NettyTransceiver client = null;
+    	try {
+    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), 7997), 3000l);
+    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		proxy.ping(cookie.getIO());
+    		time = System.currentTimeMillis() - time;
+    	}
+    	catch (Exception e) {
+    		Log.Error(e.getMessage());
+    		time = -1;
+		}
+    	finally {
+			if(client != null) {
+				client.close();
+			}
+		}
+    	return time;
 	}
 	
 }

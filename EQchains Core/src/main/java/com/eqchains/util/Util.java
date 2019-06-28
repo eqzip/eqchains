@@ -84,6 +84,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.StandardConstants;
 
+import org.apache.commons.collections.functors.IfClosure;
 import org.apache.commons.collections.functors.SwitchClosure;
 import org.apache.commons.net.nntp.NewGroupsOrNewsQuery;
 import org.apache.commons.net.ntp.NTPUDPClient;
@@ -306,6 +307,8 @@ public final class Util {
 	
 	public static final String REGEX_VERSION = "";
 	
+	public static final String IP = "129.28.206.27";
+	
 //	public static ID [] FIBONACCI = {
 //			new ID(1597),
 //			new ID(2584),
@@ -432,6 +435,18 @@ public final class Util {
 		createDir(ROCKSDB_PATH);
 //		Test.testKeystore(); // Test stub
 //		createDir(BLOCK_PATH);
+//		File file = new File(ROCKSDB_PATH + File.separator + "LOCK");
+//		if(file.exists()) {
+//			if(file.delete()) {
+//				Log.info("Lock delete");
+//			}
+//			else {
+//				Log.info("Lock undelete");
+//			}
+//		}
+//		else {
+//			Log.info("Lock doesn't exists");
+//		}
 		if (!Configuration.getInstance().isInitSingularityBlock()
 				/* && Keystore.getInstance().getUserAccounts().size() > 0 Will Remove when Cold Wallet ready */) {
 //			Log.info("0");
@@ -454,16 +469,11 @@ public final class Util {
 //			Log.info("4");
 		}
 		cookie = new Cookie();
-		cookie.setIp(getIP());
+		cookie.setIp(IP);//cookie.setIp(getIP());
 		cookie.setVersion(PROTOCOL_VERSION);
-		if (cookie.getIp().length() == 0) {
-			Log.Error("During get IP error occur please check your network");
-		} else {
-			Log.info(cookie.toString());
-		}
 		status = new Status();
 		status.setCode(ID.valueOf(STATUS.OK.ordinal()));
-		status.setMessage("");
+		
 	}
 
 //	private static void init(final OS os) {
@@ -2195,8 +2205,8 @@ public final class Util {
 		TxOut eqzipTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		try {
-			eqcFoundationTxOut.setPassport(Util.DB().getAccount(ID.ONE).getPassport());
-			eqzipTxOut.setPassport(Util.DB().getAccount(ID.TWO).getPassport());
+			eqcFoundationTxOut.setPassport(Util.ROCKSDB().getAccount(ID.ONE).getPassport());
+			eqzipTxOut.setPassport(Util.ROCKSDB().getAccount(ID.TWO).getPassport());
 			minerTxOut.setPassport(passport);
 			if (height.compareTo(getMaxCoinbaseHeight(height)) < 0) {
 //				if (accountsMerkleTree.isAccountExists(address, true)) {
@@ -2399,23 +2409,23 @@ public final class Util {
 		ID serialNumber_begin = new ID(height.subtract(BigInteger.valueOf(10)));
 		if (height.longValue() % 10 != 0) {
 //			Log.info(serialNumber_end.toString());
-			target = Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget();//EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTarget();
+			target = Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget();//EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTarget();
 //			Log.info(Util.bigIntegerTo128String(Util.targetBytesToBigInteger(target)));
 		} else {
 			Log.info(
 					"Old target: "
 							+ Util.bigIntegerTo512String(Util.targetBytesToBigInteger(
-									Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget()))
+									Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget()))
 							+ "\r\naverge time: "
-							+ (Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
-									- Util.DB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())
+							+ (Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
+									- Util.ROCKSDB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())
 									/ 9);
 			oldDifficulty = Util
-					.targetBytesToBigInteger(Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget());
+					.targetBytesToBigInteger(Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget());
 			newDifficulty = oldDifficulty
 					.multiply(BigInteger
-							.valueOf((Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
-									- Util.DB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())))
+							.valueOf((Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
+									- Util.ROCKSDB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())))
 					.divide(BigInteger.valueOf(9 * Util.BLOCK_INTERVAL));
 			// Compare if old difficulty divide new difficulty is bigger than MAX_DIFFICULTY_MULTIPLE
 			if(oldDifficulty.divide(newDifficulty).compareTo(BigInteger.valueOf(MAX_DIFFICULTY_MULTIPLE)) > 0) {
@@ -2681,7 +2691,7 @@ public final class Util {
 		return eqcBlockChain;
 	}
 	
-	public static EQCBlockChain DB() throws RocksDBException, ClassNotFoundException, SQLException {
+	public static EQCBlockChain ROCKSDB() throws RocksDBException, ClassNotFoundException, SQLException {
 		return DB(PERSISTENCE.ROCKSDB);
 	}
 	

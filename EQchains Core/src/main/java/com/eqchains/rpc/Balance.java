@@ -34,33 +34,34 @@ import java.io.ByteArrayOutputStream;
 
 import com.eqchains.avro.IO;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 24, 2019
+ * @date Jun 27, 2019
  * @email 10509759@qq.com
  */
-public class Europa extends AvroIO {
-	private ID height;
-	private ID nonce;
-	private byte[] tailProof;
-
-	public Europa() {
+public class Balance extends AvroIO {
+	private ID balance;
+	
+	public Balance() {
 	}
 	
-	public Europa(IO io) throws Exception {
+	public Balance(IO io) throws Exception {
 		super(io);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see com.eqchains.serialization.EQCTypable#isSanity()
 	 */
 	@Override
 	public boolean isSanity() {
-		if(height == null || nonce == null) {
+		if(balance == null) {
+			return false;
+		}
+		if(!balance.isSanity()) {
 			return false;
 		}
 		return true;
@@ -75,58 +76,48 @@ public class Europa extends AvroIO {
 		return false;
 	}
 
-	/**
-	 * @return the height
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
 	 */
-	public ID getHeight() {
-		return height;
-	}
-
-	/**
-	 * @param height the height to set
-	 */
-	public void setHeight(ID height) {
-		this.height = height;
-	}
-
-	/**
-	 * @return the nonce
-	 */
-	public ID getNonce() {
-		return nonce;
-	}
-
-	/**
-	 * @param nonce the nonce to set
-	 */
-	public void setNonce(ID nonce) {
-		this.nonce = nonce;
-	}
-
 	@Override
 	public void parseHeader(ByteArrayInputStream is) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
+	 */
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
-		height = new ID(EQCType.parseEQCBits(is));
-		nonce = new ID(EQCType.parseEQCBits(is));
+		balance = new ID(EQCType.parseEQCBits(is));
 	}
 
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
+	 */
 	@Override
 	public byte[] getHeaderBytes() throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
+	 */
 	@Override
 	public byte[] getBodyBytes() throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(height.getEQCBits());
-		os.write(nonce.getEQCBits());
-		return os.toByteArray();
+		os.write(balance.getEQCBits());
+		return null;
+	}
+
+	public void withdraw(ID amount) {
+		balance = balance.subtract(amount);
+	}
+	
+	public void deposit(ID amount) {
+		balance = balance.add(amount);
 	}
 	
 }

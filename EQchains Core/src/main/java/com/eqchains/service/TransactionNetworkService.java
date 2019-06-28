@@ -91,6 +91,24 @@ public class TransactionNetworkService extends Thread {
 			return null;
 		}
 
+		@Override
+		public IO getBalance(IO ID) throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO getSignHash(IO ID) throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public IO getTransactionList(IO ID) throws AvroRemoteException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
 	}
 
 	private static Server server;

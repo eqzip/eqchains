@@ -55,6 +55,8 @@ public class Cookie extends AvroIO {
 	}
 	
 	public Cookie() {
+		ip = Util.IP;
+		version = Util.PROTOCOL_VERSION;
 	}
 	
 	public Cookie(IO io) throws Exception {

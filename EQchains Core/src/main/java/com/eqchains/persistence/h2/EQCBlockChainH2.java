@@ -61,13 +61,16 @@ import com.eqchains.blockchain.EQCHeader;
 import com.eqchains.blockchain.Index;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.configuration.Configuration;
-import com.eqchains.rpc.Max;
+import com.eqchains.rpc.Balance;
+import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.MaxNonce;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -92,6 +95,9 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	private static Statement statement;
 	private static EQCBlockChainH2 instance;
 	private static final int ONE_ROW = 1;
+	private enum NODETYPE {
+		NONE, MINER, FULL
+	}
 	
 	private EQCBlockChainH2() throws ClassNotFoundException, SQLException {
 			Class.forName("org.h2.Driver");
@@ -182,12 +188,12 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			// EQC Transaction Pool table
 			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION_POOL("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
-					+ "txin_address VARCHAR(51),"
+					+ "txin_id BIGINT,"
 					+ "txin_value BIGINT,"
-					+ "tx_fee BIGINT,"
+					+ "nonce BIGINT,"
 					+ "rawdata BINARY,"
 					+ "signature BINARY,"
-					+ "tx_size INT,"
+					+ "proof BINARY(5),"
 					+ "qos BIGINT,"
 					+ "receieved_timestamp BIGINT,"
 					+ "record_status BOOLEAN,"
@@ -215,9 +221,15 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			// Create Transaction max continues Nonce table
 			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION_MAX_NONCE("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
-					+ "id BIGINT,"
-					+ "balance BIGINT,"
+					+ "txin_id BIGINT,"
 					+ "max_nonce BIGINT"
+					+ ")");
+			
+			// Create EQchains Network table
+			statement.execute("CREATE TABLE IF NOT EXISTS NETWORK ("
+					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
+					+ "ip  VARCHAR,"
+					+ "type INT"
 					+ ")");
 			
 			if(result) {
@@ -1110,6 +1122,30 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return transactions;
 	}
 	
+	public synchronized int isTransactionExistsInPool(Transaction transaction) throws SQLException {
+		int nResult = 0;
+			PreparedStatement preparedStatement = connection.prepareStatement(
+					"SELECT * FROM TRANSACTION_POOL WHERE txin_id=? AND nonce=?");
+			preparedStatement.setLong(1, transaction.getTxIn().getPassport().getID().longValue());
+			preparedStatement.setLong(2, transaction.getNonce().longValue());
+			ResultSet resultSet = preparedStatement.executeQuery();
+			if (resultSet.next()) {
+				nResult = 1;
+			}
+			if(nResult == 1) {
+				preparedStatement = connection.prepareStatement(
+						"SELECT * FROM TRANSACTION_POOL WHERE txin_id=? AND nonce=? AND qos<?");
+				preparedStatement.setLong(1, transaction.getTxIn().getPassport().getID().longValue());
+				preparedStatement.setLong(2, transaction.getNonce().longValue());
+				preparedStatement.setLong(3, transaction.getQosRate().longValue());
+				resultSet = preparedStatement.executeQuery();
+				if (resultSet.next()) {
+					nResult = 2;
+				}
+			}
+		return nResult;
+	}
+	
 	/**
 	 * @param transaction EQC Transaction include PublicKey and Signature so for every Transaction it's raw is unique
 	 * @return boolean If add Transaction successful return true else return false
@@ -1118,26 +1154,35 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Override
 	public synchronized boolean saveTransactionInPool(Transaction transaction) throws SQLException {
 		int result = 0;
-//			result = statement.executeUpdate("INSERT INTO TRANSACTION_POOL (txin_address, txin_value, tx_fee, rawdata, tx_size, qos, receieved_timestamp) VALUES('" 
-//					+ transaction.getTxIn().getAddress().getAddress() + "','"
-//					+ transaction.getTxIn().getValue() + "','"
-//					+ transaction.getTxFee() + "','"
-//					+ transaction.getBytes(AddressShape.ADDRESS) + "','"
-//					+ size + "','"
-//					+ qos + "','"
-//					+ timestamp + "')");
-			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_POOL (txin_address, txin_value, tx_fee, rawdata, signature, tx_size, qos, receieved_timestamp, record_status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
-			preparedStatement.setString(1, transaction.getTxIn().getPassport().getReadableAddress());
-			preparedStatement.setLong(2, transaction.getTxIn().getValue());
-			preparedStatement.setLong(3, transaction.getTxFeeLimit());
-			preparedStatement.setBytes(4, transaction.getRPCBytes());
-			preparedStatement.setBytes(5, transaction.getSignature());
-			preparedStatement.setInt(6, transaction.getMaxBillingSize());
-			preparedStatement.setLong(7, transaction.getQosRate().longValue());
-			preparedStatement.setLong(8, System.currentTimeMillis());
+		int nResult = 0;
+		PreparedStatement preparedStatement = null;
+		if ((nResult = isTransactionExistsInPool(transaction)) == 0) {
+			preparedStatement = connection.prepareStatement(
+					"INSERT INTO TRANSACTION_POOL (txin_id, nonce, rawdata, signature, proof, qos, receieved_timestamp, record_status, record_height) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+			preparedStatement.setLong(1, transaction.getTxIn().getPassport().getID().longValue());
+			preparedStatement.setLong(2, transaction.getNonce().longValue());
+			preparedStatement.setBytes(3, transaction.getRPCBytes());
+			preparedStatement.setBytes(4, transaction.getSignature());
+			preparedStatement.setBytes(5, transaction.getProof());
+			preparedStatement.setLong(6, transaction.getQosRate().longValue());
+			preparedStatement.setLong(7, System.currentTimeMillis());
+			preparedStatement.setBoolean(8, false);
 			preparedStatement.setBoolean(9, false);
-			result =preparedStatement.executeUpdate();
-			Log.info("result: " + result);
+			result = preparedStatement.executeUpdate();
+		} else if (nResult == 2) {
+			preparedStatement = connection.prepareStatement(
+					"UPDATE TRANSACTION_POOL SET rawdata=?, signature=?, proof=?, qos=?, receieved_timestamp=?, record_status=?, record_height=? WHERE txin_id=? AND nonce=?");
+			preparedStatement.setBytes(1, transaction.getRPCBytes());
+			preparedStatement.setBytes(2, transaction.getSignature());
+			preparedStatement.setBytes(3, transaction.getProof());
+			preparedStatement.setLong(4, transaction.getQosRate().longValue());
+			preparedStatement.setLong(5, System.currentTimeMillis());
+			preparedStatement.setBoolean(6, false);
+			preparedStatement.setBoolean(7, false);
+			preparedStatement.setLong(8, transaction.getTxIn().getPassport().getID().longValue());
+			preparedStatement.setLong(9, transaction.getNonce().longValue());
+		}
+		Log.info("result: " + result);
 		return result == ONE_ROW;
 	}
 
@@ -1152,17 +1197,17 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return result == ONE_ROW;
 	}
 
-	@Override
-	public synchronized boolean isTransactionExistsInPool(Transaction transaction) throws SQLException {
-//			 ResultSet resultSet = statement.executeQuery("SELECT * FROM TRANSACTION_POOL WHERE signature='" + transaction.getBytes(AddressShape.ADDRESS) + "'");
-			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE signature= ?");
-			preparedStatement.setBytes(1, transaction.getSignature());
-			ResultSet resultSet  = preparedStatement.executeQuery(); 
-			if(resultSet.next()) {
-				 return true;
-			 }
-		return false;
-	}
+//	@Override
+//	public synchronized boolean isTransactionExistsInPool(Transaction transaction) throws SQLException {
+////			 ResultSet resultSet = statement.executeQuery("SELECT * FROM TRANSACTION_POOL WHERE signature='" + transaction.getBytes(AddressShape.ADDRESS) + "'");
+//			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE signature= ?");
+//			preparedStatement.setBytes(1, transaction.getSignature());
+//			ResultSet resultSet  = preparedStatement.executeQuery(); 
+//			if(resultSet.next()) {
+//				 return true;
+//			 }
+//		return false;
+//	}
 
 	@Deprecated
 	public synchronized Vector<Transaction> getTransactionList(Passport address) {
@@ -1543,15 +1588,175 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public Max getTransactionMax(ID id) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+	public MaxNonce getTransactionMaxNonce(ID id) throws SQLException {
+		MaxNonce maxNonce = new MaxNonce();
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_MAX_NONCE WHERE txin_id=?");
+		preparedStatement.setLong(1, id.longValue());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if(resultSet.next()) {
+			maxNonce.setNonce(ID.valueOf(resultSet.getLong("max_nonce")));
+		}
+		return maxNonce;
+	}
+
+	public synchronized boolean isTransactionMaxNonceExists(ID id) throws SQLException {
+		boolean isSucc = false;
+			PreparedStatement preparedStatement = connection.prepareStatement(
+					"SELECT * FROM TRANSACTION_MAX_NONCE WHERE id=?");
+			preparedStatement.setLong(1, id.longValue());
+			ResultSet resultSet = preparedStatement.executeQuery();
+			if (resultSet.next()) {
+				isSucc = true;
+			}
+		return isSucc;
+	}
+	
+	@Override
+	public boolean saveTransactionMaxNonce(ID id, MaxNonce maxNonce) throws SQLException {
+		int result = 0;
+		PreparedStatement preparedStatement = null;
+			if (isTransactionMaxNonceExists(id)) {
+					preparedStatement = connection.prepareStatement("UPDATE TRANSACTION_MAX_NONCE SET max_nonce = ?");
+					preparedStatement.setLong(1, maxNonce.getNonce().longValue());
+					result = preparedStatement.executeUpdate();
+//					Log.info("UPDATE: " + result);
+			}
+			else {
+				preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_MAX_NONCE (id, max_nonce) VALUES (?, ?)");
+				preparedStatement.setLong(1, id.longValue());
+				preparedStatement.setLong(2, maxNonce.getNonce().longValue());
+				result = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + result);
+			}
+		return result == ONE_ROW;
+	}
+	
+	@Override
+	public boolean deleteTransactionMaxNonce(ID id) throws SQLException {
+		int result = 0;
+		PreparedStatement preparedStatement;
+			preparedStatement = connection.prepareStatement("DELETE FROM TRANSACTION_MAX_NONCE WHERE id=?");
+			preparedStatement.setLong(1, id.longValue());
+			result = preparedStatement.executeUpdate();
+			Log.info("result: " + result);
+		return result >= ONE_ROW;
+	}
+	
+	@Override
+	public Balance getBalance(ID id, ID assetID) throws SQLException, Exception {
+		Balance balance = new Balance();
+		balance.deposit(Util.ROCKSDB().getAccount(id).getAsset(assetID).getBalance());
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE txin_id=? AND record_status=?");
+		preparedStatement.setLong(1, id.longValue());
+		preparedStatement.setBoolean(2, false);
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while (resultSet.next()) {
+			balance.withdraw(ID.valueOf(resultSet.getLong("txin_value")));
+		}
+		return balance;
+	}
+
+	private boolean isIPExists(String ip, NODETYPE nodeType) throws SQLException {
+		boolean isSucc = false;
+		PreparedStatement preparedStatement = null;
+		preparedStatement.setString(1, ip);
+		if (nodeType == NODETYPE.MINER || nodeType == NODETYPE.FULL) {
+			connection.prepareStatement("SELECT * FROM NETWORK WHERE ip=? AND snapshot_height=?");
+			preparedStatement.setInt(2, nodeType.ordinal());
+		}
+		else {
+			connection.prepareStatement("SELECT * FROM NETWORK WHERE ip=?");
+		}
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			isSucc = true;
+		}
+		return isSucc;
+	}
+	
+	@Override
+	public boolean isMinerExists(String ip) throws SQLException, Exception {
+		return isIPExists(ip, NODETYPE.MINER);
 	}
 
 	@Override
-	public boolean saveTransactionMax(ID id, Max max) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean saveMiner(String ip) throws SQLException, Exception {
+		int result = 0;
+		PreparedStatement preparedStatement = null;
+			if (isIPExists(ip, NODETYPE.NONE)) {
+					preparedStatement = connection.prepareStatement("UPDATE NETWORK SET type = ? where ip = ?");
+					preparedStatement.setInt(1, NODETYPE.MINER.ordinal());
+					preparedStatement.setString(2, ip);
+					result = preparedStatement.executeUpdate();
+//					Log.info("UPDATE: " + result);
+			}
+			else {
+				preparedStatement = connection.prepareStatement("INSERT INTO NETWORK (ip, type) VALUES (?, ?)");
+				preparedStatement.setString(1, ip);
+				preparedStatement.setInt(2, NODETYPE.MINER.ordinal());
+				result = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + result);
+			}
+		return result == ONE_ROW;
+	}
+
+	@Override
+	public boolean deleteMiner(String ip) throws SQLException, Exception {
+		int result = 0;
+		PreparedStatement preparedStatement;
+			preparedStatement = connection.prepareStatement("DELETE FROM NETWORK WHERE ip=?");
+			preparedStatement.setString(1, ip);
+			result = preparedStatement.executeUpdate();
+			Log.info("result: " + result);
+		return result >= ONE_ROW;
+	}
+
+	@Override
+	public IPList getMinerList() throws SQLException, Exception {
+		IPList ipList = new IPList();
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM NETWORK WHERE type=?");
+		preparedStatement.setInt(1, NODETYPE.MINER.ordinal());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while (resultSet.next()) {
+			ipList.addIP(resultSet.getString("ip"));
+		}
+		return ipList;
+	}
+
+	@Override
+	public boolean isFullNodeExists(String ip) throws SQLException, Exception {
+		return isIPExists(ip, NODETYPE.FULL);
+	}
+
+	@Override
+	public boolean saveFullNode(String ip) throws SQLException, Exception {
+		int result = 0;
+		PreparedStatement preparedStatement = null;
+		if (!isIPExists(ip, NODETYPE.MINER)) {
+			preparedStatement = connection.prepareStatement("INSERT INTO NETWORK (ip, type) VALUES (?, ?)");
+			preparedStatement.setString(1, ip);
+			preparedStatement.setInt(2, NODETYPE.FULL.ordinal());
+			result = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + result);
+		}
+		return result == ONE_ROW;
+	}
+
+	@Override
+	public boolean deleteFullNode(String ip) throws SQLException, Exception {
+		return deleteMiner(ip);
+	}
+
+	@Override
+	public IPList getFullNodeList() throws SQLException, Exception {
+		IPList ipList = new IPList();
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM NETWORK WHERE type=?");
+		preparedStatement.setInt(1, NODETYPE.FULL.ordinal());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while (resultSet.next()) {
+			ipList.addIP(resultSet.getString("ip"));
+		}
+		return ipList;
 	}
 
 }

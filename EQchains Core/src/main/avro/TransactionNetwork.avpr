@@ -33,6 +33,18 @@
    	  "getMaxNonce": {
          "request": [{"name": "ID", "type": "IO"}],
          "response": "IO"
+   	  },
+   	  "getBalance": {
+         "request": [{"name": "ID", "type": "IO"}],
+         "response": "IO"
+   	  },
+   	  "getSignHash": {
+         "request": [{"name": "ID", "type": "IO"}],
+         "response": "IO"
+   	  },
+   	  "getTransactionList": {
+         "request": [{"name": "ID", "type": "IO"}],
+         "response": "IO"
    	  }
  }
 }

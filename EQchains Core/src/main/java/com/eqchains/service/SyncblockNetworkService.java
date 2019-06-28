@@ -73,20 +73,12 @@ public class SyncblockNetworkService extends Thread {
 			IO io = null;
 			// Here need add function to test ping
 //			Test.ping(Util.getStatus().getCookie().getIp().toString(), Util.getStatus().getCookie().getIp().toString());
-			Cookie cookie1 = new Cookie();
-			cookie1.setIp("14.221.177.201");
-			cookie1.setVersion(Util.PROTOCOL_VERSION);
-			if (cookie1.getIp().length() == 0) {
-				Log.Error("During get IP error occur please check your network");
-			} else {
-				Log.info(cookie1.toString());
-			}
 			Status status = new Status();
-			status.setCookie(cookie1);
+			status.setCookie(new Cookie());
 			status.setCode(ID.valueOf(STATUS.OK.ordinal()));
 			status.setMessage(new Date().toString());
 			try {
-				 io = status.getIO();//Util.getStatus();
+				 io = status.getIO();
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -114,8 +106,8 @@ public class SyncblockNetworkService extends Thread {
 			Account account = null;
 			try {
 				europa = new Europa();
-				europa.setHeight(Util.DB().getEQCBlockTailHeight());
-				account = Util.DB().getAccount(ID.THREE);
+				europa.setHeight(Util.ROCKSDB().getEQCBlockTailHeight());
+				account = Util.ROCKSDB().getAccount(ID.THREE);
 				europa.setNonce(account.getAsset(Asset.EQCOIN).getNonce());
 				io = europa.getIO();
 			} catch (Exception e) {
@@ -132,7 +124,7 @@ public class SyncblockNetworkService extends Thread {
 			ByteBuffer byteBuffer = null;
 			EQCHive eqcHive = null;
 			try {
-				eqcHive = Util.DB().getEQCBlock(new ID(height), false);
+				eqcHive = Util.ROCKSDB().getEQCBlock(new ID(height), false);
 				if(eqcHive != null) {
 					block = eqcHive.getIO();
 				}

@@ -31,28 +31,29 @@ package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Vector;
 
 import com.eqchains.avro.IO;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
-import com.eqchains.util.ID;
+import com.eqchains.serialization.EQCType.ARRAY;
 
 /**
  * @author Xun Wang
- * @date Jun 24, 2019
+ * @date Jun 28, 2019
  * @email 10509759@qq.com
  */
-public class Europa extends AvroIO {
-	private ID height;
-	private ID nonce;
-	private byte[] tailProof;
-
-	public Europa() {
+public class IPList extends AvroIO {
+	private Vector<String> ipList;
+	private long ipListSize;
+	
+	public IPList() {
+		ipList = new Vector<>();
 	}
 	
-	public Europa(IO io) throws Exception {
+	public IPList(IO io) throws Exception {
 		super(io);
+		ipList = new Vector<>();
 	}
 	
 	/* (non-Javadoc)
@@ -60,7 +61,10 @@ public class Europa extends AvroIO {
 	 */
 	@Override
 	public boolean isSanity() {
-		if(height == null || nonce == null) {
+		if(ipList == null) {
+			return false;
+		}
+		if(ipListSize != ipList.size()) {
 			return false;
 		}
 		return true;
@@ -75,58 +79,54 @@ public class Europa extends AvroIO {
 		return false;
 	}
 
-	/**
-	 * @return the height
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
 	 */
-	public ID getHeight() {
-		return height;
-	}
-
-	/**
-	 * @param height the height to set
-	 */
-	public void setHeight(ID height) {
-		this.height = height;
-	}
-
-	/**
-	 * @return the nonce
-	 */
-	public ID getNonce() {
-		return nonce;
-	}
-
-	/**
-	 * @param nonce the nonce to set
-	 */
-	public void setNonce(ID nonce) {
-		this.nonce = nonce;
-	}
-
 	@Override
 	public void parseHeader(ByteArrayInputStream is) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
+	 */
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
-		height = new ID(EQCType.parseEQCBits(is));
-		nonce = new ID(EQCType.parseEQCBits(is));
+		ARRAY array = EQCType.parseARRAY(is);
+		ipListSize = array.length;
+		for(int i=0; i<ipListSize; ++i) {
+			ipList.add(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
+		}
 	}
 
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
+	 */
 	@Override
 	public byte[] getHeaderBytes() throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
+	 */
 	@Override
 	public byte[] getBodyBytes() throws Exception {
+		Vector<byte[]> ips = new Vector<>();
+		for(String ip:ipList) {
+			ips.add(EQCType.stringToASCIIBytes(ip));
+		}
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(height.getEQCBits());
-		os.write(nonce.getEQCBits());
+		os.write(EQCType.bytesArrayToBytes(ips));
 		return os.toByteArray();
+	}
+
+	public void addIP(String ip) {
+		if(!ipList.contains(ip)) {
+			ipList.add(ip);
+		}
 	}
 	
 }

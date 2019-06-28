@@ -58,6 +58,7 @@ public final class Log {
 		if (log == null) {
 			synchronized (Log.class) {
 				if (log == null) {
+					System.out.close();
 					log = Logger.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
 					log.setLevel(Level.ALL);
 					log.setUseParentHandlers(false);
@@ -83,7 +84,7 @@ public final class Log {
 	public static void info(String info) {
 		if (DEBUG) {
 			instance();
-			System.out.println(info);
+//			System.out.println(info);
 			log.info(info);
 			// flush buffer immediately otherwise the log data in the buffer maybe missing
 			if(fileHandler != null) {
@@ -95,7 +96,7 @@ public final class Log {
 	public static void Error(String error) {
 		if (DEBUG) {
 			instance();
-			System.out.println(error);
+//			System.out.println(error);
 			log.info("[ERROR]" + error);
 			// flush buffer immediately otherwise the log data in the buffer maybe missing
 			if(fileHandler != null) {
@@ -107,7 +108,7 @@ public final class Log {
 	public static void Warn(String warn) {
 		if (DEBUG) {
 			instance();
-			System.out.println(warn);
+//			System.out.println(warn);
 			log.info("[WARN]" + warn);
 			// flush buffer immediately otherwise the log data in the buffer maybe missing
 			if(fileHandler != null) {
