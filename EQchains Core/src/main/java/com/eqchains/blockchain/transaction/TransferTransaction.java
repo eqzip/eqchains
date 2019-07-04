@@ -46,6 +46,7 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.Publickey;
@@ -438,6 +439,9 @@ public class TransferTransaction extends Transaction {
 			}
 		}
 		if (transactionType != TransactionType.TRANSFER) {
+			return false;
+		}
+		if(!getAssetID().equals(Asset.EQCOIN)) {
 			return false;
 		}
 		return true;

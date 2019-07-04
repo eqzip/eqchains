@@ -60,7 +60,7 @@ public class Cookie extends AvroIO {
 	}
 	
 	public Cookie(IO io) throws Exception {
-		super(io);
+		parse(io);
 	}
 
 	/* (non-Javadoc)

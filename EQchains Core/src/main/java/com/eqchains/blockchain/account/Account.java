@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.security.acl.Owner;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -46,6 +47,7 @@ import javax.print.attribute.standard.RequestingUserName;
 
 import org.rocksdb.RocksDBException;
 
+import com.eqchains.avro.IO;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -690,6 +692,10 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	 */
 	public void setPublickey(Publickey publickey) {
 		this.publickey = publickey;
+	}
+	
+	public IO getIO() {
+		return new IO(ByteBuffer.wrap(getBytes()));
 	}
 	
 }

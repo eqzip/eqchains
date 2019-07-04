@@ -30,8 +30,12 @@
 package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
+import java.util.Vector;
 
+import com.eqchains.avro.IO;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.serialization.EQCType;
+import com.eqchains.serialization.EQCType.ARRAY;
 
 /**
  * @author Xun Wang
@@ -39,14 +43,30 @@ import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
  * @email 10509759@qq.com
  */
 public class TransactionIndexList extends AvroIO {
+	private Vector<TransactionIndex> transactionIndexList;
+	private long transactionIndexListSize;
+	
+	public TransactionIndexList() {
+		transactionIndexList = new Vector<>();
+	}
+	
+	public TransactionIndexList(IO io) throws Exception {
+		transactionIndexList = new Vector<>();
+		parse(io);
+	}
 
 	/* (non-Javadoc)
 	 * @see com.eqchains.serialization.EQCTypable#isSanity()
 	 */
 	@Override
 	public boolean isSanity() {
-		// TODO Auto-generated method stub
-		return false;
+		if(transactionIndexList == null) {
+			return false;
+		}
+		if(transactionIndexList.size() != transactionIndexListSize) {
+			return false;
+		}
+		return true;
 	}
 
 	/* (non-Javadoc)
@@ -72,8 +92,12 @@ public class TransactionIndexList extends AvroIO {
 	 */
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
-		// TODO Auto-generated method stub
-
+		ARRAY array = EQCType.parseARRAY(is);
+		transactionIndexListSize = array.length;
+		ByteArrayInputStream is1 = new ByteArrayInputStream(array.elements);
+		for(int i=0; i<array.length; ++i) {
+			transactionIndexList.add(new TransactionIndex(is1));
+		}
 	}
 
 	/* (non-Javadoc)
@@ -90,8 +114,32 @@ public class TransactionIndexList extends AvroIO {
 	 */
 	@Override
 	public byte[] getBodyBytes() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		Vector<byte[]> bytes = null;
+		if (transactionIndexList.size() > 0) {
+			bytes = new Vector<>();
+			for (TransactionIndex transactionIndex : transactionIndexList) {
+				bytes.add(transactionIndex.getBytes());
+			}
+		}
+		return EQCType.bytesArrayToARRAY(bytes);
 	}
 
+	public void addTransactionIndex(TransactionIndex transactionIndex) {
+		transactionIndexList.add(transactionIndex);
+	}
+
+	/**
+	 * @return the transactionIndexList
+	 */
+	public Vector<TransactionIndex> getTransactionIndexList() {
+		return transactionIndexList;
+	}
+
+	/**
+	 * @param transactionIndexList the transactionIndexList to set
+	 */
+	public void setTransactionIndexList(Vector<TransactionIndex> transactionIndexList) {
+		this.transactionIndexList = transactionIndexList;
+	}
+	
 }

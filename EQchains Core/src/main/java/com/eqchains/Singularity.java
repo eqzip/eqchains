@@ -30,10 +30,20 @@
 package com.eqchains;
 
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+
+import org.apache.avro.ipc.NettyTransceiver;
+import org.apache.avro.ipc.specific.SpecificRequestor;
+
+import com.eqchains.avro.IO;
+import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.SyncblockNetworkProxy;
+import com.eqchains.service.EQCService;
 import com.eqchains.service.MinerService;
 import com.eqchains.service.SyncblockNetworkService;
 import com.eqchains.test.Test;
@@ -57,20 +67,33 @@ public class Singularity {
 //		Test.testTransaction();
 //		Test.testKeystore();
 //		System.setProperty("illegal-access", "deny");
-		System.err.close();
-	    System.setErr(System.out);
+//		System.err.close();
+//	    System.setErr(System.out);
 //		Test.ping("14.221.176.138", "129.28.206.27");
 //	    while(true)
-		Log.info("Time: "+Test.ping("129.28.206.27"));
+//		try {
+//			Util.init();
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//	    while(true)
+// 		Log.info("Time: "+SyncblockNetworkProxy.ping("192.168.0.104"));
 ////		Test.TestIO();
-//		Test.getBlockTail("129.28.206.27");
-//	    Test.getBlock("129.28.206.27", ID.valueOf(69));
+		while(true) {
+//			Test.getBlockTail("129.28.206.27");
+			Test.getBlock("129.28.206.27", ID.valueOf(69));
+		}
 //		Log.info("" + (int)'-');
 //		System.out.println("Begin testKeystore");
 //		try {
 //			Util.init();
 //			MinerService.getInstance().start();
 //			SyncblockNetworkService.getInstance().start();
+////			Test.getBlockTail("14.221.176.94");
+////			Test.ping("14.221.176.138", "14.221.176.94");
+//			Log.info("Time: "+SyncblockNetworkProxy.ping("14.221.176.94"));
+////			SyncblockNetworkService.getInstance().stop();
 ////			while(true) {
 ////				Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.HUNDREDPULS, true, false);
 ////			}

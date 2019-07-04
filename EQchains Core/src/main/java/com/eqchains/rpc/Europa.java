@@ -46,13 +46,13 @@ import com.eqchains.util.ID;
 public class Europa extends AvroIO {
 	private ID height;
 	private ID nonce;
-	private byte[] tailProof;
+	private byte[] blockTailProof;
 
 	public Europa() {
 	}
 	
 	public Europa(IO io) throws Exception {
-		super(io);
+		parse(io);
 	}
 	
 	/* (non-Javadoc)
@@ -113,6 +113,7 @@ public class Europa extends AvroIO {
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		height = new ID(EQCType.parseEQCBits(is));
 		nonce = new ID(EQCType.parseEQCBits(is));
+		blockTailProof = EQCType.parseBIN(is);
 	}
 
 	@Override
@@ -126,7 +127,22 @@ public class Europa extends AvroIO {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(height.getEQCBits());
 		os.write(nonce.getEQCBits());
+		os.write(EQCType.bytesToBIN(blockTailProof));
 		return os.toByteArray();
+	}
+
+	/**
+	 * @return the blockTailProof
+	 */
+	public byte[] getBlockTailProof() {
+		return blockTailProof;
+	}
+
+	/**
+	 * @param blockTailProof the blockTailProof to set
+	 */
+	public void setBlockTailProof(byte[] blockTailProof) {
+		this.blockTailProof = blockTailProof;
 	}
 	
 }

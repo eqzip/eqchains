@@ -39,6 +39,10 @@ import org.rocksdb.RocksDBException;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.transaction.Transaction;
+import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.rpc.Nest;
+import com.eqchains.rpc.TransactionIndexList;
+import com.eqchains.rpc.TransactionList;
 import com.eqchains.rpc.Balance;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.MaxNonce;
@@ -68,7 +72,7 @@ public interface EQCBlockChain {
 	public void deleteEQCBlock(ID height) throws Exception;
 	
 	// TransactionPool relevant interface for H2, avro.
-	public int isTransactionExistsInPool(Transaction transaction) throws SQLException;
+	public boolean isTransactionExistsInPool(Transaction transaction) throws SQLException;
 	
 	public boolean saveTransactionInPool(Transaction transaction) throws SQLException;
 	
@@ -78,15 +82,21 @@ public interface EQCBlockChain {
 	
 	public Vector<Transaction> getTransactionListInPool() throws SQLException, Exception;
 	
-	public boolean isTransactionMaxNonceExists(ID id) throws SQLException;
+	public Vector<byte[]> getPendingTransactionListInPool(ID id) throws SQLException, Exception;
 	
-	public boolean saveTransactionMaxNonce(ID id, MaxNonce maxNonce) throws SQLException;
+	public boolean isTransactionMaxNonceExists(Nest nest) throws SQLException;
 	
-	public MaxNonce getTransactionMaxNonce(ID id) throws SQLException;
+	public boolean saveTransactionMaxNonce(Nest nest, MaxNonce maxNonce) throws SQLException;
 	
-	public boolean deleteTransactionMaxNonce(ID id) throws SQLException;
+	public MaxNonce getTransactionMaxNonce(Nest nest) throws SQLException;
 	
-	public Balance getBalance(ID id, ID assetID) throws SQLException, Exception;
+	public boolean deleteTransactionMaxNonce(Nest nest) throws SQLException;
+	
+	public Balance getBalance(Nest nest) throws SQLException, Exception;
+	
+	public TransactionIndexList getTransactionIndexListInPool() throws SQLException, Exception;
+	
+	public TransactionList getTransactionListInPool(TransactionIndexList transactionIndexList) throws SQLException, Exception;
 	
 	// For sign and verify Transaction need use relevant TxIn's EQC block header's hash via this function to get it from xxx.EQC.
 	public byte[] getEQCHeaderHash(ID height) throws Exception;
@@ -100,6 +110,8 @@ public interface EQCBlockChain {
 	public ID getTotalAccountNumbers(ID height) throws Exception;
 	
 	// MinerNetwork and FullNodeNetwork relevant interface for H2, avro.
+	public boolean isIPExists(String ip, NODETYPE nodeType) throws SQLException;
+	
 	public boolean isMinerExists(String ip) throws SQLException, Exception;
 	
 	public boolean saveMiner(String ip) throws SQLException, Exception;

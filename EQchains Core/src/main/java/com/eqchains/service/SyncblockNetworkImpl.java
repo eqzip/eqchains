@@ -27,96 +27,112 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc;
+package com.eqchains.service;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 
 import org.apache.avro.AvroRemoteException;
-import org.apache.avro.ipc.NettyTransceiver;
-import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import com.eqchains.avro.IO;
 import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.avro.TransactionNetwork;
-import com.eqchains.test.Test;
+import com.eqchains.blockchain.EQCHive;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
+import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.rpc.Cookie;
+import com.eqchains.rpc.Europa;
+import com.eqchains.service.PossibleNodeService.PossibleNode;
+import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 28, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class SyncblockNetworkProxy extends EQCProxy implements SyncblockNetwork {
-	private SyncblockNetwork proxy = null;
-	
-	public SyncblockNetworkProxy(String ip) throws IOException {
-		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
-		proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
-	}
-	
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#ping(com.eqchains.avro.IO)
-	 */
+public class SyncblockNetworkImpl implements SyncblockNetwork {
+
 	@Override
 	public IO ping(IO cookie) throws AvroRemoteException {
-		return proxy.ping(cookie);
+		IO info = null;
+		try {
+			Cookie cookie1 = new Cookie(cookie);
+			PossibleNode possibleNode = new PossibleNode();
+			possibleNode.setIp(cookie1.getIp());
+			possibleNode.setNodeType(NODETYPE.FULL);
+			possibleNode.setTime(System.currentTimeMillis());
+			PossibleNodeService.getInstance().offerNode(possibleNode);
+			info = Util.getDefaultInfo().getIO();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return info;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getMinerList()
-	 */
 	@Override
 	public IO getMinerList() throws AvroRemoteException {
-		return proxy.getMinerList();
+		IO minerList = null;
+		try {
+			minerList = EQCBlockChainH2.getInstance().getMinerList().getIO();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return minerList;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getFullNodeList()
-	 */
 	@Override
 	public IO getFullNodeList() throws AvroRemoteException {
-		return proxy.getFullNodeList();
+		IO fullNodeList = null;
+		try {
+			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getIO();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return fullNodeList;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getBlockTail()
-	 */
 	@Override
 	public IO getBlockTail() throws AvroRemoteException {
-		return proxy.getBlockTail();
+		IO io = null;
+		Europa europa = null;
+		Account account = null;
+		try {
+			europa = new Europa();
+			europa.setHeight(Util.DB().getEQCBlockTailHeight());
+			account = Util.DB().getAccount(ID.THREE);
+			europa.setNonce(account.getAsset(Asset.EQCOIN).getNonce());
+			europa.setBlockTailProof(Util.DB().getEQCBlock(europa.getHeight(), true).getEqcHeader().getProof());
+			io = europa.getIO();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return io;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getBlock(com.eqchains.avro.IO)
-	 */
 	@Override
 	public IO getBlock(IO height) throws AvroRemoteException {
-		return proxy.getBlock(height);
-	}
-
-	public static long ping(String ip) {
-    	NettyTransceiver client = null;
-    	SyncblockNetwork proxy = null;
-    	long time = System.currentTimeMillis();
-    	try {
-    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), 30000l);
-    		proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
-    		proxy.ping(cookie.getIO());
-    		time = System.currentTimeMillis() - time;
-    	}
-    	catch (Exception e) {
-    		Log.Error(e.getMessage());
-    		time = -1;
-		}
-    	finally {
-			if(client != null) {
-				client.close();
+		IO block = null;
+		EQCHive eqcHive = null;
+		try {
+			eqcHive = Util.DB().getEQCBlock(new ID(height), false);
+			if(eqcHive != null) {
+				block = eqcHive.getIO();
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			Log.Error(e.getMessage());
 		}
-    	return time;
+		return block;
 	}
 	
 }

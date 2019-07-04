@@ -38,72 +38,57 @@ import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import com.eqchains.avro.IO;
+import com.eqchains.avro.MinerNetwork;
 import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.avro.TransactionNetwork;
-import com.eqchains.test.Test;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 28, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class SyncblockNetworkProxy extends EQCProxy implements SyncblockNetwork {
-	private SyncblockNetwork proxy = null;
+public class MinerNetworkProxy extends EQCProxy {
+	private MinerNetwork proxy = null;
 	
-	public SyncblockNetworkProxy(String ip) throws IOException {
-		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
-		proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+	public MinerNetworkProxy(String ip) throws IOException {
+		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+		proxy = (MinerNetwork) SpecificRequestor.getClient(MinerNetwork.class, client);
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#ping(com.eqchains.avro.IO)
-	 */
-	@Override
-	public IO ping(IO cookie) throws AvroRemoteException {
-		return proxy.ping(cookie);
+	public IO ping(Cookie cookie) throws Exception {
+		return proxy.ping(cookie.getIO());
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getMinerList()
-	 */
-	@Override
-	public IO getMinerList() throws AvroRemoteException {
-		return proxy.getMinerList();
+	public IPList getMinerList() throws Exception {
+		return new IPList(proxy.getMinerList());
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getFullNodeList()
-	 */
-	@Override
-	public IO getFullNodeList() throws AvroRemoteException {
-		return proxy.getFullNodeList();
+	public IPList getFullNodeList() throws Exception {
+		return new IPList(proxy.getFullNodeList());
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getBlockTail()
-	 */
-	@Override
-	public IO getBlockTail() throws AvroRemoteException {
-		return proxy.getBlockTail();
+	public Info sendNewBlock(EQCHive block) throws Exception {
+		return new Info(proxy.sendNewBlock(block.getIO()));
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getBlock(com.eqchains.avro.IO)
-	 */
-	@Override
-	public IO getBlock(IO height) throws AvroRemoteException {
-		return proxy.getBlock(height);
+	public TransactionIndexList getTransactionIndexList() throws Exception {
+		return new TransactionIndexList(proxy.getTransactionIndexList());
 	}
 
-	public static long ping(String ip) {
+	public IO getTransactionList(IO transactionList) throws AvroRemoteException {
+		return proxy.getTransactionList(transactionList);
+	}
+
+	public static long ping(String remoteIP) {
     	NettyTransceiver client = null;
-    	SyncblockNetwork proxy = null;
+    	MinerNetwork proxy = null;
     	long time = System.currentTimeMillis();
     	try {
-    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), 30000l);
-    		proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+    		proxy = (MinerNetwork) SpecificRequestor.getClient(MinerNetwork.class, client);
     		proxy.ping(cookie.getIO());
     		time = System.currentTimeMillis() - time;
     	}

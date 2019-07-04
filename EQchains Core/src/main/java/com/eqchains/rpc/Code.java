@@ -29,100 +29,37 @@
  */
 package com.eqchains.rpc;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-
-import com.eqchains.avro.IO;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
-import com.eqchains.util.ID;
 
 /**
  * @author Xun Wang
- * @date Jun 26, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class MaxNonce extends AvroIO {
-	private ID nonce;
-	
-	public MaxNonce() {
-	}
-	
-	public MaxNonce(IO io) throws Exception {
-		parse(io);
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isSanity()
-	 */
-	@Override
-	public boolean isSanity() {
-		if(nonce == null) {
-			return false;
+public enum Code {
+	OK, ERROR, WRONGPROTOCOL, FULL, MINER, INVALID;
+	public static Code get(int ordinal) {
+		Code code = null;
+		switch (ordinal) {
+		case 0:
+			code = OK;
+			break;
+		case 1:
+			code = ERROR;
+			break;
+		default:
+			code = INVALID;
+			break;
 		}
-		if(!nonce.isSanity()) {
+		return code;
+	}
+	public boolean isSanity() {
+		if((this.ordinal() < OK.ordinal()) || (this.ordinal() > INVALID.ordinal())) {
 			return false;
 		}
 		return true;
 	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
-	 */
-	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
+	public byte[] getEQCBits() {
+		return EQCType.intToEQCBits(this.ordinal());
 	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
-	 */
-	@Override
-	public void parseHeader(ByteArrayInputStream is) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
-	 */
-	@Override
-	public void parseBody(ByteArrayInputStream is) throws Exception {
-		nonce = new ID(EQCType.parseEQCBits(is));
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
-	 */
-	@Override
-	public byte[] getHeaderBytes() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
-	 */
-	@Override
-	public byte[] getBodyBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(nonce.getEQCBits());
-		return null;
-	}
-
-	/**
-	 * @return the nonce
-	 */
-	public ID getNonce() {
-		return nonce;
-	}
-
-	/**
-	 * @param nonce the nonce to set
-	 */
-	public void setNonce(ID nonce) {
-		this.nonce = nonce;
-	}
-
 }

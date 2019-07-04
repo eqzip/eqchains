@@ -84,9 +84,8 @@ import com.eqchains.util.Util;
  * @date Oct 12, 2018
  * @email 10509759@qq.com
  */
-public final class MinerService extends Thread {
+public final class MinerService extends EQCService {
 
-	private static boolean isBehind;
 	private static AccountsMerkleTree accountsMerkleTree;
 	private static MinerService instance;
 
@@ -95,33 +94,10 @@ public final class MinerService extends Thread {
 			synchronized (Keystore.class) {
 				if (instance == null) {
 					instance = new MinerService();
-					Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 				}
 			}
 		}
 		return instance;
-	}
-
-//	/**
-//	 * @return the accountsMerkleTree
-//	 */
-//	public AccountsMerkleTree getAccountsMerkleTree() {
-//		return accountsMerkleTree;
-//	}
-
-	public void setBehind() {
-		isBehind = true;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Thread#start()
-	 */
-	@Override
-	public synchronized void start() {
-		// TODO Auto-generated method stub
-		super.start();
 	}
 
 	/*
@@ -130,84 +106,81 @@ public final class MinerService extends Thread {
 	 * @see java.lang.Thread#run()
 	 */
 	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		super.run();
+	public void runner() {
 		Log.info("Begin minering...");
-		while (true) {
+		while (isRunning.get()) {
 //			try {
-				isBehind = false;
-				// Get current EQCBlock's tail
+			isPaused();
+			// Get current EQCBlock's tail
 //			SerialNumber blockTailHeight = EQCBlockChainH2.getInstance().getEQCBlockTailHeight();
 //			EQCBlock blockTail = EQCBlockChainH2.getInstance().getEQCBlock(blockTailHeight, false);
-				ID blockTailHeight;
-				try {
-					blockTailHeight = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
-				} catch (RocksDBException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-					Log.Error(e1.getMessage());
-					break;
-				}
-				EQCHive blockTail;
-				try {
-					blockTail = EQCBlockChainRocksDB.getInstance().getEQCBlock(blockTailHeight, false);
-				} catch (NoSuchFieldException | RocksDBException | IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-					Log.Error(e1.getMessage());
-					break;
-				}
+			ID blockTailHeight;
+			try {
+				blockTailHeight = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
+			} catch (RocksDBException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				Log.Error(e1.getMessage());
+				break;
+			}
+			EQCHive blockTail;
+			try {
+				blockTail = EQCBlockChainRocksDB.getInstance().getEQCBlock(blockTailHeight, false);
+			} catch (NoSuchFieldException | RocksDBException | IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				Log.Error(e1.getMessage());
+				break;
+			}
 
-				// If haven't create AccountsMerkleTree just create it
-				try {
-					accountsMerkleTree = new AccountsMerkleTree(blockTailHeight,
-							new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-				} catch (Exception e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-					Log.Error(e1.getMessage());
-					break;
-				}
+			// If haven't create AccountsMerkleTree just create it
+			try {
+				accountsMerkleTree = new AccountsMerkleTree(blockTailHeight,
+						new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				Log.Error(e1.getMessage());
+				break;
+			}
 //			if(blockTailHeight.getSerialNumber().compareTo(BigInteger.ZERO) == 0 || AccountsMerkleTreeService.getInstance().getAccountsMerkleTree().getHeight(ACCOUNT_STATUS.FIXED).getSerialNumber().compareTo(blockTailHeight.getSerialNumber()) != 0 ) {
 //				AccountsMerkleTreeService.getInstance().getAccountsMerkleTree().createFromH2(blockTailHeight);
 //			}
 
-				// Create new EQCBlock
-				ID newBlockHeight = new ID(blockTailHeight.add(BigInteger.ONE));
-				EQCHive newEQCBlock;
-				try {
-					newEQCBlock = new EQCHive(newBlockHeight, blockTail.getEqcHeader().getHash());
-				} catch (Exception e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-					Log.Error(e1.getMessage());
-					break;
-				}
+			// Create new EQCBlock
+			ID newBlockHeight = new ID(blockTailHeight.add(BigInteger.ONE));
+			EQCHive newEQCBlock;
+			try {
+				newEQCBlock = new EQCHive(newBlockHeight, blockTail.getEqcHeader().getHash());
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				Log.Error(e1.getMessage());
+				break;
+			}
 
-				// Initial new EQCBlock
-				try {
-					// Build Transactions and initial Root
-					newEQCBlock.accountingTransactions(newBlockHeight, accountsMerkleTree);
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					Log.Error(
-							"Warning during Build Transactions error occur have to exit need check to find the reason: "
-									+ e.getMessage());
-					break;
-				}
+			// Initial new EQCBlock
+			try {
+				// Build Transactions and initial Root
+				newEQCBlock.accountingTransactions(newBlockHeight, accountsMerkleTree);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.Error("Warning during Build Transactions error occur have to exit need check to find the reason: "
+						+ e.getMessage());
+				break;
+			}
 
-				// Send locked transactions to EQC network haven't implement...
+			// Send locked transactions to EQC network haven't implement...
 
-				// Beginning calculate new EQCBlock's hash
-				byte[] bytes;
-				BigInteger hash;
-				ID nonce = ID.ZERO;
-				while (true) {
+			// Beginning calculate new EQCBlock's hash
+			byte[] bytes;
+			BigInteger hash;
+			ID nonce = ID.ZERO;
+			while (true) {
 //				Log.info("" + newEQCBlock.getEqcHeader().getNonce());
-					newEQCBlock.getEqcHeader().setNonce(nonce);
-					hash = new BigInteger(1, newEQCBlock.getHash());
+				newEQCBlock.getEqcHeader().setNonce(nonce);
+				hash = new BigInteger(1, newEQCBlock.getHash());
 //						Util.EQCCHA_MULTIPLE((bytes = Util.updateNonce(newEQCBlock.getEqcHeader().getBytes(), ++nonce)),
 //						Util.HUNDRED_THOUSAND, true));
 //	        	System.out.println("hash: " + Util.bigIntegerTo512String(hash));
@@ -215,47 +188,44 @@ public final class MinerService extends Thread {
 //				for(int i=0; i<63; ++i) {
 //					abc[i] = (byte) 0xff;
 //				}
-					if (hash.compareTo(Util.targetBytesToBigInteger(newEQCBlock.getEqcHeader().getTarget())) <= 0) { // new
-																														// BigInteger(1,
-																														// abc))
-																														// <=
-																														// 0){//
+				if (hash.compareTo(Util.targetBytesToBigInteger(newEQCBlock.getEqcHeader().getTarget())) <= 0) { // new
+																													// BigInteger(1,
+																													// abc))
+																													// <=
+																													// 0){//
 //	        		time1 = System.currentTimeMillis();
-						Log.info(Util.getHexString(newEQCBlock.getHash()));
-						Log.info("EQC Block No." + newEQCBlock.getHeight().longValue() + " Find use: "
-								+ (System.currentTimeMillis() - newEQCBlock.getEqcHeader().getTimestamp().longValue())
-								+ " ms, details:");
+					Log.info(Util.getHexString(newEQCBlock.getHash()));
+					Log.info("EQC Block No." + newEQCBlock.getHeight().longValue() + " Find use: "
+							+ (System.currentTimeMillis() - newEQCBlock.getEqcHeader().getTimestamp().longValue())
+							+ " ms, details:");
 
-						Log.info(newEQCBlock.getEqcHeader().toString());
+					Log.info(newEQCBlock.getEqcHeader().toString());
 //					Log.info(newEQCBlock.getRoot().toString());
 
-						// 暂时先放在这个位置将来要换到异步的Miner Network Service中。
-						try {
+					// 暂时先放在这个位置将来要换到异步的Miner Network Service中。
+					try {
 //							EQCBlockChainH2.getInstance().saveEQCBlock(newEQCBlock);
-							EQCBlockChainRocksDB.getInstance().saveEQCBlock(newEQCBlock);
-							accountsMerkleTree.takeSnapshot();
-							accountsMerkleTree.merge();
-							EQCBlockChainH2.getInstance().deleteTransactionsInPool(newEQCBlock);
-							EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(newEQCBlock.getHeight());
-							if (blockTailHeight.compareTo(Util.EUROPA) > 0) {
-								EQCBlockChainH2.getInstance().deleteAccountSnapshot(blockTailHeight.subtract(Util.EUROPA),
-										false);
-							}
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-							Log.Error(e.getMessage());
+						EQCBlockChainRocksDB.getInstance().saveEQCBlock(newEQCBlock);
+						accountsMerkleTree.takeSnapshot();
+						accountsMerkleTree.merge();
+						EQCBlockChainH2.getInstance().deleteTransactionsInPool(newEQCBlock);
+						EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(newEQCBlock.getHeight());
+						if (blockTailHeight.compareTo(Util.EUROPA) > 0) {
+							EQCBlockChainH2.getInstance().deleteAccountSnapshot(blockTailHeight.subtract(Util.EUROPA),
+									false);
 						}
-						
-						// Send new block to EQC Miner network
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						Log.Error(e.getMessage());
+					}
 
-						break;
-					}
-					if (isBehind) {
-						break;
-					}
-					nonce = nonce.getNextID();
+					// Send new block to EQC Miner network
+
+					break;
 				}
+				nonce = nonce.getNextID();
+			}
 //			} catch (Exception e) {
 //				Log.Error("During minering error occur: " + e.getMessage() + " have to terminate the minering process...");
 //				break;

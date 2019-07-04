@@ -202,6 +202,9 @@ public class CoinbaseTransaction extends TransferTransaction {
 		if (transactionType != TransactionType.COINBASE) {
 			return false;
 		}
+		if(!getAssetID().equals(Asset.EQCOIN)) {
+			return false;
+		}
 		if (!isTxOutNumberValid()) {
 			return false;
 		}

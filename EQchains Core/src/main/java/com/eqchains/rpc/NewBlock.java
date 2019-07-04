@@ -31,39 +31,28 @@ package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 import com.eqchains.avro.IO;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
-import com.eqchains.util.ID;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 25, 2019
+ * @date Jul 4, 2019
  * @email 10509759@qq.com
  */
-public class Status extends AvroIO {
+public class NewBlock extends AvroIO {
 	private Cookie cookie;
-	private ID code;
-	private String message;
-	
-	public Status(IO io) throws Exception {
-		super(io);
-	}
-	
-	public Status() {
-	}
+	private EQCHive eqcHive;
 
-	public void parseBody(ByteArrayInputStream is) throws Exception {
-		byte[] bytes = null;
-		cookie = new Cookie(is);
-		code = new ID(EQCType.parseEQCBits(is));
-		bytes = EQCType.parseBIN(is);
-		if(!EQCType.isNULL(bytes)) {
-			message = EQCType.bytesToASCIISting(bytes);
-		}
+	public NewBlock() {
+		cookie = Util.getCookie();
+	}
+	
+	public NewBlock(IO io) throws Exception {
+		parse(io);
 	}
 	
 	/* (non-Javadoc)
@@ -71,7 +60,7 @@ public class Status extends AvroIO {
 	 */
 	@Override
 	public boolean isSanity() {
-		if(cookie == null || code == null) {
+		if(cookie == null || eqcHive == null) {
 			return false;
 		}
 		if(!cookie.isSanity()) {
@@ -89,6 +78,44 @@ public class Status extends AvroIO {
 		return false;
 	}
 
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
+	 */
+	@Override
+	public void parseHeader(ByteArrayInputStream is) throws Exception {
+		// TODO Auto-generated method stub
+
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
+	 */
+	@Override
+	public void parseBody(ByteArrayInputStream is) throws Exception {
+		cookie = new Cookie(is);
+		eqcHive = new EQCHive(EQCType.parseBIN(is), false);
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
+	 */
+	@Override
+	public byte[] getHeaderBytes() throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
+	 */
+	@Override
+	public byte[] getBodyBytes() throws Exception {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		os.write(cookie.getBytes());
+		os.write(eqcHive.getBin());
+		return os.toByteArray();
+	}
+
 	/**
 	 * @return the cookie
 	 */
@@ -104,52 +131,17 @@ public class Status extends AvroIO {
 	}
 
 	/**
-	 * @return the code
+	 * @return the eqcHive
 	 */
-	public ID getCode() {
-		return code;
+	public EQCHive getEqcHive() {
+		return eqcHive;
 	}
 
 	/**
-	 * @param code the code to set
+	 * @param eqcHive the eqcHive to set
 	 */
-	public void setCode(ID code) {
-		this.code = code;
+	public void setEqcHive(EQCHive eqcHive) {
+		this.eqcHive = eqcHive;
 	}
-
-	/**
-	 * @return the message
-	 */
-	public String getMessage() {
-		return message;
-	}
-
-	/**
-	 * @param message the message to set
-	 */
-	public void setMessage(String message) {
-		this.message = message;
-	}
-
-	@Override
-	public void parseHeader(ByteArrayInputStream is) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public byte[] getHeaderBytes() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBodyBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(cookie.getBytes());
-		os.write(code.getEQCBits());
-		os.write(EQCType.stringToBIN(message));
-		return os.toByteArray();
-	}
-
+	
 }

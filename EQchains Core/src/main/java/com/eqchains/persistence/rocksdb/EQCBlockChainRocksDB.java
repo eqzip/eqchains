@@ -65,9 +65,13 @@ import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Balance;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.MaxNonce;
+import com.eqchains.rpc.Nest;
+import com.eqchains.rpc.TransactionIndexList;
+import com.eqchains.rpc.TransactionList;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -402,9 +406,9 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public int isTransactionExistsInPool(Transaction transaction) {
+	public boolean isTransactionExistsInPool(Transaction transaction) {
 		// TODO Auto-generated method stub
-		return 0;
+		return false;
 	}
 
 	@Override
@@ -576,24 +580,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public MaxNonce getTransactionMaxNonce(ID id) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean saveTransactionMaxNonce(ID id, MaxNonce maxNonce) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean deleteTransactionMaxNonce(ID id) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
 	public boolean isMinerExists(String ip) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
@@ -642,13 +628,56 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean isTransactionMaxNonceExists(ID id) throws SQLException {
+	public boolean isIPExists(String ip, NODETYPE nodeType) throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public Balance getBalance(ID id, ID assetID) throws SQLException, Exception {
+	public boolean isTransactionMaxNonceExists(Nest nest) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean saveTransactionMaxNonce(Nest nest, MaxNonce maxNonce) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public MaxNonce getTransactionMaxNonce(Nest nest) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean deleteTransactionMaxNonce(Nest nest) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Balance getBalance(Nest nest) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Vector<byte[]> getPendingTransactionListInPool(ID id) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public TransactionIndexList getTransactionIndexListInPool() throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public TransactionList getTransactionListInPool(TransactionIndexList transactionIndexList)
+			throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -48,104 +48,22 @@ import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.keystore.Keystore;
+import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.Europa;
-import com.eqchains.rpc.Status;
+import com.eqchains.rpc.Info;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.test.Test;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
-import com.eqchains.util.Util.STATUS;
 
 /**
  * @author Xun Wang
  * @date Jan 24, 2019
  * @email 10509759@qq.com
  */
-public class SyncblockNetworkService extends Thread {
-	private static SyncblockNetworkService instance;
-
-	public static class SyncblockNetworkImpl implements SyncblockNetwork {
-
-		@Override
-		public IO ping(IO cookie) throws AvroRemoteException {
-			IO io = null;
-			// Here need add function to test ping
-//			Test.ping(Util.getStatus().getCookie().getIp().toString(), Util.getStatus().getCookie().getIp().toString());
-			Status status = new Status();
-			status.setCookie(new Cookie());
-			status.setCode(ID.valueOf(STATUS.OK.ordinal()));
-			status.setMessage(new Date().toString());
-			try {
-				 io = status.getIO();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error(e.getMessage());
-			}
-			return io;
-		}
-
-		@Override
-		public IO getMinerList() throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getFullNodeList() throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getBlockTail() throws AvroRemoteException {
-			IO io = null;
-			Europa europa = null;
-			Account account = null;
-			try {
-				europa = new Europa();
-				europa.setHeight(Util.ROCKSDB().getEQCBlockTailHeight());
-				account = Util.ROCKSDB().getAccount(ID.THREE);
-				europa.setNonce(account.getAsset(Asset.EQCOIN).getNonce());
-				io = europa.getIO();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error(e.getMessage());
-			}
-			return io;
-		}
-
-		@Override
-		public IO getBlock(IO height) throws AvroRemoteException {
-			IO block = null;
-			ByteBuffer byteBuffer = null;
-			EQCHive eqcHive = null;
-			try {
-				eqcHive = Util.ROCKSDB().getEQCBlock(new ID(height), false);
-				if(eqcHive != null) {
-					block = eqcHive.getIO();
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				Log.Error(e.getMessage());
-			}
-			return block;
-		}
-
-	}
-
-	private static Server server;
-
-	private static void startServer() throws IOException {
-		if(server != null) {
-			server.close();
-		}
-		server = new NettyServer(new SpecificResponder(SyncblockNetwork.class, new SyncblockNetworkImpl()),
-				new InetSocketAddress(7997));
-	}
+public class SyncblockNetworkService extends NetworkService {
 
 	public static SyncblockNetworkService getInstance() {
 		if (instance == null) {
@@ -155,52 +73,14 @@ public class SyncblockNetworkService extends Thread {
 				}
 			}
 		}
-		return instance;
+		return (SyncblockNetworkService) instance;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Thread#start()
-	 */
-	@Override
-	public synchronized void start() {
-		// TODO Auto-generated method stub
-		if(!this.isAlive()) {
-			super.start();
-		}
+	public void start() {
+		super.start();
+		server = new NettyServer(new SpecificResponder(SyncblockNetwork.class, new SyncblockNetworkImpl()),
+				new InetSocketAddress(Util.SYNCBLOCK_NETWORK_PORT));
+		Log.info(this.getClass().getSimpleName() + " started...");
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Thread#run()
-	 */
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		super.run();
-
-		try {
-			Log.info("Starting SyncblockNetworkService...");
-			startServer();
-			Log.info("SyncblockNetworkService started...");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error("During Starting SyncblockNetworkService error occur: " + e.getMessage());
-		}
-
-	}
-	
-	public void close() {
-		if(server != null) {
-			Log.info("Begin close SyncblockNetworkService...");
-			server.close();
-			server = null;
-			Log.info("SyncblockNetworkService closed...");
-			this.interrupt();
-		}
-	}
-	
 }

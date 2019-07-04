@@ -39,6 +39,7 @@ import java.util.Vector;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.Passport.AddressShape;
@@ -256,6 +257,10 @@ public class OperationTransaction extends TransferTransaction {
 		}
 		
 		if (transactionType != TransactionType.OPERATION) {
+			return false;
+		}
+		
+		if(!getAssetID().equals(Asset.EQCOIN)) {
 			return false;
 		}
 		

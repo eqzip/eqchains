@@ -95,7 +95,7 @@ public class AccountsMerkleTree {
 		// so here need special operation
 		if(height.equals(ID.ZERO)) {
 			if(Configuration.getInstance().isInitSingularityBlock()) {
-				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.ROCKSDB().getAccount(ID.ONE);
+				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
 				totalAccountNumbers = assetSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers();
 			}
 			else {
@@ -103,7 +103,7 @@ public class AccountsMerkleTree {
 			}
 		}
 		else {
-			totalAccountNumbers = Util.ROCKSDB().getTotalAccountNumbers(height);
+			totalAccountNumbers = Util.DB().getTotalAccountNumbers(height);
 		}
 		this.filter = filter;
 		if(height.compareTo(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight()) < 0) {
@@ -140,7 +140,7 @@ public class AccountsMerkleTree {
 			isExists = true;
 		}
 		else {
-			Account account = Util.ROCKSDB().getAccount(address.getAddressAI());
+			Account account = Util.DB().getAccount(address.getAddressAI());
 			if(account != null && account.getLockCreateHeight().compareTo(height) <= 0) {
 				isExists = true;
 			}
@@ -298,7 +298,7 @@ public class AccountsMerkleTree {
 	}
 	
 	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws Exception {
-		return Util.ROCKSDB().getEQCBlock(height, true);
+		return Util.DB().getEQCBlock(height, true);
 	}
 
 //	/**

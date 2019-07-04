@@ -31,29 +31,39 @@ package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Vector;
+import java.io.IOException;
 
 import com.eqchains.avro.IO;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
-import com.eqchains.serialization.EQCType.ARRAY;
+import com.eqchains.util.ID;
 
 /**
  * @author Xun Wang
- * @date Jun 28, 2019
+ * @date Jun 25, 2019
  * @email 10509759@qq.com
  */
-public class IPList extends AvroIO {
-	private Vector<String> ipList;
-	private long ipListSize;
+public class Info extends AvroIO {
+	private Cookie cookie;
+	private Code code;
+	private String message;
 	
-	public IPList() {
-		ipList = new Vector<>();
+	public Info(IO io) throws Exception {
+		parse(io);
 	}
 	
-	public IPList(IO io) throws Exception {
-		ipList = new Vector<>();
-		parse(io);
+	public Info() {
+	}
+
+	public void parseBody(ByteArrayInputStream is) throws Exception {
+		byte[] bytes = null;
+		cookie = new Cookie(is);
+		code = Code.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));
+		bytes = EQCType.parseBIN(is);
+		if(!EQCType.isNULL(bytes)) {
+			message = EQCType.bytesToASCIISting(bytes);
+		}
 	}
 	
 	/* (non-Javadoc)
@@ -61,10 +71,10 @@ public class IPList extends AvroIO {
 	 */
 	@Override
 	public boolean isSanity() {
-		if(ipList == null) {
+		if(cookie == null || code == null) {
 			return false;
 		}
-		if(ipListSize != ipList.size()) {
+		if(!cookie.isSanity() && !code.isSanity()) {
 			return false;
 		}
 		return true;
@@ -79,54 +89,67 @@ public class IPList extends AvroIO {
 		return false;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
+	/**
+	 * @return the cookie
 	 */
+	public Cookie getCookie() {
+		return cookie;
+	}
+
+	/**
+	 * @param cookie the cookie to set
+	 */
+	public void setCookie(Cookie cookie) {
+		this.cookie = cookie;
+	}
+
+	/**
+	 * @return the code
+	 */
+	public Code getCode() {
+		return code;
+	}
+
+	/**
+	 * @param code the code to set
+	 */
+	public void setCode(Code code) {
+		this.code = code;
+	}
+
+	/**
+	 * @return the message
+	 */
+	public String getMessage() {
+		return message;
+	}
+
+	/**
+	 * @param message the message to set
+	 */
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
 	@Override
 	public void parseHeader(ByteArrayInputStream is) throws Exception {
 		// TODO Auto-generated method stub
-
+		
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
-	 */
-	@Override
-	public void parseBody(ByteArrayInputStream is) throws Exception {
-		ARRAY array = EQCType.parseARRAY(is);
-		ipListSize = array.length;
-		for(int i=0; i<ipListSize; ++i) {
-			ipList.add(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
-		}
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
-	 */
 	@Override
 	public byte[] getHeaderBytes() throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
-	 */
 	@Override
 	public byte[] getBodyBytes() throws Exception {
-		Vector<byte[]> ips = new Vector<>();
-		for(String ip:ipList) {
-			ips.add(EQCType.stringToASCIIBytes(ip));
-		}
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(EQCType.bytesArrayToBytes(ips));
+		os.write(cookie.getBytes());
+		os.write(code.getEQCBits());
+		os.write(EQCType.stringToBIN(message));
 		return os.toByteArray();
 	}
 
-	public void addIP(String ip) {
-		if(!ipList.contains(ip)) {
-			ipList.add(ip);
-		}
-	}
-	
 }

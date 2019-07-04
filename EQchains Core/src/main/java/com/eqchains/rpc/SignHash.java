@@ -48,7 +48,7 @@ public class SignHash extends AvroIO {
 	}
 	
 	public SignHash(IO io) throws Exception {
-		super(io);
+		parse(io);
 	}
 	
 	/* (non-Javadoc)

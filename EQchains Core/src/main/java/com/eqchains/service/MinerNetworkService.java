@@ -49,72 +49,9 @@ import com.eqchains.util.Util;
  * @date Jan 24, 2019
  * @email 10509759@qq.com
  */
-public class MinerNetworkService extends Thread {
-	private static MinerNetworkService instance;
+public class MinerNetworkService extends NetworkService {
 
-	public static class MinerNetworkImpl implements MinerNetwork {
-
-		@Override
-		public IO ping(IO cookie) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getMinerList() throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getFullNodeList() throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO sendNewBlock(IO block) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO sendMineringBase(IO mineringBase) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getMineringBase() throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getTransactionIndexList() throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getTransactionList(IO transactionList) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-	}
-
-	private static Server server;
-
-	private static void startServer() throws IOException {
-		if(server != null) {
-			server.close();
-		}
-		server = new NettyServer(new SpecificResponder(SyncblockNetwork.class, new MinerNetworkImpl()),
-				new InetSocketAddress(7799));
-	}
-
-	public static MinerNetworkService getInstance() {
+	public static NetworkService getInstance() {
 		if (instance == null) {
 			synchronized (Keystore.class) {
 				if (instance == null) {
@@ -125,47 +62,11 @@ public class MinerNetworkService extends Thread {
 		return instance;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Thread#start()
-	 */
-	@Override
-	public synchronized void start() {
-		// TODO Auto-generated method stub
+	public void start() {
 		super.start();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Thread#run()
-	 */
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		super.run();
-
-		try {
-			Log.info("Starting MinerNetworkService...");
-			startServer();
-			Log.info("MinerNetworkService started...");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error("During Starting MinerNetworkService error occur: " + e.getMessage());
-		}
-
-	}
-	
-	public void close() {
-		if(server != null) {
-			Log.info("Begin close MinerNetworkService...");
-			server.close();
-			server = null;
-			Log.info("MinerNetworkService closed...");
-			this.interrupt();
-		}
+		server = new NettyServer(new SpecificResponder(MinerNetwork.class, new MinerNetworkImpl()),
+				new InetSocketAddress(Util.MINER_NETWORK_PORT));
+		Log.info(this.getClass().getSimpleName() + " started...");
 	}
 	
 }

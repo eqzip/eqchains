@@ -27,54 +27,78 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc;
+package com.eqchains.service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.eqchains.avro.IO;
-import com.eqchains.serialization.EQCInheritable;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.serialization.EQCType;
+import javax.xml.stream.events.StartDocument;
+
+import com.eqchains.util.Log;
 
 /**
  * @author Xun Wang
- * @date Jun 25, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public abstract class AvroIO implements EQCTypable, EQCInheritable {
+public class EQCService implements Runnable {
+	protected static EQCService instance;
+	private Thread worker;
+	protected final AtomicBoolean isRunning = new AtomicBoolean(false);
+	protected final AtomicBoolean isPausing = new AtomicBoolean(false);
+	private Object paused;
 	
-	public AvroIO() {}
-	
-	public AvroIO(ByteArrayInputStream is) throws Exception {
-		parseBody(is);
-	}
-	
-	protected void parse(IO io) throws Exception {
-		byte[] bytes = io.getObject().array();
-		EQCType.assertNotNull(bytes);
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		parseBody(is);
-		EQCType.assertNoRedundantData(is);
-	}
-	
-	public IO getIO() throws Exception {
-		return new IO(ByteBuffer.wrap(getBytes()));
+	public void start() {
+		if (worker == null) {
+			worker = new Thread(this);
+			worker.setPriority(Thread.MAX_PRIORITY);
+			worker.start();
+		}
 	}
 
-	public byte[] getBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(getBodyBytes());
-		return os.toByteArray();
+	public void stop() {
+		isRunning.set(false);
+		if(isPausing.get()) {
+			resume();
+		}
 	}
-	
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#getBin()
-	 */
+
+	public void pause() {
+		isPausing.set(true);
+	}
+
+	public void isPaused() {
+		if (isPausing.get()) {
+			synchronized (paused) {
+				try {
+					paused.wait();
+					isPausing.set(false);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(e.getMessage());
+					;
+				}
+			}
+		}
+	}
+
+	public void resume() {
+		synchronized (paused) {
+			paused.notify();
+		}
+	}
+
 	@Override
-	public byte[] getBin() throws Exception {
-		return EQCType.bytesToBIN(getBytes());
+	public void run() {
+		Log.info("run");
+		isRunning.set(true);
+		while (isRunning.get()) {
+			runner();
+		}
 	}
-	
+
+	protected void runner() {
+		Log.info("running");
+	}
+
 }

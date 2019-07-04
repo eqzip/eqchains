@@ -62,7 +62,7 @@ public class TransactionIndex extends AvroIO {
 	}
 	
 	public TransactionIndex(IO io) throws Exception {
-		super(io);
+		parse(io);
 	}
 
 	/* (non-Javadoc)
@@ -126,6 +126,48 @@ public class TransactionIndex extends AvroIO {
 		os.write(nonce.getEQCBits());
 		os.write(EQCType.bytesToBIN(proof));
 		return null;
+	}
+
+	/**
+	 * @return the id
+	 */
+	public ID getId() {
+		return id;
+	}
+
+	/**
+	 * @param id the id to set
+	 */
+	public void setId(ID id) {
+		this.id = id;
+	}
+
+	/**
+	 * @return the nonce
+	 */
+	public ID getNonce() {
+		return nonce;
+	}
+
+	/**
+	 * @param nonce the nonce to set
+	 */
+	public void setNonce(ID nonce) {
+		this.nonce = nonce;
+	}
+
+	/**
+	 * @return the proof
+	 */
+	public byte[] getProof() {
+		return proof;
+	}
+
+	/**
+	 * @param proof the proof to set
+	 */
+	public void setProof(byte[] proof) {
+		this.proof = proof;
 	}
 
 }

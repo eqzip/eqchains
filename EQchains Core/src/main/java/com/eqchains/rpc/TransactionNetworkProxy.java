@@ -38,27 +38,27 @@ import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import com.eqchains.avro.IO;
+import com.eqchains.avro.MinerNetwork;
 import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.avro.TransactionNetwork;
-import com.eqchains.test.Test;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 28, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class SyncblockNetworkProxy extends EQCProxy implements SyncblockNetwork {
-	private SyncblockNetwork proxy = null;
+public class TransactionNetworkProxy extends EQCProxy implements TransactionNetwork {
+	private TransactionNetwork proxy = null;
 	
-	public SyncblockNetworkProxy(String ip) throws IOException {
-		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
-		proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+	public TransactionNetworkProxy(String ip) throws IOException {
+		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+		proxy = (TransactionNetwork) SpecificRequestor.getClient(TransactionNetwork.class, client);
 	}
 	
 	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#ping(com.eqchains.avro.IO)
+	 * @see com.eqchains.avro.TransactionNetwork#ping(com.eqchains.avro.IO)
 	 */
 	@Override
 	public IO ping(IO cookie) throws AvroRemoteException {
@@ -66,44 +66,84 @@ public class SyncblockNetworkProxy extends EQCProxy implements SyncblockNetwork 
 	}
 
 	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getMinerList()
+	 * @see com.eqchains.avro.TransactionNetwork#getMinerList()
 	 */
 	@Override
 	public IO getMinerList() throws AvroRemoteException {
+		// TODO Auto-generated method stub
 		return proxy.getMinerList();
 	}
 
 	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getFullNodeList()
+	 * @see com.eqchains.avro.TransactionNetwork#sendTransaction(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getFullNodeList() throws AvroRemoteException {
-		return proxy.getFullNodeList();
+	public IO sendTransaction(IO transactionRPC) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return proxy.sendTransaction(transactionRPC);
 	}
 
 	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getBlockTail()
+	 * @see com.eqchains.avro.TransactionNetwork#getID(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getBlockTail() throws AvroRemoteException {
-		return proxy.getBlockTail();
+	public IO getID(IO readableAddress) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return proxy.getID(readableAddress);
 	}
 
 	/* (non-Javadoc)
-	 * @see com.eqchains.avro.SyncblockNetwork#getBlock(com.eqchains.avro.IO)
+	 * @see com.eqchains.avro.TransactionNetwork#getAccount(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getBlock(IO height) throws AvroRemoteException {
-		return proxy.getBlock(height);
+	public IO getAccount(IO id) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return proxy.getAccount(id);
 	}
 
-	public static long ping(String ip) {
+	/* (non-Javadoc)
+	 * @see com.eqchains.avro.TransactionNetwork#getMaxNonce(com.eqchains.avro.IO)
+	 */
+	@Override
+	public IO getMaxNonce(IO id) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return proxy.getMaxNonce(id);
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.avro.TransactionNetwork#getBalance(com.eqchains.avro.IO)
+	 */
+	@Override
+	public IO getBalance(IO id) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return proxy.getBalance(id);
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.avro.TransactionNetwork#getSignHash(com.eqchains.avro.IO)
+	 */
+	@Override
+	public IO getSignHash(IO id) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return proxy.getSignHash(id);
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.avro.TransactionNetwork#getTransactionList(com.eqchains.avro.IO)
+	 */
+	@Override
+	public IO getPendingTransactionList(IO id) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return proxy.getPendingTransactionList(id);
+	}
+
+	public static long ping(String remoteIP) {
     	NettyTransceiver client = null;
-    	SyncblockNetwork proxy = null;
+    	TransactionNetwork proxy = null;
     	long time = System.currentTimeMillis();
     	try {
-    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), 30000l);
-    		proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+    		proxy = (TransactionNetwork) SpecificRequestor.getClient(TransactionNetwork.class, client);
     		proxy.ping(cookie.getIO());
     		time = System.currentTimeMillis() - time;
     	}

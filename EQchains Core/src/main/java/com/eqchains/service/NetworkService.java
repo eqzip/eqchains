@@ -27,54 +27,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc;
+package com.eqchains.service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
+import java.net.InetSocketAddress;
 
-import com.eqchains.avro.IO;
-import com.eqchains.serialization.EQCInheritable;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.serialization.EQCType;
+import org.apache.avro.ipc.NettyServer;
+import org.apache.avro.ipc.Server;
+import org.apache.avro.ipc.specific.SpecificResponder;
+
+import com.eqchains.avro.SyncblockNetwork;
+import com.eqchains.keystore.Keystore;
+import com.eqchains.util.Log;
 
 /**
  * @author Xun Wang
- * @date Jun 25, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public abstract class AvroIO implements EQCTypable, EQCInheritable {
-	
-	public AvroIO() {}
-	
-	public AvroIO(ByteArrayInputStream is) throws Exception {
-		parseBody(is);
-	}
-	
-	protected void parse(IO io) throws Exception {
-		byte[] bytes = io.getObject().array();
-		EQCType.assertNotNull(bytes);
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		parseBody(is);
-		EQCType.assertNoRedundantData(is);
-	}
-	
-	public IO getIO() throws Exception {
-		return new IO(ByteBuffer.wrap(getBytes()));
-	}
+public abstract class NetworkService {
+	protected static NetworkService instance;
+	protected Server server;
 
-	public byte[] getBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(getBodyBytes());
-		return os.toByteArray();
+	public synchronized void start() {
+		Log.info("Starting " + this.getClass().getSimpleName());
+		if (server != null) {
+			server.close();
+		}
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#getBin()
-	 */
-	@Override
-	public byte[] getBin() throws Exception {
-		return EQCType.bytesToBIN(getBytes());
+	public synchronized void stop() {
+		if(server != null) {
+			Log.info("Begin stop " + this.getClass().getSimpleName());
+			server.close();
+			server = null;
+			Log.info(this.getClass().getSimpleName() + " stopped...");
+		}
 	}
 	
 }

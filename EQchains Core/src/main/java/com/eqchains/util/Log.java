@@ -58,7 +58,7 @@ public final class Log {
 		if (log == null) {
 			synchronized (Log.class) {
 				if (log == null) {
-					System.out.close();
+//					System.out.close();
 					log = Logger.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
 					log.setLevel(Level.ALL);
 					log.setUseParentHandlers(false);

@@ -37,12 +37,12 @@ import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.junit.jupiter.api.Test;
 
 import com.eqchains.avro.SyncblockNetwork;
+import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
-import com.eqchains.rpc.Status;
+import com.eqchains.rpc.Info;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
-import com.eqchains.util.Util.STATUS;
 
 /**
  * @author Xun Wang
@@ -60,9 +60,9 @@ public class SyncblockNetworkServiceTest {
     		Cookie cookie = new Cookie();
     		cookie.setIp("14.221.177.1918");
     		cookie.setVersion(Util.PROTOCOL_VERSION);
-    		Status status = new Status();
-    		status.setCode(ID.valueOf(STATUS.OK.ordinal()));
-    		status.setMessage("");
+    		Info info = new Info();
+    		info.setCode(Code.OK);
+    		info.setMessage("");
     		System.out.println("Begin link remote: " + time);
     		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName("14.221.177.198"), 7997), 3000l);
     		System.out.println("End link remote: " + (System.currentTimeMillis() - time));

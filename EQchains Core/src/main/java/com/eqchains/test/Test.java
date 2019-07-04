@@ -100,16 +100,16 @@ import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
+import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.Europa;
-import com.eqchains.rpc.Status;
+import com.eqchains.rpc.Info;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.Base58;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 import com.eqchains.util.Util.AddressTool;
-import com.eqchains.util.Util.STATUS;
 import com.eqchains.util.Util.AddressTool.AddressType;
 
 /**
@@ -1599,7 +1599,7 @@ public class Test {
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
 					new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-			transaction.sign(ecdsa, Util.ROCKSDB().getAccount(txIn.getPassport().getID()).getSignatureHash());
+			transaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
 			EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
 			publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
 			transaction.getTxIn().getPassport()
@@ -1652,7 +1652,7 @@ public class Test {
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
 					new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
-			operationTransaction.sign(ecdsa, Util.ROCKSDB().getAccount(txIn.getPassport().getID()).getSignatureHash());
+			operationTransaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
 			EQCBlockChainH2.getInstance().saveTransactionInPool(operationTransaction);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -1862,12 +1862,12 @@ public class Test {
 //            cookie.setVersion("0.01");
             System.out.println("Calling proxy.send with message:  " + cookie);
             Europa europa = null;
-            while(true) {
+//            while(true) {
             	time = System.currentTimeMillis();
             	System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + proxy.ping(cookie.getIO()));
 //            	europa = new Europa(proxy.getBlockTail());
 //    			System.out.println("getBlockTail Result: " + (System.currentTimeMillis() - time) + "\n" + europa.getHeight());
-            }
+//            }
 //            // cleanup
 //            client.close();
     	}
@@ -1922,11 +1922,11 @@ public class Test {
     		 // client code - attach to the server and send a message
     		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
     		Europa europa = null;
-    		while(true) {
+//    		while(true) {
     			time = System.currentTimeMillis();
     			europa = new Europa(proxy.getBlockTail());
-    			System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + europa.getHeight());
-    		}
+    			System.out.println("Time spent: " + (System.currentTimeMillis() - time) + " Tail: " + europa.getHeight());
+//    		}
     	}
     	catch (Exception e) {
 			// TODO: handle exception
@@ -1977,12 +1977,12 @@ public class Test {
 		} else {
 			Log.info(cookie1.toString());
 		}
-		Status status = new Status();
-		status.setCookie(cookie1);
-		status.setCode(ID.valueOf(STATUS.OK.ordinal()));
-		status.setMessage(new Date().toString());
+		Info info = new Info();
+		info.setCookie(cookie1);
+		info.setCode(Code.OK);
+		info.setMessage(new Date().toString());
 		try {
-			 io = status.getIO();//Util.getStatus();
+			 io = info.getIO();//Util.getStatus();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

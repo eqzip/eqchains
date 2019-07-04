@@ -50,7 +50,7 @@ public class Balance extends AvroIO {
 	}
 	
 	public Balance(IO io) throws Exception {
-		super(io);
+		parse(io);
 	}
 
 	/* (non-Javadoc)

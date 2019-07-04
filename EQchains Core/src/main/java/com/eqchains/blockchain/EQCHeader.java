@@ -331,7 +331,7 @@ public class EQCHeader implements EQCTypable {
 			Log.info("Sanity test failed.");
 			return false;
 		}
-		if(!Arrays.equals(preHash, Util.ROCKSDB().getEQCHeaderHash(accountsMerkleTree.getHeight()))) {
+		if(!Arrays.equals(preHash, Util.DB().getEQCHeaderHash(accountsMerkleTree.getHeight()))) {
 			Log.Error("PreHash is invalid.");
 			return false;
 		}
@@ -339,11 +339,11 @@ public class EQCHeader implements EQCTypable {
 			Log.Error("RootHash is invalid.");
 			return false;
 		}
-		if(height.getPreviousID().compareTo(Util.ROCKSDB().getEQCBlock(accountsMerkleTree.getHeight(), true).getEqcHeader().getHeight()) != 0) {
+		if(height.getPreviousID().compareTo(Util.DB().getEQCBlock(accountsMerkleTree.getHeight(), true).getEqcHeader().getHeight()) != 0) {
 			Log.Error("Height should be the previous EQCBlock's next Height.");
 			return false;
 		}
-		if(timestamp.compareTo(Util.ROCKSDB().getEQCBlock(accountsMerkleTree.getHeight(), true).getEqcHeader().getTimestamp()) <= 0) {
+		if(timestamp.compareTo(Util.DB().getEQCBlock(accountsMerkleTree.getHeight(), true).getEqcHeader().getTimestamp()) <= 0) {
 			Log.Error("Timestamp should bigger than previous EQCBlock's timestamp.");
 			return false;
 		}

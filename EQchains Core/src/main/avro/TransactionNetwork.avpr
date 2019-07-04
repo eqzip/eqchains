@@ -27,23 +27,23 @@
          "response": "IO"
    	  },
    	  "getAccount": {
-         "request": [{"name": "ID", "type": "IO"}],
+         "request": [{"name": "id", "type": "IO"}],
          "response": "IO"
    	  },
    	  "getMaxNonce": {
-         "request": [{"name": "ID", "type": "IO"}],
+         "request": [{"name": "nest", "type": "IO"}],
          "response": "IO"
    	  },
    	  "getBalance": {
-         "request": [{"name": "ID", "type": "IO"}],
+         "request": [{"name": "nest", "type": "IO"}],
          "response": "IO"
    	  },
    	  "getSignHash": {
-         "request": [{"name": "ID", "type": "IO"}],
+         "request": [{"name": "id", "type": "IO"}],
          "response": "IO"
    	  },
-   	  "getTransactionList": {
-         "request": [{"name": "ID", "type": "IO"}],
+   	  "getPendingTransactionList": {
+         "request": [{"name": "id", "type": "IO"}],
          "response": "IO"
    	  }
  }

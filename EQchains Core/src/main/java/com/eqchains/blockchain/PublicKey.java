@@ -243,5 +243,9 @@ public class PublicKey implements EQCTypable {
 		}
 		return true;
 	}
+	
+	public boolean isNULL() {
+		return publicKey == null;
+	}
 
 }

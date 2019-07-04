@@ -26,20 +26,12 @@
          "request": [{"name": "block", "type": "IO"}],
          "response": "IO"
      },
-     "sendMineringBase": {
-         "request": [{"name": "mineringBase", "type": "IO"}],
-         "response": "IO"
-     },
-     "getMineringBase": {
-         "request": [],
-         "response": "IO"
-     },
      "getTransactionIndexList": {
          "request": [],
          "response": "IO"
      },
      "getTransactionList": {
-         "request": [{"name": "transactionList", "type": "IO"}],
+         "request": [{"name": "transactionIndexList", "type": "IO"}],
          "response": "IO"
      }
  }

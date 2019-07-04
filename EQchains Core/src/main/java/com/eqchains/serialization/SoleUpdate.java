@@ -58,7 +58,7 @@ public class SoleUpdate {
 				os.write(Util.MAGIC_HASH);
 			}
 			else {
-				os.write(Util.ROCKSDB().getEQCHeaderBuddyHash(height));
+				os.write(Util.DB().getEQCHeaderBuddyHash(height));
 			}
 			soleReference.add(height);
 		}

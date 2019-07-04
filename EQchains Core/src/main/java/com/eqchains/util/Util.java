@@ -128,8 +128,9 @@ import com.eqchains.keystore.Keystore;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
-import com.eqchains.rpc.Status;
+import com.eqchains.rpc.Info;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -281,9 +282,9 @@ public final class Util {
 	
 	private static Cookie cookie = null;
 
-	private static Status status = null;
+	private static Info info = null;
 	
-	public static final int DEFAULT_TIMEOUT = 3000;
+	public static final long DEFAULT_TIMEOUT = 3000;
 	
 	public static final int MAX_ADDRESS_LEN = 51;
 	
@@ -307,7 +308,13 @@ public final class Util {
 	
 	public static final String REGEX_VERSION = "";
 	
-	public static final String IP = "129.28.206.27";
+	public static final String IP = "14.221.176.94";//"129.28.206.27";
+	
+	public static final int MINER_NETWORK_PORT = 7799;
+	
+	public static final int SYNCBLOCK_NETWORK_PORT = 7997;
+	
+	public static final int TRANSACTION_NETWORK_PORT = 7979;
 	
 //	public static ID [] FIBONACCI = {
 //			new ID(1597),
@@ -350,34 +357,6 @@ public final class Util {
 			new ID(463), new ID(467), new ID(479), new ID(487), new ID(491), new ID(499), new ID(503), new ID(509),
 			new ID(521), new ID(523), new ID(541), new ID(547) };
 	
-	public enum STATUS {
-		OK, ERROR, INVALID;
-		public static STATUS get(int ordinal) {
-			STATUS status = null;
-			switch (ordinal) {
-			case 0:
-				status = OK;
-				break;
-			case 1:
-				status = STATUS.ERROR;
-				break;
-			default:
-				status = STATUS.INVALID;
-				break;
-			}
-			return status;
-		}
-		public boolean isSanity() {
-			if((this.ordinal() < OK.ordinal()) || (this.ordinal() > INVALID.ordinal())) {
-				return false;
-			}
-			return true;
-		}
-		public byte[] getEQCBits() {
-			return EQCType.intToEQCBits(this.ordinal());
-		}
-	}
-
 //	static {
 //		init(OS.WINDOWS); 
 //	}
@@ -471,9 +450,9 @@ public final class Util {
 		cookie = new Cookie();
 		cookie.setIp(IP);//cookie.setIp(getIP());
 		cookie.setVersion(PROTOCOL_VERSION);
-		status = new Status();
-		status.setCode(ID.valueOf(STATUS.OK.ordinal()));
-		
+		info = new Info();
+		info.setCode(Code.OK);
+		info.setCookie(cookie);
 	}
 
 //	private static void init(final OS os) {
@@ -2205,8 +2184,8 @@ public final class Util {
 		TxOut eqzipTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		try {
-			eqcFoundationTxOut.setPassport(Util.ROCKSDB().getAccount(ID.ONE).getPassport());
-			eqzipTxOut.setPassport(Util.ROCKSDB().getAccount(ID.TWO).getPassport());
+			eqcFoundationTxOut.setPassport(Util.DB().getAccount(ID.ONE).getPassport());
+			eqzipTxOut.setPassport(Util.DB().getAccount(ID.TWO).getPassport());
 			minerTxOut.setPassport(passport);
 			if (height.compareTo(getMaxCoinbaseHeight(height)) < 0) {
 //				if (accountsMerkleTree.isAccountExists(address, true)) {
@@ -2409,23 +2388,23 @@ public final class Util {
 		ID serialNumber_begin = new ID(height.subtract(BigInteger.valueOf(10)));
 		if (height.longValue() % 10 != 0) {
 //			Log.info(serialNumber_end.toString());
-			target = Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget();//EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTarget();
+			target = Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget();//EQCBlockChainH2.getInstance().getEQCHeader(serialNumber_end).getTarget();
 //			Log.info(Util.bigIntegerTo128String(Util.targetBytesToBigInteger(target)));
 		} else {
 			Log.info(
 					"Old target: "
 							+ Util.bigIntegerTo512String(Util.targetBytesToBigInteger(
-									Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget()))
+									Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget()))
 							+ "\r\naverge time: "
-							+ (Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
-									- Util.ROCKSDB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())
+							+ (Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
+									- Util.DB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())
 									/ 9);
 			oldDifficulty = Util
-					.targetBytesToBigInteger(Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget());
+					.targetBytesToBigInteger(Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTarget());
 			newDifficulty = oldDifficulty
 					.multiply(BigInteger
-							.valueOf((Util.ROCKSDB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
-									- Util.ROCKSDB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())))
+							.valueOf((Util.DB().getEQCBlock(serialNumber_end, true).getEqcHeader().getTimestamp().longValue()
+									- Util.DB().getEQCBlock(serialNumber_begin, true).getEqcHeader().getTimestamp().longValue())))
 					.divide(BigInteger.valueOf(9 * Util.BLOCK_INTERVAL));
 			// Compare if old difficulty divide new difficulty is bigger than MAX_DIFFICULTY_MULTIPLE
 			if(oldDifficulty.divide(newDifficulty).compareTo(BigInteger.valueOf(MAX_DIFFICULTY_MULTIPLE)) > 0) {
@@ -2605,14 +2584,16 @@ public final class Util {
 		cookie.setIp(getIP());
 	}
 
-	public static Status getStatus() {
-		return status;
+	public static Info getDefaultInfo() {
+		return info;
 	}
 
-	public static Status getStatus(STATUS _status, String message) {
-		status.setCode(ID.valueOf(_status.ordinal()));
-		status.setMessage(message);
-		return status;
+	public static Info getInfo(Code code, String message) {
+		Info info = new Info();
+		info.setCookie(cookie);
+		info.setCode(code);
+		info.setMessage(message);
+		return info;
 	}
 
 	public static long getNTPTIME() {
@@ -2621,7 +2602,7 @@ public final class Util {
 		InetAddress timeServerAddress;
 		TimeStamp timeStamp = null;
 		try {
-			timeClient.setDefaultTimeout(DEFAULT_TIMEOUT);
+			timeClient.setDefaultTimeout((int) DEFAULT_TIMEOUT);
 			timeServerAddress = InetAddress.getByName(timeServerUrl);
 			TimeInfo timeInfo = timeClient.getTime(timeServerAddress);
 			timeStamp = timeInfo.getMessage().getTransmitTimeStamp();
@@ -2651,7 +2632,7 @@ public final class Util {
 		try {
 			URL url = new URL("http://www.bing.com");
 			HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
-			httpURLConnection.setConnectTimeout(DEFAULT_TIMEOUT);
+			httpURLConnection.setConnectTimeout((int) DEFAULT_TIMEOUT);
 			httpURLConnection.connect();
 			if(httpURLConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
 				boolIsNetworkAvailable = true;
@@ -2691,7 +2672,7 @@ public final class Util {
 		return eqcBlockChain;
 	}
 	
-	public static EQCBlockChain ROCKSDB() throws RocksDBException, ClassNotFoundException, SQLException {
+	public static EQCBlockChain DB() throws RocksDBException, ClassNotFoundException, SQLException {
 		return DB(PERSISTENCE.ROCKSDB);
 	}
 	

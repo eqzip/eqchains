@@ -8,7 +8,7 @@ package com.eqchains.avro;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface MinerNetwork {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"MinerNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"IO\",\"fields\":[{\"name\":\"object\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"cookie\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getMinerList\":{\"request\":[],\"response\":\"IO\"},\"getFullNodeList\":{\"request\":[],\"response\":\"IO\"},\"sendNewBlock\":{\"request\":[{\"name\":\"block\",\"type\":\"IO\"}],\"response\":\"IO\"},\"sendMineringBase\":{\"request\":[{\"name\":\"mineringBase\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getMineringBase\":{\"request\":[],\"response\":\"IO\"},\"getTransactionIndexList\":{\"request\":[],\"response\":\"IO\"},\"getTransactionList\":{\"request\":[{\"name\":\"transactionList\",\"type\":\"IO\"}],\"response\":\"IO\"}}}");
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"MinerNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"IO\",\"fields\":[{\"name\":\"object\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"cookie\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getMinerList\":{\"request\":[],\"response\":\"IO\"},\"getFullNodeList\":{\"request\":[],\"response\":\"IO\"},\"sendNewBlock\":{\"request\":[{\"name\":\"block\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getTransactionIndexList\":{\"request\":[],\"response\":\"IO\"},\"getTransactionList\":{\"request\":[{\"name\":\"transactionIndexList\",\"type\":\"IO\"}],\"response\":\"IO\"}}}");
   /**
    */
   com.eqchains.avro.IO ping(com.eqchains.avro.IO cookie) throws org.apache.avro.AvroRemoteException;
@@ -23,16 +23,10 @@ public interface MinerNetwork {
   com.eqchains.avro.IO sendNewBlock(com.eqchains.avro.IO block) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.IO sendMineringBase(com.eqchains.avro.IO mineringBase) throws org.apache.avro.AvroRemoteException;
-  /**
-   */
-  com.eqchains.avro.IO getMineringBase() throws org.apache.avro.AvroRemoteException;
-  /**
-   */
   com.eqchains.avro.IO getTransactionIndexList() throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.IO getTransactionList(com.eqchains.avro.IO transactionList) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.IO getTransactionList(com.eqchains.avro.IO transactionIndexList) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
   public interface Callback extends MinerNetwork {
@@ -56,18 +50,10 @@ public interface MinerNetwork {
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void sendMineringBase(com.eqchains.avro.IO mineringBase, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
-    /**
-     * @throws java.io.IOException The async call could not be completed.
-     */
-    void getMineringBase(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
-    /**
-     * @throws java.io.IOException The async call could not be completed.
-     */
     void getTransactionIndexList(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getTransactionList(com.eqchains.avro.IO transactionList, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getTransactionList(com.eqchains.avro.IO transactionIndexList, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
   }
 }

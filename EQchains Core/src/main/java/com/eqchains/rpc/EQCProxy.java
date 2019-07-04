@@ -29,52 +29,60 @@
  */
 package com.eqchains.rpc;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
+import org.apache.avro.ipc.NettyTransceiver;
 
-import com.eqchains.avro.IO;
-import com.eqchains.serialization.EQCInheritable;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.serialization.EQCType;
+import com.eqchains.avro.SyncblockNetwork;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 25, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public abstract class AvroIO implements EQCTypable, EQCInheritable {
-	
-	public AvroIO() {}
-	
-	public AvroIO(ByteArrayInputStream is) throws Exception {
-		parseBody(is);
+public class EQCProxy {
+	protected NettyTransceiver client = null;
+	protected static Cookie cookie;
+	protected Info info;
+	static {
+		cookie = new Cookie();
+		cookie.setIp(Util.IP);
+		cookie.setVersion(Util.PROTOCOL_VERSION);
+	}
+	public EQCProxy() {
+		info = new Info();
+		info.setCode(Code.OK);
+		info.setCookie(cookie);
 	}
 	
-	protected void parse(IO io) throws Exception {
-		byte[] bytes = io.getObject().array();
-		EQCType.assertNotNull(bytes);
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		parseBody(is);
-		EQCType.assertNoRedundantData(is);
-	}
-	
-	public IO getIO() throws Exception {
-		return new IO(ByteBuffer.wrap(getBytes()));
-	}
-
-	public byte[] getBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(getBodyBytes());
-		return os.toByteArray();
-	}
-	
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#getBin()
+	/**
+	 * @return the cookie
 	 */
-	@Override
-	public byte[] getBin() throws Exception {
-		return EQCType.bytesToBIN(getBytes());
+	public Cookie getCookie() {
+		return cookie;
+	}
+	/**
+	 * @param cookie the cookie to set
+	 */
+	public void setCookie(Cookie cookie) {
+		this.cookie = cookie;
+	}
+	/**
+	 * @return the info
+	 */
+	public Info getInfo() {
+		return info;
+	}
+	/**
+	 * @param info the info to set
+	 */
+	public void setInfo(Info info) {
+		this.info = info;
+	}
+	
+	public void close() {
+		if(client != null) {
+			client.close();
+		}
 	}
 	
 }

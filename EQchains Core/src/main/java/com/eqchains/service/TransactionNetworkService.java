@@ -50,76 +50,7 @@ import com.eqchains.util.Util;
  * @date Jan 24, 2019
  * @email 10509759@qq.com
  */
-public class TransactionNetworkService extends Thread {
-	private static TransactionNetworkService instance;
-
-	public static class TransactionNetworkImpl implements TransactionNetwork {
-
-		@Override
-		public IO ping(IO cookie) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getMinerList() throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO sendTransaction(IO transactionRPC) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getID(IO readableAddress) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getAccount(IO ID) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getMaxNonce(IO ID) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getBalance(IO ID) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getSignHash(IO ID) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IO getTransactionList(IO ID) throws AvroRemoteException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-	}
-
-	private static Server server;
-
-	private static void startServer() throws IOException {
-		if(server != null) {
-			server.close();
-		}
-		server = new NettyServer(new SpecificResponder(SyncblockNetwork.class, new TransactionNetworkImpl()),
-				new InetSocketAddress(7979));
-	}
+public class TransactionNetworkService extends NetworkService {
 
 	public static TransactionNetworkService getInstance() {
 		if (instance == null) {
@@ -129,7 +60,7 @@ public class TransactionNetworkService extends Thread {
 				}
 			}
 		}
-		return instance;
+		return (TransactionNetworkService) instance;
 	}
 
 	/*
@@ -139,40 +70,10 @@ public class TransactionNetworkService extends Thread {
 	 */
 	@Override
 	public synchronized void start() {
-		// TODO Auto-generated method stub
 		super.start();
+		server = new NettyServer(new SpecificResponder(TransactionNetwork.class, new TransactionNetworkImpl()),
+				new InetSocketAddress(Util.TRANSACTION_NETWORK_PORT));
+		Log.info(this.getClass().getSimpleName() + " started...");
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Thread#run()
-	 */
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		super.run();
-
-		try {
-			Log.info("Starting TransactionNetworkService...");
-			startServer();
-			Log.info("TransactionNetworkService started...");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error("During Starting TransactionNetworkService error occur: " + e.getMessage());
-		}
-
-	}
-	
-	public void close() {
-		if(server != null) {
-			Log.info("Begin close TransactionNetworkService...");
-			server.close();
-			server = null;
-			Log.info("TransactionNetworkService closed...");
-			this.interrupt();
-		}
-	}
-	
 }
