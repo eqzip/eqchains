@@ -29,23 +29,17 @@
  */
 package com.eqchains;
 
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-
-import org.apache.avro.ipc.NettyTransceiver;
-import org.apache.avro.ipc.specific.SpecificRequestor;
-
-import com.eqchains.avro.IO;
-import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.configuration.Configuration;
-import com.eqchains.keystore.Keystore.ECCTYPE;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
-import com.eqchains.rpc.Cookie;
-import com.eqchains.rpc.SyncblockNetworkProxy;
-import com.eqchains.service.EQCService;
+import com.eqchains.blockchain.account.AssetAccount;
+import com.eqchains.blockchain.account.EQcoinSubchainAccount;
+import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.client.MinerNetworkClient;
+import com.eqchains.rpc.service.MinerNetworkService;
+import com.eqchains.rpc.service.SyncblockNetworkService;
 import com.eqchains.service.MinerService;
-import com.eqchains.service.SyncblockNetworkService;
+import com.eqchains.service.PossibleNodeService;
+import com.eqchains.service.SyncBlockService;
+import com.eqchains.service.state.EQCServiceState;
+import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.test.Test;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -57,6 +51,9 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class Singularity {
+	/**
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		Thread.currentThread().setPriority(10);
 //		EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.valueOf(0)));
@@ -72,27 +69,72 @@ public class Singularity {
 //		Test.ping("14.221.176.138", "129.28.206.27");
 //	    while(true)
 //		try {
+////			Util.DB();
 //			Util.init();
 //		} catch (Exception e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
+//		EQcoinSubchainAccount eQcoinSubchainAccount;
+//		try {
+//			AssetAccount account =  (AssetAccount) Util.DB().getAccount(ID.TWO);
+//			Log.info("size: " + account.getBytes().length);
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 //	    while(true)
-// 		Log.info("Time: "+SyncblockNetworkProxy.ping("192.168.0.104"));
+// 		Log.info("Time: "+SyncblockNetworkProxy.ping("129.28.206.27"));
+//		try {
+////			Util.init();
+////			Util.gestationSingularityBlock();
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 ////		Test.TestIO();
-		while(true) {
+//		while(true) {
+//			try {
+////				SyncblockNetworkService.getInstance().start();
+//				Cookie cookie = new Cookie();
+//				cookie.setIp(Util.IP);
+//				cookie.setVersion(Util.DEFAULT_PROTOCOL_VERSION);
+//				SyncblockNetworkProxy syncblockNetworkProxy = new SyncblockNetworkProxy("129.28.206.27");
+//				Log.info("Ping: " + syncblockNetworkProxy.ping(cookie.getIO()));
+//				Log.info("Tail: " + syncblockNetworkProxy.getBlockTail());
+//				Log.info("Tail: " + syncblockNetworkProxy.getBlock(ID.valueOf(69).getIO()));
+//				Log.info("Tail: " + syncblockNetworkProxy.getFullNodeList());
+//			} catch (Exception e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//				Log.Error(e.getMessage());
+//			}
 //			Test.getBlockTail("129.28.206.27");
-			Test.getBlock("129.28.206.27", ID.valueOf(69));
+		long i = 0;
+		while(true) {
+			Test.getBlock("129.28.206.27", ID.valueOf(79));
+			if(++i%1000 == 0) {
+				System.gc();
+			}
 		}
+//		}
 //		Log.info("" + (int)'-');
 //		System.out.println("Begin testKeystore");
 //		try {
 //			Util.init();
-//			MinerService.getInstance().start();
-//			SyncblockNetworkService.getInstance().start();
-////			Test.getBlockTail("14.221.176.94");
-////			Test.ping("14.221.176.138", "14.221.176.94");
-//			Log.info("Time: "+SyncblockNetworkProxy.ping("14.221.176.94"));
+////			MinerNetworkService.getInstance().start();
+////			PossibleNodeService.getInstance().start();
+////			while(true)
+////			MinerNetworkClient.ping(Util.SINGULARITY_IP);
+//			IPList ipList = MinerNetworkClient.getMinerList(Util.SINGULARITY_IP);
+//			Log.info("IP: " + ipList.getIpList().size() + " address: " + ipList.getIpList().get(1));
+////			SyncBlockService.getInstance().start();
+////			SyncBlockService.getInstance().offerState(new EQCServiceState(State.FIND));
+////			MinerService.getInstance().start();
+////			SyncblockNetworkService.getInstance().start();
+////			Test.getBlockTail("129.28.206.27");
+////			Test.ping("14.221.176.138", "129.28.206.27");
+////			Log.info("Time: "+SyncblockNetworkProxy.ping("129.28.206.27"));
 ////			SyncblockNetworkService.getInstance().stop();
 ////			while(true) {
 ////				Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.HUNDREDPULS, true, false);

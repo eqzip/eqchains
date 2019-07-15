@@ -40,8 +40,6 @@ import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.Info;
-import com.eqchains.util.ID;
-import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
 /**
@@ -67,13 +65,13 @@ public class SyncblockNetworkServiceTest {
     		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName("14.221.177.198"), 7997), 3000l);
     		System.out.println("End link remote: " + (System.currentTimeMillis() - time));
     		 // client code - attach to the server and send a message
-    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		SyncblockNetwork proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
             System.out.println("Client built, got proxy");
 //            Cookie cookie = new Cookie();
 //            cookie.setIp(Util.getCookie().getIp().toString());
 //            cookie.setVersion("0.01");
             System.out.println("Calling proxy.send with message:  " + cookie);
-            System.out.println("Result: " + proxy.ping(cookie.getIO()));
+            System.out.println("Result: " + proxy.ping(cookie.getO()));
 
 //            // cleanup
 //            client.close();

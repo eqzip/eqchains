@@ -27,53 +27,76 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
+package com.eqchains.service.state;
 
-import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.keystore.Keystore;
-import com.eqchains.service.state.EQCServiceState;
-import com.eqchains.service.state.PendingTransactionState;
-import com.eqchains.util.Log;
 
 /**
  * @author Xun Wang
- * @date Jun 30, 2019
+ * @date Jul 6, 2019
  * @email 10509759@qq.com
  */
-public class PendingTransactionService extends EQCService {
-	private static PendingTransactionService instance;
+public class EQCServiceState implements Comparable<EQCServiceState> {
+	protected State state;
+	protected long time;
 	
-	public static PendingTransactionService getInstance() {
-		if (instance == null) {
-			synchronized (Keystore.class) {
-				if (instance == null) {
-					instance = new PendingTransactionService();
-				}
-			}
-		}
-		return instance;
+	public EQCServiceState() {
 	}
 	
-    /* (non-Javadoc)
-	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
+	public EQCServiceState(State state) {
+		this.state = state;
+		time = System.currentTimeMillis();
+	}
+	
+	public enum State {
+		STOP, DEFAULT, ERROR, TAKE, MINER, SLEEP, PAUSE, WAIT, FIND, SYNC, POSSIBLENODE, PENDINGNEWBLOCK, PENDINGTRANSACTION, BROADCASTNEWBLOCK  
+	}
+	
+	@Override
+	public int compareTo(EQCServiceState o) {
+		if(state == State.WAIT) {
+			return 1;
+		}
+		return (int) (o.time - time);
+	}
+
+	/**
+	 * @return the state
+	 */
+	public State getState() {
+		return state;
+	}
+
+	/**
+	 * @param state the state to set
+	 */
+	public void setState(State state) {
+		this.state = state;
+	}
+
+	/**
+	 * @return the time
+	 */
+	public long getTime() {
+		return time;
+	}
+
+	/**
+	 * @param time the time to set
+	 */
+	public void setTime(long time) {
+		this.time = time;
+	}
+	
+	public static EQCServiceState getDefaultState() {
+		return new EQCServiceState(State.DEFAULT);
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
 	 */
 	@Override
-	protected void onDefault(EQCServiceState state) {
-		PendingTransactionState pendingTransactionState = null;
-		Transaction transaction = null;
-		try {
-			pendingTransactionState = (PendingTransactionState) state;
-			transaction = Transaction.parseRPC(pendingTransactionState.getTransaction());
-			transaction.update();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
+	public String toString() {
+		return state.name();
 	}
-
-	public void offerPendingTransactionState(PendingTransactionState pendingTransactionState) {
-		pendingMessage.offer(pendingTransactionState);
-	}
-
+	
 }

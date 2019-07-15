@@ -59,7 +59,6 @@ import java.util.Vector;
 
 import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
-import org.junit.jupiter.api.TestInfo;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -70,40 +69,41 @@ import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.EQCHive;
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQChains;
 import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.CoinAsset;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Publickey;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
+import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
+import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
-import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
-import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.blockchain.transaction.operation.UpdateAddressOperation;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.keystore.UserAccount;
 import com.eqchains.keystore.Keystore.ECCTYPE;
+import com.eqchains.keystore.UserAccount;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
-import com.eqchains.rpc.Europa;
 import com.eqchains.rpc.Info;
+import com.eqchains.rpc.TailInfo;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.Base58;
 import com.eqchains.util.ID;
@@ -1229,9 +1229,9 @@ public class Test {
 					.setCompressionType(CompressionType.NO_COMPRESSION);
 			final List<ColumnFamilyDescriptor> columnFamilyDescriptors = Arrays.asList(
 					new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions),
-					new ColumnFamilyDescriptor(EQCBlockChainRocksDB.EQCBLOCK_TABLE, columnFamilyOptions),
-					new ColumnFamilyDescriptor(EQCBlockChainRocksDB.ACCOUNT_TABLE, columnFamilyOptions),
-					new ColumnFamilyDescriptor(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE, columnFamilyOptions),
+					new ColumnFamilyDescriptor(TABLE.EQCBLOCK.name().getBytes(), columnFamilyOptions),
+					new ColumnFamilyDescriptor(TABLE.ACCOUNT.name().getBytes(), columnFamilyOptions),
+					new ColumnFamilyDescriptor(TABLE.ACCOUNT_MINERING.name().getBytes(), columnFamilyOptions),
 					new ColumnFamilyDescriptor(EQCBlockChainRocksDB.MISC_TABLE, columnFamilyOptions));
 
 			columnFamilyHandle = rocksDB.createColumnFamily(columnFamilyDescriptors.get(1));
@@ -1598,7 +1598,7 @@ public class Test {
 			}
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
-					new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+					new Filter(Mode.MINERING));
 			transaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
 			EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
 			publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
@@ -1651,7 +1651,7 @@ public class Test {
 			Log.info("getQos: " + operationTransaction.getQos());
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
-					new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+					new Filter(Mode.MINERING));
 			operationTransaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
 			EQCBlockChainH2.getInstance().saveTransactionInPool(operationTransaction);
 		} catch (Exception e) {
@@ -1801,7 +1801,7 @@ public class Test {
 			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
 			for (int i = 1; i < id.intValue(); ++i) {
 				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i - 1),
-						new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+						new Filter(Mode.MINERING));
 				EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
 				try {
 					eqcBlock.verify(accountsMerkleTree);
@@ -1855,16 +1855,16 @@ public class Test {
     		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), 7997), 3000l);
     		System.out.println("End link remote: " + (System.currentTimeMillis() - time));
     		 // client code - attach to the server and send a message
-    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		SyncblockNetwork proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
             System.out.println("Client built, got proxy");
 //            Cookie cookie = new Cookie();
 //            cookie.setIp(Util.getCookie().getIp().toString());
 //            cookie.setVersion("0.01");
             System.out.println("Calling proxy.send with message:  " + cookie);
-            Europa europa = null;
+            TailInfo europa = null;
 //            while(true) {
             	time = System.currentTimeMillis();
-            	System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + proxy.ping(cookie.getIO()));
+            	System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + proxy.ping(cookie.getO()));
 //            	europa = new Europa(proxy.getBlockTail());
 //    			System.out.println("getBlockTail Result: " + (System.currentTimeMillis() - time) + "\n" + europa.getHeight());
 //            }
@@ -1891,8 +1891,8 @@ public class Test {
     		cookie.setIp(Util.IP);
     		cookie.setVersion(Util.PROTOCOL_VERSION);
     		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), 7997), 3000l);
-    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
-    		IO io = proxy.ping(cookie.getIO());
+    		SyncblockNetwork proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		O io = proxy.ping(cookie.getO());
 //    			System.out.println("sResult: " + time + "\n" + proxy.ping(cookie.getIO()));
             	time = System.currentTimeMillis() - time;
             	Log.info("" + time);
@@ -1920,11 +1920,11 @@ public class Test {
     		cookie.setVersion(Util.PROTOCOL_VERSION);
     		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), 7997), 3000l);
     		 // client code - attach to the server and send a message
-    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
-    		Europa europa = null;
+    		SyncblockNetwork proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		TailInfo europa = null;
 //    		while(true) {
     			time = System.currentTimeMillis();
-    			europa = new Europa(proxy.getBlockTail());
+    			europa = new TailInfo(proxy.getBlockTail());
     			System.out.println("Time spent: " + (System.currentTimeMillis() - time) + " Tail: " + europa.getHeight());
 //    		}
     	}
@@ -1949,9 +1949,9 @@ public class Test {
     		cookie.setVersion(Util.PROTOCOL_VERSION);
     		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), 7997), 3000l);
     		 // client code - attach to the server and send a message
-    		SyncblockNetwork proxy = (SyncblockNetwork) SpecificRequestor.getClient(SyncblockNetwork.class, client);
-    		EQCHive eqcHive = new EQCHive(proxy.getBlock(height.getIO()), false);
-            System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + eqcHive);
+    		SyncblockNetwork proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
+    		EQCHive eqcHive = new EQCHive(proxy.getBlock(height.getO()), false);
+            System.out.println("Result: " + (System.currentTimeMillis() - time));// + "\n" + eqcHive);
     	}
     	catch (Exception e) {
 			// TODO: handle exception
@@ -1966,7 +1966,7 @@ public class Test {
 	}
 	
 	public static void TestIO() {
-		IO io = null;
+		O io = null;
 		// Here need add function to test ping
 //		Test.ping(Util.getStatus().getCookie().getIp().toString(), Util.getStatus().getCookie().getIp().toString());
 		Cookie cookie1 = new Cookie();
@@ -1982,7 +1982,7 @@ public class Test {
 		info.setCode(Code.OK);
 		info.setMessage(new Date().toString());
 		try {
-			 io = info.getIO();//Util.getStatus();
+			 io = info.getO();//Util.getStatus();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

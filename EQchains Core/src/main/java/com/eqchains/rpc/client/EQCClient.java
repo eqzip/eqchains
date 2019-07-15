@@ -27,53 +27,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
+package com.eqchains.rpc.client;
 
-import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.keystore.Keystore;
-import com.eqchains.service.state.EQCServiceState;
-import com.eqchains.service.state.PendingTransactionState;
-import com.eqchains.util.Log;
+import com.eqchains.rpc.Code;
+import com.eqchains.rpc.Cookie;
+import com.eqchains.rpc.Info;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 30, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class PendingTransactionService extends EQCService {
-	private static PendingTransactionService instance;
-	
-	public static PendingTransactionService getInstance() {
-		if (instance == null) {
-			synchronized (Keystore.class) {
-				if (instance == null) {
-					instance = new PendingTransactionService();
-				}
-			}
-		}
-		return instance;
+public abstract class EQCClient {
+	protected static Cookie cookie;
+	protected Info info;
+	static {
+		cookie = new Cookie();
+		cookie.setIp(Util.IP);
+		cookie.setVersion(Util.PROTOCOL_VERSION);
+	}
+	public EQCClient() {
+		info = new Info();
+		info.setCode(Code.OK);
+		info.setCookie(cookie);
 	}
 	
-    /* (non-Javadoc)
-	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
+	/**
+	 * @return the cookie
 	 */
-	@Override
-	protected void onDefault(EQCServiceState state) {
-		PendingTransactionState pendingTransactionState = null;
-		Transaction transaction = null;
-		try {
-			pendingTransactionState = (PendingTransactionState) state;
-			transaction = Transaction.parseRPC(pendingTransactionState.getTransaction());
-			transaction.update();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
+	public Cookie getCookie() {
+		return cookie;
 	}
-
-	public void offerPendingTransactionState(PendingTransactionState pendingTransactionState) {
-		pendingMessage.offer(pendingTransactionState);
+	/**
+	 * @param cookie the cookie to set
+	 */
+	public void setCookie(Cookie cookie) {
+		this.cookie = cookie;
 	}
-
+	/**
+	 * @return the info
+	 */
+	public Info getInfo() {
+		return info;
+	}
+	/**
+	 * @param info the info to set
+	 */
+	public void setInfo(Info info) {
+		this.info = info;
+	}
+	
 }

@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
+package com.eqchains.rpc.service;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -38,7 +38,7 @@ import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.avro.TransactionNetwork;
 import com.eqchains.keystore.Keystore;
@@ -51,7 +51,11 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class TransactionNetworkService extends NetworkService {
-
+	private static TransactionNetworkService instance;
+	
+	private TransactionNetworkService() {
+	}
+	
 	public static TransactionNetworkService getInstance() {
 		if (instance == null) {
 			synchronized (Keystore.class) {

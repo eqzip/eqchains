@@ -27,34 +27,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+package com.eqchains.rpc.service;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.util.Date;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificResponder;
-import org.apache.avro.util.Utf8;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
+import com.eqchains.avro.MinerNetwork;
 import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.blockchain.EQCHive;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.rpc.Code;
-import com.eqchains.rpc.Cookie;
-import com.eqchains.rpc.Europa;
-import com.eqchains.rpc.Info;
-import com.eqchains.serialization.EQCType;
-import com.eqchains.test.Test;
-import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
@@ -63,24 +49,29 @@ import com.eqchains.util.Util;
  * @date Jan 24, 2019
  * @email 10509759@qq.com
  */
-public class SyncblockNetworkService extends NetworkService {
-
-	public static SyncblockNetworkService getInstance() {
+public class MinerNetworkService extends NetworkService {
+	private static MinerNetworkService instance;
+	
+	private MinerNetworkService() {
+	}
+	
+	public static NetworkService getInstance() {
 		if (instance == null) {
 			synchronized (Keystore.class) {
 				if (instance == null) {
-					instance = new SyncblockNetworkService();
+					instance = new MinerNetworkService();
 				}
 			}
 		}
-		return (SyncblockNetworkService) instance;
+		return instance;
 	}
 
 	public void start() {
 		super.start();
-		server = new NettyServer(new SpecificResponder(SyncblockNetwork.class, new SyncblockNetworkImpl()),
-				new InetSocketAddress(Util.SYNCBLOCK_NETWORK_PORT));
+		server = new NettyServer(new SpecificResponder(MinerNetwork.class, new MinerNetworkImpl()),
+				new InetSocketAddress(Util.MINER_NETWORK_PORT));
+		isRunning.set(true);
 		Log.info(this.getClass().getSimpleName() + " started...");
 	}
-
+	
 }

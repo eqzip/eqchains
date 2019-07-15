@@ -29,42 +29,60 @@
  */
 package com.eqchains.service;
 
+import java.util.concurrent.PriorityBlockingQueue;
+
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.keystore.Keystore;
+import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.rpc.NewBlock;
+import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.service.state.EQCServiceState;
-import com.eqchains.service.state.PendingTransactionState;
+import com.eqchains.service.state.EQCServiceState.State;
+import com.eqchains.service.state.NewBlockState;
 import com.eqchains.util.Log;
 
 /**
  * @author Xun Wang
- * @date Jun 30, 2019
+ * @date Jul 5, 2019
  * @email 10509759@qq.com
  */
-public class PendingTransactionService extends EQCService {
-	private static PendingTransactionService instance;
+public class PendingNewBlockService extends EQCService {
+	private static PendingNewBlockService instance;
 	
-	public static PendingTransactionService getInstance() {
+	public static PendingNewBlockService getInstance() {
 		if (instance == null) {
 			synchronized (Keystore.class) {
 				if (instance == null) {
-					instance = new PendingTransactionService();
+					instance = new PendingNewBlockService();
 				}
 			}
 		}
 		return instance;
 	}
-	
-    /* (non-Javadoc)
+
+	/* (non-Javadoc)
 	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
 	 */
 	@Override
 	protected void onDefault(EQCServiceState state) {
-		PendingTransactionState pendingTransactionState = null;
-		Transaction transaction = null;
+		NewBlockState newBlockState = null;
+		long ping = 0;
 		try {
-			pendingTransactionState = (PendingTransactionState) state;
-			transaction = Transaction.parseRPC(pendingTransactionState.getTransaction());
-			transaction.update();
+			this.state.set(State.PENDINGNEWBLOCK);
+			newBlockState = (NewBlockState) state;
+			ping = MinerNetworkClient.ping(newBlockState.getNewBlock().getCookie().getIp());
+			if(ping != -1) {
+				if(MinerService.getInstance().getState().equals(State.MINER)) {
+					MinerService.getInstance().pause();
+				}
+				// Call SyncBlockService valid the new block
+				
+				// Pause 
+				waiting();
+			}
+			else {
+				EQCBlockChainH2.getInstance().deleteMiner(newBlockState.getNewBlock().getCookie().getIp());
+			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -72,8 +90,8 @@ public class PendingTransactionService extends EQCService {
 		}
 	}
 
-	public void offerPendingTransactionState(PendingTransactionState pendingTransactionState) {
-		pendingMessage.offer(pendingTransactionState);
+	public void offerNewBlockState(NewBlockState newBlockState) {
+		offerState(newBlockState);
 	}
 
 }

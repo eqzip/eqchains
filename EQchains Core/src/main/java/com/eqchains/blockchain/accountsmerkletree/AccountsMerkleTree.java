@@ -250,11 +250,10 @@ public class AccountsMerkleTree {
 
 	public void merge() throws Exception {
 		filter.merge();
-		filter.close();
 	}
 	
-	public void close() throws RocksDBException {
-		filter.close();
+	public void clear() throws RocksDBException {
+		filter.clear();
 	}
 	
 	public ID getAddressID(Passport address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException {

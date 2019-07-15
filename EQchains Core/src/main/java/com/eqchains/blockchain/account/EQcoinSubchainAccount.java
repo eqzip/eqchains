@@ -35,6 +35,7 @@ import java.io.IOException;
 
 import com.eqchains.blockchain.account.Account.AccountType;
 import com.eqchains.serialization.EQCType;
+import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 
 /**
@@ -47,6 +48,8 @@ public class EQcoinSubchainAccount extends AssetSubchainAccount {
 	 * Body field include TxFeeRate
 	 */
 	private byte txFeeRate;
+	private ID checkPointHeight;
+	private byte[] checkPointHash;
 
 	public EQcoinSubchainAccount() {
 		super(AccountType.EQCOINSUBCHAIN);
@@ -65,6 +68,10 @@ public class EQcoinSubchainAccount extends AssetSubchainAccount {
 		super.parseBody(is);
 		// Parse TxFeeRate
 		txFeeRate = EQCType.parseBIN(is)[0];
+		// Parse CheckPoint Height
+		checkPointHeight = EQCType.parseID(is);
+		// Parse CheckPoint Hash
+		checkPointHash = EQCType.parseBIN(is);
 	}
 
 	/* (non-Javadoc)
@@ -76,6 +83,8 @@ public class EQcoinSubchainAccount extends AssetSubchainAccount {
 		try {
 			os.write(super.getBodyBytes());
 			os.write(EQCType.bytesToBIN(new byte[]{txFeeRate}));
+			os.write(checkPointHeight.getEQCBits());
+			os.write(EQCType.bytesToBIN(checkPointHash));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -115,6 +124,12 @@ public class EQcoinSubchainAccount extends AssetSubchainAccount {
 		if(!super.isSanity()) {
 			return false;
 		}
+		if(checkPointHeight == null || checkPointHash == null) {
+			return false;
+		}
+		if(!checkPointHeight.isSanity() || checkPointHash.length != 32) {
+			return false;
+		}
 		if(txFeeRate < 1 || txFeeRate >10) {
 			return false;
 		}
@@ -133,6 +148,34 @@ public class EQcoinSubchainAccount extends AssetSubchainAccount {
 	 */
 	public void setTxFeeRate(byte txFeeRate) {
 		this.txFeeRate = txFeeRate;
+	}
+
+	/**
+	 * @return the checkPointHeight
+	 */
+	public ID getCheckPointHeight() {
+		return checkPointHeight;
+	}
+
+	/**
+	 * @param checkPointHeight the checkPointHeight to set
+	 */
+	public void setCheckPointHeight(ID checkPointHeight) {
+		this.checkPointHeight = checkPointHeight;
+	}
+
+	/**
+	 * @return the checkPointHash
+	 */
+	public byte[] getCheckPointHash() {
+		return checkPointHash;
+	}
+
+	/**
+	 * @param checkPointHash the checkPointHash to set
+	 */
+	public void setCheckPointHash(byte[] checkPointHash) {
+		this.checkPointHash = checkPointHash;
 	}
 	
 }

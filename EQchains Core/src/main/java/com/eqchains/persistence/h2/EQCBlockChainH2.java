@@ -33,7 +33,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,12 +44,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Vector;
-
-import javax.naming.spi.DirStateFactory.Result;
-import javax.security.sasl.RealmCallback;
 
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCRoot;
@@ -58,16 +52,12 @@ import com.eqchains.blockchain.EQCSignatures;
 import com.eqchains.blockchain.EQChains;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
-import com.eqchains.blockchain.Index;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxOut;
-import com.eqchains.configuration.Configuration;
 import com.eqchains.rpc.Balance;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.MaxNonce;
@@ -79,7 +69,6 @@ import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
-import com.eqchains.util.Util.AddressTool;
 
 /**
  * @author Xun Wang
@@ -100,7 +89,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	private static EQCBlockChainH2 instance;
 	private static final int ONE_ROW = 1;
 	public enum NODETYPE {
-		NONE, MINER, FULL
+		NONE, FULL, MINER
 	}
 	
 	private EQCBlockChainH2() throws ClassNotFoundException, SQLException {
@@ -110,6 +99,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			createTable();
 	}
 	
+	@Override
 	public synchronized void dropTable() throws SQLException {
 			statement.execute("DROP TABLE ACCOUNT");
 			statement.execute("DROP TABLE PUBLICKEY");
@@ -1042,6 +1032,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return serialNumber;
 	}
 
+	@Override
 	@Deprecated
 	public synchronized ID getTotalAccountNumbers(ID height) {
 		ID serialNumber = null;
@@ -1126,6 +1117,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return transactions;
 	}
 	
+	@Override
 	public synchronized boolean isTransactionExistsInPool(Transaction transaction) throws SQLException {
 		boolean isExists = false;
 		PreparedStatement preparedStatement = null;
@@ -1438,13 +1430,15 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean close() throws SQLException {
+	public synchronized boolean close() throws SQLException {
 		boolean boolResult = true;
-		if(statement != null) {
-				statement.close();
+		if (statement != null) {
+			statement.close();
+			statement = null;
 		}
-		if(connection != null) {
-				connection.close();
+		if (connection != null) {
+			connection.close();
+			connection = null;
 		}
 		return boolResult;
 	}
@@ -1552,8 +1546,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 */
 	@Override
 	protected void finalize() throws Throwable {
-		// TODO Auto-generated method stub
-		super.finalize();
 		close();
 	}
 
@@ -1596,6 +1588,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return maxNonce;
 	}
 
+	@Override
 	public synchronized boolean isTransactionMaxNonceExists(Nest nest) throws SQLException {
 		boolean isSucc = false;
 			PreparedStatement preparedStatement = connection.prepareStatement(
@@ -1658,6 +1651,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return balance;
 	}
 
+	@Override
 	public boolean isIPExists(String ip, NODETYPE nodeType) throws SQLException {
 		boolean isSucc = false;
 		PreparedStatement preparedStatement = null;

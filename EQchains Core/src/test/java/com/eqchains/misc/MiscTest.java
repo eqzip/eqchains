@@ -29,14 +29,13 @@
  */
 package com.eqchains.misc;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 
@@ -46,16 +45,14 @@ import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
-import com.eqchains.util.Base58;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
-import com.eqchains.util.Util.AddressTool;
-import com.eqchains.util.Util.AddressTool.AddressType;
 
 
 /**
@@ -110,12 +107,12 @@ public class MiscTest {
 		try {
 			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
 			 for(int i=0; i<id.intValue(); ++i) {
-				   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+				   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINERING));
 					accountsMerkleTree.buildAccountsMerkleTree();
 					accountsMerkleTree.generateRoot();
 					Log.info(Util.dumpBytes(accountsMerkleTree.getRoot(), 16));
 					EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
-					accountsMerkleTree.close();
+					accountsMerkleTree.clear();
 					assertArrayEquals(accountsMerkleTree.getRoot(), eqcBlock.getRoot().getAccountsMerkelTreeRoot());
 				   }
 		} catch (Exception e) {
@@ -130,10 +127,10 @@ public class MiscTest {
 		try {
 			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
 			 for(int i=1; i<id.intValue(); ++i) {
-			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(Mode.MINERING));
 			   EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
 				assertTrue(eqcBlock.verify(accountsMerkleTree));
-				accountsMerkleTree.close();
+				accountsMerkleTree.clear();
 				 Log.info("i: " + i + " passed");
 			   }
 		} catch (Exception e1) {

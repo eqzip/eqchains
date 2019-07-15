@@ -32,7 +32,7 @@ package com.eqchains.rpc;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -42,7 +42,7 @@ import com.eqchains.util.ID;
  * @date Jun 27, 2019
  * @email 10509759@qq.com
  */
-public class TransactionIndex extends AvroIO {
+public class TransactionIndex extends AvroO {
 	private ID id;
 	private ID nonce;
 	private byte[] proof;
@@ -61,7 +61,7 @@ public class TransactionIndex extends AvroIO {
 		EQCType.assertNoRedundantData(is);
 	}
 	
-	public TransactionIndex(IO io) throws Exception {
+	public TransactionIndex(O io) throws Exception {
 		parse(io);
 	}
 

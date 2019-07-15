@@ -29,8 +29,6 @@
  */
 package com.eqchains.blockchain;
 
-import static org.junit.jupiter.api.Assumptions.assumingThat;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

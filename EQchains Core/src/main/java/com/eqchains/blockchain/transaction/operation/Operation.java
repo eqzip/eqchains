@@ -56,7 +56,7 @@ import com.eqchains.util.Log;
 public abstract class Operation implements EQCAddressShapeTypable, EQCAddressShapeInheritable {
 
 	public enum OP {
-		ADDRESS, TXFEERATE, EMAIL, RENEW, INVALID;
+		ADDRESS, TXFEERATE, EMAIL, RENEW, CHECKPOINT, INVALID;
 		public static OP get(int ordinal) {
 			OP op = null;
 			switch (ordinal) {
@@ -71,6 +71,9 @@ public abstract class Operation implements EQCAddressShapeTypable, EQCAddressSha
 				break;
 			case 3:
 				op = OP.RENEW;
+				break;
+			case 4:
+				op = OP.CHECKPOINT;
 				break;
 			default:
 				op = OP.INVALID;

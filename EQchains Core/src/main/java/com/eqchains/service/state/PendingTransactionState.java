@@ -27,62 +27,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc;
+package com.eqchains.service.state;
 
-import org.apache.avro.ipc.NettyTransceiver;
-
-import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.util.Util;
+import com.eqchains.avro.O;
 
 /**
  * @author Xun Wang
- * @date Jun 29, 2019
+ * @date Jul 7, 2019
  * @email 10509759@qq.com
  */
-public class EQCProxy {
-	protected NettyTransceiver client = null;
-	protected static Cookie cookie;
-	protected Info info;
-	static {
-		cookie = new Cookie();
-		cookie.setIp(Util.IP);
-		cookie.setVersion(Util.PROTOCOL_VERSION);
-	}
-	public EQCProxy() {
-		info = new Info();
-		info.setCode(Code.OK);
-		info.setCookie(cookie);
+public class PendingTransactionState extends EQCServiceState {
+	private byte[] transaction;
+	
+	public PendingTransactionState() {
+		super(State.PENDINGTRANSACTION);
 	}
 	
-	/**
-	 * @return the cookie
-	 */
-	public Cookie getCookie() {
-		return cookie;
+	public PendingTransactionState(O transactionRPC) {
+		super(State.PENDINGTRANSACTION);
+		transaction = transactionRPC.getO().array();
 	}
+
 	/**
-	 * @param cookie the cookie to set
+	 * @return the transaction
 	 */
-	public void setCookie(Cookie cookie) {
-		this.cookie = cookie;
+	public byte[] getTransaction() {
+		return transaction;
 	}
+
 	/**
-	 * @return the info
+	 * @param transaction the transaction to set
 	 */
-	public Info getInfo() {
-		return info;
-	}
-	/**
-	 * @param info the info to set
-	 */
-	public void setInfo(Info info) {
-		this.info = info;
-	}
-	
-	public void close() {
-		if(client != null) {
-			client.close();
-		}
+	public void setTransaction(byte[] transaction) {
+		this.transaction = transaction;
 	}
 	
 }

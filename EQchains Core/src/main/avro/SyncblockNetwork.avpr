@@ -2,33 +2,35 @@
  "protocol": "SyncblockNetwork",
 
  "types": [
-     {"name": "IO", "type": "record",
+     {"name": "O", "type": "record",
       "fields": [
-          {"name": "object", "type": "bytes"}
+          {"name": "o", "type": "bytes"}
       ]
      }
  ],
 
  "messages": {
      "ping": {
-         "request": [{"name": "cookie", "type": "IO"}],
-         "response": "IO"
+         // c means cookie
+         "request": [{"name": "c", "type": "O"}],
+         "response": "O"
      },
      "getMinerList": {
          "request": [],
-         "response": "IO"
+         "response": "O"
    	  },
      "getFullNodeList": {
          "request": [],
-         "response": "IO"
+         "response": "O"
      },
      "getBlockTail": {
          "request": [],
-         "response": "IO"
+         "response": "O"
    	  },
    	 "getBlock": {
-         "request": [{"name": "height", "type": "IO"}],
-         "response": "IO"
+   	 	 // h means height
+         "request": [{"name": "h", "type": "O"}],
+         "response": "O"
    	}
  }
 }

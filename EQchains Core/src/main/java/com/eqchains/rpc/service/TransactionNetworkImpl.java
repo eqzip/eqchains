@@ -27,14 +27,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
+package com.eqchains.rpc.service;
 
 import java.nio.ByteBuffer;
 import java.util.Vector;
 
 import org.apache.avro.AvroRemoteException;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.avro.TransactionNetwork;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
@@ -46,8 +46,8 @@ import com.eqchains.rpc.MaxNonce;
 import com.eqchains.rpc.Nest;
 import com.eqchains.rpc.TransactionList;
 import com.eqchains.serialization.EQCType;
-import com.eqchains.service.PendingTransactionService.PendingTransaction;
-import com.eqchains.service.PossibleNodeService.PossibleNode;
+import com.eqchains.service.PendingTransactionService;
+import com.eqchains.service.state.PendingTransactionState;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -64,16 +64,16 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#ping(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO ping(IO cookie) throws AvroRemoteException {
-		IO info = null;
+	public O ping(O cookie) {
+		O info = null;
 		Cookie cookie1 = null;
 		try {
 			cookie1 = new Cookie(cookie);
 			if(cookie1.isSanity()) {
-				info = Util.getDefaultInfo().getIO();
+				info = Util.getDefaultInfo().getO();
 			}
 			else {
-				info = Util.getInfo(Code.WRONGPROTOCOL, null).getIO();
+				info = Util.getInfo(Code.WRONGPROTOCOL, null).getO();
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -87,10 +87,10 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getMinerList()
 	 */
 	@Override
-	public IO getMinerList() throws AvroRemoteException {
-		IO minerList = null;
+	public O getMinerList() {
+		O minerList = null;
 		try {
-			minerList = EQCBlockChainH2.getInstance().getMinerList().getIO();
+			minerList = EQCBlockChainH2.getInstance().getMinerList().getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -103,13 +103,13 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#sendTransaction(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO sendTransaction(IO transactionRPC) throws AvroRemoteException {
-		IO info = null;
-		PendingTransaction pendingTransaction = null;
+	public O sendTransaction(O transactionRPC) {
+		O info = null;
+		PendingTransactionState pendingTransactionState = null;
 		try {
-			pendingTransaction = new PendingTransaction(transactionRPC);
-			PendingTransactionService.getInstance().offerPendingTransaction(pendingTransaction);
-			info = Util.getDefaultInfo().getIO();
+			pendingTransactionState = new PendingTransactionState(transactionRPC);
+			PendingTransactionService.getInstance().offerPendingTransactionState(pendingTransactionState);
+			info = Util.getDefaultInfo().getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -122,13 +122,13 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getID(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getID(IO readableAddress) throws AvroRemoteException {
-		IO id = null;
+	public O getID(O readableAddress) {
+		O id = null;
 		Account account = null;
 		try {
-			account = Util.DB().getAccount(AddressTool.addressToAI(EQCType.bytesToASCIISting(readableAddress.getObject().array())));
+			account = Util.DB().getAccount(AddressTool.addressToAI(EQCType.bytesToASCIISting(readableAddress.getO().array())));
 			if(account != null) {
-				id = account.getID().getIO();
+				id = account.getID().getO();
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -142,13 +142,13 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getAccount(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getAccount(IO id) throws AvroRemoteException {
-		IO io = null;
+	public O getAccount(O id) {
+		O io = null;
 		Account account = null;
 		try {
 			account = Util.DB().getAccount(new ID(id));
 			if(account != null) {
-				io = account.getIO();
+				io = account.getO();
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -162,12 +162,12 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getMaxNonce(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getMaxNonce(IO nest) throws AvroRemoteException {
-		IO io = null;
+	public O getMaxNonce(O nest) {
+		O io = null;
 		MaxNonce maxNonce = null;
 		try {
 			maxNonce = EQCBlockChainH2.getInstance().getTransactionMaxNonce(new Nest(nest));
-			io = maxNonce.getIO();
+			io = maxNonce.getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -180,12 +180,12 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getBalance(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getBalance(IO nest) throws AvroRemoteException {
-		IO io = null;
+	public O getBalance(O nest) {
+		O io = null;
 		Balance balance = null;
 		try {
 			balance = Util.DB().getBalance(new Nest(nest));
-			io = balance.getIO();
+			io = balance.getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -197,13 +197,13 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getSignHash(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getSignHash(IO id) throws AvroRemoteException {
-		IO io = null;
+	public O getSignHash(O id) {
+		O io = null;
 		byte[] signHash = null;
 		try {
 			signHash = Util.DB().getAccount(new ID(id)).getSignatureHash();
 			if(signHash != null) {
-				io = new IO(ByteBuffer.wrap(signHash));
+				io = new O(ByteBuffer.wrap(signHash));
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -217,15 +217,15 @@ public class TransactionNetworkImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getTransactionList(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getPendingTransactionList(IO id) throws AvroRemoteException {
-		IO io = null;
+	public O getPendingTransactionList(O id) {
+		O io = null;
 		TransactionList transactionList = new TransactionList();
 		Vector<byte[]> vector = null;
 		try {
 			vector = EQCBlockChainH2.getInstance().getPendingTransactionListInPool(new ID(io));
 			if(vector != null) {
 				transactionList.addAll(vector);
-				io = transactionList.getIO();
+				io = transactionList.getO();
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

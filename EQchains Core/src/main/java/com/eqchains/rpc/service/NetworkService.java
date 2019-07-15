@@ -27,53 +27,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
+package com.eqchains.rpc.service;
 
-import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.keystore.Keystore;
-import com.eqchains.service.state.EQCServiceState;
-import com.eqchains.service.state.PendingTransactionState;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.avro.ipc.Server;
 import com.eqchains.util.Log;
 
 /**
  * @author Xun Wang
- * @date Jun 30, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class PendingTransactionService extends EQCService {
-	private static PendingTransactionService instance;
-	
-	public static PendingTransactionService getInstance() {
-		if (instance == null) {
-			synchronized (Keystore.class) {
-				if (instance == null) {
-					instance = new PendingTransactionService();
-				}
-			}
+public abstract class NetworkService {
+	protected Server server;
+	protected final AtomicBoolean isRunning = new AtomicBoolean(false);
+
+	public synchronized void start() {
+		Log.info("Starting " + this.getClass().getSimpleName());
+		if (server != null) {
+			server.close();
 		}
-		return instance;
 	}
 	
-    /* (non-Javadoc)
-	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
+	public synchronized void stop() {
+		Log.info("Begin stop " + this.getClass().getSimpleName());
+		close();
+		Log.info(this.getClass().getSimpleName() + " stopped...");
+	}
+	
+	private void close() {
+		if(server != null) {
+			server.close();
+			server = null;
+			isRunning.set(false);
+		}
+	}
+	
+	public boolean isRunning() {
+		return isRunning.get();
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#finalize()
 	 */
 	@Override
-	protected void onDefault(EQCServiceState state) {
-		PendingTransactionState pendingTransactionState = null;
-		Transaction transaction = null;
-		try {
-			pendingTransactionState = (PendingTransactionState) state;
-			transaction = Transaction.parseRPC(pendingTransactionState.getTransaction());
-			transaction.update();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
+	protected void finalize() throws Throwable {
+		close();
 	}
-
-	public void offerPendingTransactionState(PendingTransactionState pendingTransactionState) {
-		pendingMessage.offer(pendingTransactionState);
-	}
-
+	
 }

@@ -30,7 +30,6 @@
 package com.eqchains.configuration;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -38,9 +37,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
-import java.util.Vector;
-
 import com.eqchains.keystore.Keystore;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.Log;

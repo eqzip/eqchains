@@ -326,6 +326,10 @@ public class EQCHeader implements EQCTypable {
 		return true;
 	}
 	
+	public boolean isDifficultyValid() {
+		return (new BigInteger(1, getHash()).compareTo(Util.targetBytesToBigInteger(target)) <= 0);
+	}
+	
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree, byte[] rootHash) throws RocksDBException, Exception {
 		if(!isSanity()) {
 			Log.info("Sanity test failed.");

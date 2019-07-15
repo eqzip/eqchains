@@ -30,19 +30,15 @@
 package com.eqchains.persistence.rocksdb;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 
-import org.h2.command.ddl.CreateTable;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.MutableColumnFamilyOptions;
@@ -51,15 +47,11 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
-import org.rocksdb.TransactionDB;
-import org.rocksdb.TransactionDBOptions;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCBlockChain;
-import com.eqchains.blockchain.EQCHeader;
-import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
@@ -92,26 +84,28 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	private static WriteOptions writeOptions;
 	public static final byte[] SUFFIX_AI = "AI".getBytes();
 	public static final byte[] SUFFIX_HASH = "Hash".getBytes();
-	public static final byte[] EQCBLOCK_TABLE = "EQCBlock".getBytes();
-	public static final byte[] EQCBLOCK_HASH_TABLE = addSuffix(EQCBLOCK_TABLE, SUFFIX_HASH);
-	public static final byte[] ACCOUNT_TABLE = "Account".getBytes();
-	public static final byte[] ACCOUNT_AI_TABLE = addSuffix(ACCOUNT_TABLE, SUFFIX_AI);
-	public static final byte[] ACCOUNT_HASH_TABLE = addSuffix(ACCOUNT_TABLE, SUFFIX_HASH);
-	public static final byte[] ACCOUNT_MINERING_TABLE = "AccountMinering".getBytes();
-	public static final byte[] ACCOUNT_MINERING_AI_TABLE = addSuffix(ACCOUNT_MINERING_TABLE, SUFFIX_AI);
-	public static final byte[] ACCOUNT_MINERING_HASH_TABLE = addSuffix(ACCOUNT_MINERING_TABLE, SUFFIX_HASH);
 	public static final byte[] MISC_TABLE = "Misc".getBytes();
 	public static final byte[] PREFIX_H = "H".getBytes();
-	public static final byte[] EQCBLOCK_TAIL_HEIGHT = "EQCBlock_Tail_Height".getBytes();
+	public static final byte[] EQCBLOCK_TAIL_HEIGHT = "EQCBlockTailHeight".getBytes();
 	
 	public enum TABLE {
-		DEFAULT, EQCBLOCK, EQCBLOCK_HASH, ACCOUNT, ACCOUNT_AI, ACCOUNT_HASH, MISC
+		DEFAULT, 
+		EQCBLOCK, EQCBLOCK_HASH, 
+		ACCOUNT, ACCOUNT_AI, ACCOUNT_HASH, 
+		ACCOUNT_MINERING, ACCOUNT_MINERING_AI, ACCOUNT_MINERING_HASH, 
+		ACCOUNT_VALID, ACCOUNT_VALID_AI, ACCOUNT_VALID_HASH, 
+		MISC
 	}
 
 	static {
 		RocksDB.loadLibrary();
-		defaultColumnFamilyNames = Arrays.asList(RocksDB.DEFAULT_COLUMN_FAMILY, EQCBLOCK_TABLE, EQCBLOCK_HASH_TABLE,
-				ACCOUNT_TABLE, ACCOUNT_AI_TABLE, ACCOUNT_HASH_TABLE, MISC_TABLE);
+		defaultColumnFamilyNames = Arrays.asList(
+				RocksDB.DEFAULT_COLUMN_FAMILY, 
+				TABLE.EQCBLOCK.name().getBytes(), TABLE.EQCBLOCK_HASH.name().getBytes(),
+				TABLE.ACCOUNT.name().getBytes(), TABLE.ACCOUNT_AI.name().getBytes(), TABLE.ACCOUNT_HASH.name().getBytes(), 
+				TABLE.ACCOUNT_MINERING.name().getBytes(), TABLE.ACCOUNT_MINERING_AI.name().getBytes(), TABLE.ACCOUNT_MINERING_HASH.name().getBytes(), 
+				TABLE.ACCOUNT_VALID.name().getBytes(), TABLE.ACCOUNT_VALID_AI.name().getBytes(), TABLE.ACCOUNT_VALID_HASH.name().getBytes(), 
+				TABLE.MISC.name().getBytes());
 	}
 
 	private EQCBlockChainRocksDB() throws RocksDBException {
@@ -148,6 +142,12 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT), mutableColumnFamilyOptions);
 			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_AI), mutableColumnFamilyOptions);
 			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_HASH), mutableColumnFamilyOptions);
+			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_MINERING), mutableColumnFamilyOptions);
+ 			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_MINERING_AI), mutableColumnFamilyOptions);
+			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_MINERING_HASH), mutableColumnFamilyOptions);
+			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_VALID), mutableColumnFamilyOptions);
+			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_VALID_AI), mutableColumnFamilyOptions);
+			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_VALID_HASH), mutableColumnFamilyOptions);
 			rocksDB.setOptions(getTableHandle(TABLE.MISC), mutableColumnFamilyOptions);
 	}
 	
@@ -431,11 +431,17 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 	
 	@Override
-	public boolean close() {
-		for(ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
-			columnFamilyHandle.close();
+	public synchronized boolean close() {
+		if (columnFamilyHandles != null) {
+			for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
+				columnFamilyHandle.close();
+			}
+			columnFamilyHandles = null;
 		}
-		rocksDB.close();
+		if (rocksDB != null) {
+			rocksDB.close();
+			rocksDB = null;
+		}
 		return true;
 	}
 	
@@ -444,8 +450,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	 */
 	@Override
 	protected void finalize() throws Throwable {
-		// TODO Auto-generated method stub
-		super.finalize();
 		close();
 	}
 

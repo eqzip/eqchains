@@ -32,7 +32,7 @@ package com.eqchains.rpc;
 import java.io.ByteArrayInputStream;
 import java.util.Vector;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -42,7 +42,7 @@ import com.eqchains.serialization.EQCType.ARRAY;
  * @date Jun 27, 2019
  * @email 10509759@qq.com
  */
-public class TransactionIndexList extends AvroIO {
+public class TransactionIndexList extends AvroO {
 	private Vector<TransactionIndex> transactionIndexList;
 	private long transactionIndexListSize;
 	
@@ -50,7 +50,7 @@ public class TransactionIndexList extends AvroIO {
 		transactionIndexList = new Vector<>();
 	}
 	
-	public TransactionIndexList(IO io) throws Exception {
+	public TransactionIndexList(O io) throws Exception {
 		transactionIndexList = new Vector<>();
 		parse(io);
 	}

@@ -403,6 +403,10 @@ public class TransferTransaction extends Transaction {
 				|| signature == null) {
 			return false;
 		}
+		
+		if(!getAssetID().equals(Asset.EQCOIN)) {
+			return false;
+		}
 
 		if (!publickey.isSanity()) {
 			return false;
@@ -418,9 +422,15 @@ public class TransferTransaction extends Transaction {
 			if (!txIn.getPassport().isGood()) {
 				return false;
 			}
+			if(txIn.getPassport().getAddressType() != AddressType.T1 || txIn.getPassport().getAddressType() != AddressType.T2) {
+				return false;
+			}
 		}
 		for (TxOut txOut : txOutList) {
 			if (!txOut.isSanity(addressShape)) {
+				return false;
+			}
+			if(txOut.getPassport().getAddressType() != AddressType.T1 || txOut.getPassport().getAddressType() != AddressType.T2) {
 				return false;
 			}
 		}
@@ -433,15 +443,7 @@ public class TransferTransaction extends Transaction {
 		if(!isBasicSanity(addressShape)) {
 			return false;
 		}
-		for (TxOut txOut : txOutList) {
-			if(txOut.getPassport().getAddressType() != AddressType.T1 || txOut.getPassport().getAddressType() != AddressType.T2) {
-				return false;
-			}
-		}
 		if (transactionType != TransactionType.TRANSFER) {
-			return false;
-		}
-		if(!getAssetID().equals(Asset.EQCOIN)) {
 			return false;
 		}
 		return true;

@@ -32,8 +32,7 @@ package com.eqchains.util;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
-import com.eqchains.avro.IO;
-import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.avro.O;
 import com.eqchains.serialization.EQCType;
 
 /**
@@ -66,8 +65,8 @@ public class ID extends BigInteger {
 		super(EQCType.eqcBitsToBigInteger(bytes).toByteArray());
 	}
 	
-	public ID(final IO io) {
-		super(EQCType.eqcBitsToBigInteger(io.getObject().array()).toByteArray());
+	public ID(final O o) {
+		super(EQCType.eqcBitsToBigInteger(o.getO().array()).toByteArray());
 	}
 	
 	/**
@@ -170,8 +169,8 @@ public class ID extends BigInteger {
 		return new ID(value);
 	}
 	
-	public IO getIO() {
-		return new IO(ByteBuffer.wrap(this.getEQCBits()));
+	public O getO() {
+		return new O(ByteBuffer.wrap(this.getEQCBits()));
 	}
 	
 }

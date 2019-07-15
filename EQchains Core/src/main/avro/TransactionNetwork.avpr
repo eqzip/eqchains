@@ -2,49 +2,54 @@
  "protocol": "TransactionNetwork",
 
  "types": [
-     {"name": "IO", "type": "record",
+     {"name": "O", "type": "record",
       "fields": [
-          {"name": "object", "type": "bytes"}
+          {"name": "o", "type": "bytes"}
       ]
      }
  ],
 
  "messages": {
      "ping": {
-         "request": [{"name": "cookie", "type": "IO"}],
-         "response": "IO"
+     	 // c means cookie
+         "request": [{"name": "c", "type": "O"}],
+         "response": "O"
      },
      "getMinerList": {
          "request": [],
-         "response": "IO"
+         "response": "O"
    	  },
      "sendTransaction": {
-         "request": [{"name": "transactionRPC", "type": "IO"}],
-         "response": "IO"
+     	 // r means transactionRPC
+         "request": [{"name": "r", "type": "O"}],
+         "response": "O"
      },
      "getID": {
-         "request": [{"name": "readableAddress", "type": "IO"}],
-         "response": "IO"
+     	 // a means readableAddress
+         "request": [{"name": "a", "type": "O"}],
+         "response": "O"
    	  },
    	  "getAccount": {
-         "request": [{"name": "id", "type": "IO"}],
-         "response": "IO"
+   	  	 // i means id
+         "request": [{"name": "i", "type": "O"}],
+         "response": "O"
    	  },
    	  "getMaxNonce": {
-         "request": [{"name": "nest", "type": "IO"}],
-         "response": "IO"
+   	     // n means nest
+         "request": [{"name": "n", "type": "O"}],
+         "response": "O"
    	  },
    	  "getBalance": {
-         "request": [{"name": "nest", "type": "IO"}],
-         "response": "IO"
+         "request": [{"name": "n", "type": "O"}],
+         "response": "O"
    	  },
    	  "getSignHash": {
-         "request": [{"name": "id", "type": "IO"}],
-         "response": "IO"
+         "request": [{"name": "i", "type": "O"}],
+         "response": "O"
    	  },
    	  "getPendingTransactionList": {
-         "request": [{"name": "id", "type": "IO"}],
-         "response": "IO"
+         "request": [{"name": "i", "type": "O"}],
+         "response": "O"
    	  }
  }
 }

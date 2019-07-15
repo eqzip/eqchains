@@ -27,54 +27,64 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc;
+package com.eqchains.service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
-
-import com.eqchains.avro.IO;
-import com.eqchains.serialization.EQCInheritable;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.serialization.EQCType;
+import com.eqchains.keystore.Keystore;
+import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.client.MinerNetworkClient;
+import com.eqchains.service.state.EQCServiceState;
+import com.eqchains.service.state.NewBlockState;
+import com.eqchains.service.state.EQCServiceState.State;
+import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 25, 2019
+ * @date Jul 13, 2019
  * @email 10509759@qq.com
  */
-public abstract class AvroIO implements EQCTypable, EQCInheritable {
+public class BroadcastNewBlockService extends EQCService {
+	private static BroadcastNewBlockService instance;
 	
-	public AvroIO() {}
-	
-	public AvroIO(ByteArrayInputStream is) throws Exception {
-		parseBody(is);
-	}
-	
-	protected void parse(IO io) throws Exception {
-		byte[] bytes = io.getObject().array();
-		EQCType.assertNotNull(bytes);
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		parseBody(is);
-		EQCType.assertNoRedundantData(is);
-	}
-	
-	public IO getIO() throws Exception {
-		return new IO(ByteBuffer.wrap(getBytes()));
+	public static BroadcastNewBlockService getInstance() {
+		if (instance == null) {
+			synchronized (Keystore.class) {
+				if (instance == null) {
+					instance = new BroadcastNewBlockService();
+				}
+			}
+		}
+		return instance;
 	}
 
-	public byte[] getBytes() throws Exception {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(getBodyBytes());
-		return os.toByteArray();
-	}
-	
 	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#getBin()
+	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
 	 */
 	@Override
-	public byte[] getBin() throws Exception {
-		return EQCType.bytesToBIN(getBytes());
+	protected void onDefault(EQCServiceState state) {
+		NewBlockState newBlockState = null;
+		try {
+			this.state.set(State.BROADCASTNEWBLOCK);
+			newBlockState = (NewBlockState) state;
+			if(!Util.IP.equals(Util.SINGULARITY_IP)) {
+				MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock().getEqcHive(), Util.SINGULARITY_IP);
+			}
+			IPList minerList = EQCBlockChainH2.getInstance().getMinerList();
+			if(!minerList.isEmpty()) {
+				for(String ip:minerList.getIpList()) {
+					MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock().getEqcHive(), ip);
+				}
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(name + e.getMessage());
+		}
+	}
+
+	public void offerNewBlockState(NewBlockState newBlockState) {
+		offerState(newBlockState);
 	}
 	
 }

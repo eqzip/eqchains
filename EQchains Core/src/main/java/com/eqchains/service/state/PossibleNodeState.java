@@ -27,41 +27,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
+package com.eqchains.service.state;
 
-import java.net.InetSocketAddress;
-
-import org.apache.avro.ipc.NettyServer;
-import org.apache.avro.ipc.Server;
-import org.apache.avro.ipc.specific.SpecificResponder;
-
-import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.keystore.Keystore;
-import com.eqchains.util.Log;
+import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
 
 /**
  * @author Xun Wang
- * @date Jun 29, 2019
+ * @date Jul 7, 2019
  * @email 10509759@qq.com
  */
-public abstract class NetworkService {
-	protected static NetworkService instance;
-	protected Server server;
-
-	public synchronized void start() {
-		Log.info("Starting " + this.getClass().getSimpleName());
-		if (server != null) {
-			server.close();
-		}
+public class PossibleNodeState extends EQCServiceState {
+	private String ip;
+	private NODETYPE nodeType;
+	
+	public PossibleNodeState() {
+		super(State.POSSIBLENODE);
 	}
 	
-	public synchronized void stop() {
-		if(server != null) {
-			Log.info("Begin stop " + this.getClass().getSimpleName());
-			server.close();
-			server = null;
-			Log.info(this.getClass().getSimpleName() + " stopped...");
+	@Override
+	public int compareTo(EQCServiceState o) {
+		PossibleNodeState possibleNode = (PossibleNodeState) o;
+		if(nodeType == possibleNode.nodeType) {
+			return (int) (possibleNode.time - time);
 		}
+		return nodeType.compareTo(possibleNode.nodeType);
 	}
-	
+	/**
+	 * @return the ip
+	 */
+	public String getIp() {
+		return ip;
+	}
+	/**
+	 * @param ip the ip to set
+	 */
+	public void setIp(String ip) {
+		this.ip = ip;
+	}
+	/**
+	 * @return the nodeType
+	 */
+	public NODETYPE getNodeType() {
+		return nodeType;
+	}
+	/**
+	 * @param nodeType the nodeType to set
+	 */
+	public void setNodeType(NODETYPE nodeType) {
+		this.nodeType = nodeType;
+	}
 }

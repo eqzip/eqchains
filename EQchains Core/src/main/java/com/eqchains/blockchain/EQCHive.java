@@ -46,7 +46,7 @@ import javax.print.attribute.Size2DSyntax;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Passport;
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
@@ -68,7 +68,6 @@ import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 import com.eqchains.util.Util.AddressTool.AddressType;
-import com.sun.org.apache.bcel.internal.generic.I2F;
 
 /**
  * @author Xun Wang
@@ -105,8 +104,8 @@ public class EQCHive implements EQCTypable {
 		}
 	}
 
-	public EQCHive(IO io, boolean isSegwit) throws NoSuchFieldException, IOException {
-		byte[] bytes = io.getObject().array();
+	public EQCHive(O o, boolean isSegwit) throws NoSuchFieldException, IOException {
+		byte[] bytes = o.getO().array();
 		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		// Parse EqcHeader
@@ -851,8 +850,8 @@ public class EQCHive implements EQCTypable {
 //		return true;
 //	}
 
-	public IO getIO() {
-		return new IO(ByteBuffer.wrap(this.getBytes()));
+	public O getO() {
+		return new O(ByteBuffer.wrap(this.getBytes()));
 	}
 	
 }

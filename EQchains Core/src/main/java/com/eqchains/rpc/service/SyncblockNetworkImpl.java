@@ -22,18 +22,18 @@
  * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTON) HOWEVER CAUSED AND ON ANY
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
+package com.eqchains.rpc.service;
 
 import java.nio.ByteBuffer;
 
 import org.apache.avro.AvroRemoteException;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.account.Account;
@@ -41,8 +41,9 @@ import com.eqchains.blockchain.account.Asset;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Cookie;
-import com.eqchains.rpc.Europa;
-import com.eqchains.service.PossibleNodeService.PossibleNode;
+import com.eqchains.rpc.TailInfo;
+import com.eqchains.service.PossibleNodeService;
+import com.eqchains.service.state.PossibleNodeState;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -55,16 +56,16 @@ import com.eqchains.util.Util;
 public class SyncblockNetworkImpl implements SyncblockNetwork {
 
 	@Override
-	public IO ping(IO cookie) throws AvroRemoteException {
-		IO info = null;
+	public O ping(O cookie) {
+		O info = null;
 		try {
 			Cookie cookie1 = new Cookie(cookie);
-			PossibleNode possibleNode = new PossibleNode();
+			PossibleNodeState possibleNode = new PossibleNodeState();
 			possibleNode.setIp(cookie1.getIp());
 			possibleNode.setNodeType(NODETYPE.FULL);
 			possibleNode.setTime(System.currentTimeMillis());
 			PossibleNodeService.getInstance().offerNode(possibleNode);
-			info = Util.getDefaultInfo().getIO();
+			info = Util.getDefaultInfo().getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -74,10 +75,10 @@ public class SyncblockNetworkImpl implements SyncblockNetwork {
 	}
 
 	@Override
-	public IO getMinerList() throws AvroRemoteException {
-		IO minerList = null;
+	public O getMinerList() {
+		O minerList = null;
 		try {
-			minerList = EQCBlockChainH2.getInstance().getMinerList().getIO();
+			minerList = EQCBlockChainH2.getInstance().getMinerList().getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -87,10 +88,10 @@ public class SyncblockNetworkImpl implements SyncblockNetwork {
 	}
 
 	@Override
-	public IO getFullNodeList() throws AvroRemoteException {
-		IO fullNodeList = null;
+	public O getFullNodeList() {
+		O fullNodeList = null;
 		try {
-			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getIO();
+			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -100,17 +101,17 @@ public class SyncblockNetworkImpl implements SyncblockNetwork {
 	}
 
 	@Override
-	public IO getBlockTail() throws AvroRemoteException {
-		IO io = null;
-		Europa europa = null;
+	public O getBlockTail() {
+		O io = null;
+		TailInfo europa = null;
 		Account account = null;
 		try {
-			europa = new Europa();
+			europa = new TailInfo();
 			europa.setHeight(Util.DB().getEQCBlockTailHeight());
 			account = Util.DB().getAccount(ID.THREE);
-			europa.setNonce(account.getAsset(Asset.EQCOIN).getNonce());
+			europa.setEuropaNonce(account.getAsset(Asset.EQCOIN).getNonce());
 			europa.setBlockTailProof(Util.DB().getEQCBlock(europa.getHeight(), true).getEqcHeader().getProof());
-			io = europa.getIO();
+			io = europa.getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -120,13 +121,13 @@ public class SyncblockNetworkImpl implements SyncblockNetwork {
 	}
 
 	@Override
-	public IO getBlock(IO height) throws AvroRemoteException {
-		IO block = null;
+	public O getBlock(O height) {
+		O block = null;
 		EQCHive eqcHive = null;
 		try {
 			eqcHive = Util.DB().getEQCBlock(new ID(height), false);
 			if(eqcHive != null) {
-				block = eqcHive.getIO();
+				block = eqcHive.getO();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

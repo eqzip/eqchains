@@ -63,8 +63,6 @@ import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 import com.eqchains.util.Util.AddressTool;
 
-import avro.shaded.com.google.common.base.Objects;
-
 
 /**
  * @author Xun Wang

@@ -29,10 +29,12 @@
  */
 package com.eqchains.service;
 
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
-import javax.xml.stream.events.StartDocument;
-
+import com.eqchains.service.state.EQCServiceState;
+import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.util.Log;
 
 /**
@@ -40,65 +42,220 @@ import com.eqchains.util.Log;
  * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class EQCService implements Runnable {
-	protected static EQCService instance;
-	private Thread worker;
+public abstract class EQCService implements Runnable {
+	protected final PriorityBlockingQueue<EQCServiceState> pendingMessage;
+	protected Thread worker;
 	protected final AtomicBoolean isRunning = new AtomicBoolean(false);
 	protected final AtomicBoolean isPausing = new AtomicBoolean(false);
-	private Object paused;
-	
-	public void start() {
+	protected final AtomicBoolean isSleeping = new AtomicBoolean(false);
+	protected final AtomicBoolean isWaiting = new AtomicBoolean(false);
+	protected final AtomicReference<State> state = new AtomicReference<>();
+	protected final String name = this.getClass().getSimpleName() + " ";
+
+	public EQCService() {
+		pendingMessage = new PriorityBlockingQueue<>();
+	}
+
+	public synchronized void start() {
+		boolean isNeedStart = false;
 		if (worker == null) {
+			isNeedStart = true;
+		} else {
+			if (!worker.isAlive()) {
+				isNeedStart = true;
+			}
+		}
+		if (isNeedStart) {
 			worker = new Thread(this);
-			worker.setPriority(Thread.MAX_PRIORITY);
+			worker.setPriority(Thread.NORM_PRIORITY);
+			isRunning.set(true);
 			worker.start();
 		}
 	}
 
-	public void stop() {
-		isRunning.set(false);
-		if(isPausing.get()) {
-			resume();
+	public boolean isRunning() {
+		if(worker == null) {
+			return false;
 		}
+		return worker.isAlive();
 	}
 
+	public void stop() {
+		isRunning.set(false);
+		pendingMessage.clear();
+		if(isSleeping.get()) {
+			resumeSleeping();
+		}
+		if (isPausing.get()) {
+			resumePause();
+		}
+		offerState(new EQCServiceState(State.STOP));
+		Log.info(name + " begining stop");
+	}
+	
 	public void pause() {
 		isPausing.set(true);
 	}
 
-	public void isPaused() {
+	public void onPause() {
 		if (isPausing.get()) {
-			synchronized (paused) {
+			synchronized (isPausing) {
 				try {
-					paused.wait();
+					isPausing.wait();
 					isPausing.set(false);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 					Log.Error(e.getMessage());
-					;
 				}
 			}
 		}
 	}
 
-	public void resume() {
-		synchronized (paused) {
-			paused.notify();
+	public void resumePause() {
+		synchronized (isPausing) {
+			isPausing.notify();
+		}
+	}
+
+	public void waiting() {
+		isWaiting.set(true);
+		EQCServiceState state = new EQCServiceState();
+		state.setState(State.WAIT);
+		state.setTime(System.currentTimeMillis());
+		offerState(state);
+	}
+
+	public void onWaiting() {
+		if (isWaiting.get()) {
+			synchronized (isWaiting) {
+				try {
+					isWaiting.wait();
+					isWaiting.set(false);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(e.getMessage());
+				}
+			}
+		}
+	}
+
+	public void resumeWaiting() {
+		synchronized (isWaiting) {
+			isWaiting.notify();
+		}
+	}
+
+	public void sleeping() {
+		isSleeping.set(true);
+		EQCServiceState state = new EQCServiceState();
+		state.setState(State.SLEEP);
+		state.setTime(System.currentTimeMillis());
+		offerState(state);
+	}
+
+	public void onSleeping(long time) {
+		if (isSleeping.get()) {
+			synchronized (isSleeping) {
+				try {
+					if (time == 0) {
+						isSleeping.wait();
+					} else {
+						isSleeping.wait(time);
+					}
+					isSleeping.set(false);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(e.getMessage());
+				}
+			}
+		}
+	}
+
+	public void resumeSleeping() {
+		synchronized (isSleeping) {
+			isSleeping.notify();
 		}
 	}
 
 	@Override
 	public void run() {
-		Log.info("run");
-		isRunning.set(true);
+		Log.info(name + "is running now...");
+		EQCServiceState state = null;
 		while (isRunning.get()) {
-			runner();
+			try {
+				Log.info(name + "Waiting for new message...");
+				state = pendingMessage.take();
+				Log.info(name + "take state: " + state);
+				this.state.set(State.TAKE);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.Error(name + e.getMessage());
+				this.state.set(State.ERROR);
+				continue;
+			}
+			switch (state.getState()) {
+			case SLEEP:
+				this.state.set(State.SLEEP);
+				Log.info(name + "Begin onSleep");
+				onSleep(state);
+				Log.info(name + "End onSleep");
+				break;
+			case WAIT:
+				this.state.set(State.WAIT);
+				Log.info(name + "Begin onWaiting");
+				onWaiting(state);
+				Log.info(name + "End onWaiting");
+				break;
+			case STOP:
+				Log.info(name + "Begin onStop");
+				onStop(state);
+				Log.info(name + "End onStop");
+				break;
+			default:
+				Log.info(name + "Begin onDefault");
+				onDefault(state);
+				Log.info(name + "End onDefault");
+				break;
+			}
+		}
+		Log.info(name + " stopped");
+	}
+
+	protected void onSleep(EQCServiceState state) {
+		onSleeping(300000);
+		state = new EQCServiceState();
+		state.setState(State.FIND);
+		state.setTime(System.currentTimeMillis());
+		offerState(state);
+	}
+
+	protected void onWaiting(EQCServiceState state) {
+		onWaiting();
+	}
+
+	protected void onStop(EQCServiceState state) {
+
+	}
+
+	protected void onDefault(EQCServiceState state) {
+
+	}
+
+	public void offerState(EQCServiceState state) {
+		if (isRunning.get()) {
+			pendingMessage.offer(state);
 		}
 	}
 
-	protected void runner() {
-		Log.info("running");
+	/**
+	 * @return the state
+	 */
+	public State getState() {
+		return state.get();
 	}
 
 }

@@ -5,28 +5,27 @@
  */
 package com.eqchains.avro;
 
-@SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface MinerNetwork {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"MinerNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"IO\",\"fields\":[{\"name\":\"object\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"cookie\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getMinerList\":{\"request\":[],\"response\":\"IO\"},\"getFullNodeList\":{\"request\":[],\"response\":\"IO\"},\"sendNewBlock\":{\"request\":[{\"name\":\"block\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getTransactionIndexList\":{\"request\":[],\"response\":\"IO\"},\"getTransactionList\":{\"request\":[{\"name\":\"transactionIndexList\",\"type\":\"IO\"}],\"response\":\"IO\"}}}");
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"MinerNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"O\",\"fields\":[{\"name\":\"o\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"c\",\"type\":\"O\"}],\"response\":\"O\"},\"getMinerList\":{\"request\":[],\"response\":\"O\"},\"getFullNodeList\":{\"request\":[],\"response\":\"O\"},\"broadcastNewBlock\":{\"request\":[{\"name\":\"b\",\"type\":\"O\"}],\"response\":\"O\"},\"getTransactionIndexList\":{\"request\":[],\"response\":\"O\"},\"getTransactionList\":{\"request\":[{\"name\":\"transactionIndexList\",\"type\":\"O\"}],\"response\":\"O\"}}}");
   /**
    */
-  com.eqchains.avro.IO ping(com.eqchains.avro.IO cookie) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O ping(com.eqchains.avro.O c);
   /**
    */
-  com.eqchains.avro.IO getMinerList() throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getMinerList();
   /**
    */
-  com.eqchains.avro.IO getFullNodeList() throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getFullNodeList();
   /**
    */
-  com.eqchains.avro.IO sendNewBlock(com.eqchains.avro.IO block) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O broadcastNewBlock(com.eqchains.avro.O b);
   /**
    */
-  com.eqchains.avro.IO getTransactionIndexList() throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getTransactionIndexList();
   /**
    */
-  com.eqchains.avro.IO getTransactionList(com.eqchains.avro.IO transactionIndexList) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getTransactionList(com.eqchains.avro.O transactionIndexList);
 
   @SuppressWarnings("all")
   public interface Callback extends MinerNetwork {
@@ -34,26 +33,26 @@ public interface MinerNetwork {
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void ping(com.eqchains.avro.IO cookie, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void ping(com.eqchains.avro.O c, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getMinerList(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getMinerList(org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getFullNodeList(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getFullNodeList(org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void sendNewBlock(com.eqchains.avro.IO block, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void broadcastNewBlock(com.eqchains.avro.O b, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getTransactionIndexList(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getTransactionIndexList(org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getTransactionList(com.eqchains.avro.IO transactionIndexList, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getTransactionList(com.eqchains.avro.O transactionIndexList, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
   }
 }

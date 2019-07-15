@@ -3,16 +3,16 @@ package com.eqchains.rpc;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 
-public class Nest extends AvroIO {
+public class Nest extends AvroO {
 	private ID id;
 	private ID assetID;
 	
-	public Nest(IO io) throws Exception {
+	public Nest(O io) throws Exception {
 		parse(io);
 	}
 	

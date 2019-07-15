@@ -5,37 +5,36 @@
  */
 package com.eqchains.avro;
 
-@SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface TransactionNetwork {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"TransactionNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"IO\",\"fields\":[{\"name\":\"object\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"cookie\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getMinerList\":{\"request\":[],\"response\":\"IO\"},\"sendTransaction\":{\"request\":[{\"name\":\"transactionRPC\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getID\":{\"request\":[{\"name\":\"readableAddress\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getAccount\":{\"request\":[{\"name\":\"id\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getMaxNonce\":{\"request\":[{\"name\":\"nest\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getBalance\":{\"request\":[{\"name\":\"nest\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getSignHash\":{\"request\":[{\"name\":\"id\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getPendingTransactionList\":{\"request\":[{\"name\":\"id\",\"type\":\"IO\"}],\"response\":\"IO\"}}}");
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"TransactionNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"O\",\"fields\":[{\"name\":\"o\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"c\",\"type\":\"O\"}],\"response\":\"O\"},\"getMinerList\":{\"request\":[],\"response\":\"O\"},\"sendTransaction\":{\"request\":[{\"name\":\"r\",\"type\":\"O\"}],\"response\":\"O\"},\"getID\":{\"request\":[{\"name\":\"a\",\"type\":\"O\"}],\"response\":\"O\"},\"getAccount\":{\"request\":[{\"name\":\"i\",\"type\":\"O\"}],\"response\":\"O\"},\"getMaxNonce\":{\"request\":[{\"name\":\"n\",\"type\":\"O\"}],\"response\":\"O\"},\"getBalance\":{\"request\":[{\"name\":\"n\",\"type\":\"O\"}],\"response\":\"O\"},\"getSignHash\":{\"request\":[{\"name\":\"i\",\"type\":\"O\"}],\"response\":\"O\"},\"getPendingTransactionList\":{\"request\":[{\"name\":\"i\",\"type\":\"O\"}],\"response\":\"O\"}}}");
   /**
    */
-  com.eqchains.avro.IO ping(com.eqchains.avro.IO cookie) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O ping(com.eqchains.avro.O c);
   /**
    */
-  com.eqchains.avro.IO getMinerList() throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getMinerList();
   /**
    */
-  com.eqchains.avro.IO sendTransaction(com.eqchains.avro.IO transactionRPC) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O sendTransaction(com.eqchains.avro.O r);
   /**
    */
-  com.eqchains.avro.IO getID(com.eqchains.avro.IO readableAddress) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getID(com.eqchains.avro.O a);
   /**
    */
-  com.eqchains.avro.IO getAccount(com.eqchains.avro.IO id) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getAccount(com.eqchains.avro.O i);
   /**
    */
-  com.eqchains.avro.IO getMaxNonce(com.eqchains.avro.IO nest) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getMaxNonce(com.eqchains.avro.O n);
   /**
    */
-  com.eqchains.avro.IO getBalance(com.eqchains.avro.IO nest) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getBalance(com.eqchains.avro.O n);
   /**
    */
-  com.eqchains.avro.IO getSignHash(com.eqchains.avro.IO id) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getSignHash(com.eqchains.avro.O i);
   /**
    */
-  com.eqchains.avro.IO getPendingTransactionList(com.eqchains.avro.IO id) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getPendingTransactionList(com.eqchains.avro.O i);
 
   @SuppressWarnings("all")
   public interface Callback extends TransactionNetwork {
@@ -43,38 +42,38 @@ public interface TransactionNetwork {
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void ping(com.eqchains.avro.IO cookie, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void ping(com.eqchains.avro.O c, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getMinerList(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getMinerList(org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void sendTransaction(com.eqchains.avro.IO transactionRPC, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void sendTransaction(com.eqchains.avro.O r, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getID(com.eqchains.avro.IO readableAddress, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getID(com.eqchains.avro.O a, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getAccount(com.eqchains.avro.IO id, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getAccount(com.eqchains.avro.O i, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getMaxNonce(com.eqchains.avro.IO nest, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getMaxNonce(com.eqchains.avro.O n, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getBalance(com.eqchains.avro.IO nest, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getBalance(com.eqchains.avro.O n, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getSignHash(com.eqchains.avro.IO id, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getSignHash(com.eqchains.avro.O i, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getPendingTransactionList(com.eqchains.avro.IO id, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getPendingTransactionList(com.eqchains.avro.O i, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
   }
 }

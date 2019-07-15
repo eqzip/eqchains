@@ -32,32 +32,17 @@ package com.eqchains.blockchain.account;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.ref.SoftReference;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.security.acl.Owner;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Vector;
-
-import javax.print.attribute.standard.RequestingUserName;
 
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.CoinbaseTransaction;
-import com.eqchains.blockchain.transaction.OperationTransaction;
-import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.blockchain.transaction.TransferTransaction;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.serialization.EQCHashInheritable;
 import com.eqchains.serialization.EQCHashTypable;
-import com.eqchains.serialization.EQCInheritable;
-import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
 import com.eqchains.serialization.SoleUpdate;
@@ -162,6 +147,10 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		return account;
 	}
 	
+	public static Account parseAccount(O o) throws NoSuchFieldException, IllegalStateException, IOException {
+		return parseAccount(o.getO().array());
+	}
+	
 	public static AccountType parseAccountType(Passport passport) {
 		AccountType accountType = AccountType.INVALID;
 		if(passport.getAddressType() == AddressType.T1 || passport.getAddressType() == AddressType.T2) {
@@ -206,6 +195,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		EQCType.assertNoRedundantData(is);
 	}
 	
+	@Override
 	public void parseHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		// Parse AccountType
  		accountType = AccountType.get(new ID(EQCType.parseEQCBits(is)).intValue());
@@ -217,6 +207,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		versionUpdateHeight = new ID(EQCType.parseEQCBits(is));
 	}
 	
+	@Override
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		// Parse Passport
 		passport = new Passport(is);
@@ -287,6 +278,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	public byte[] getBin() {
 		return EQCType.bytesToBIN(getBytes());
 	}
+	@Override
 	public byte[] getHeaderBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
@@ -301,6 +293,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		}
 		return os.toByteArray();
 	}
+	@Override
 	public byte[] getBodyBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
@@ -547,6 +540,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		}
 	}
 
+	@Override
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
@@ -694,8 +688,8 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		this.publickey = publickey;
 	}
 	
-	public IO getIO() {
-		return new IO(ByteBuffer.wrap(getBytes()));
+	public O getO() {
+		return new O(ByteBuffer.wrap(getBytes()));
 	}
 	
 }

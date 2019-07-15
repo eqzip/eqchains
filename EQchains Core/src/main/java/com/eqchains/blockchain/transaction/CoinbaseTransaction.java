@@ -50,6 +50,7 @@ import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 import com.eqchains.util.Util.AddressTool;
+import com.eqchains.util.Util.AddressTool.AddressType;
 
 /**
  * @author Xun Wang
@@ -210,6 +211,9 @@ public class CoinbaseTransaction extends TransferTransaction {
 		}
 		for(TxOut txOut : txOutList) {
 			if(!txOut.isSanity(addressShape)) {
+				return false;
+			}
+			if(txOut.getPassport().getAddressType() != AddressType.T1 && txOut.getPassport().getAddressType() != AddressType.T2) {
 				return false;
 			}
 		}

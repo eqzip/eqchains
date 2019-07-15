@@ -5,25 +5,24 @@
  */
 package com.eqchains.avro;
 
-@SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface SyncblockNetwork {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"SyncblockNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"IO\",\"fields\":[{\"name\":\"object\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"cookie\",\"type\":\"IO\"}],\"response\":\"IO\"},\"getMinerList\":{\"request\":[],\"response\":\"IO\"},\"getFullNodeList\":{\"request\":[],\"response\":\"IO\"},\"getBlockTail\":{\"request\":[],\"response\":\"IO\"},\"getBlock\":{\"request\":[{\"name\":\"height\",\"type\":\"IO\"}],\"response\":\"IO\"}}}");
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"SyncblockNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"O\",\"fields\":[{\"name\":\"o\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"c\",\"type\":\"O\"}],\"response\":\"O\"},\"getMinerList\":{\"request\":[],\"response\":\"O\"},\"getFullNodeList\":{\"request\":[],\"response\":\"O\"},\"getBlockTail\":{\"request\":[],\"response\":\"O\"},\"getBlock\":{\"request\":[{\"name\":\"h\",\"type\":\"O\"}],\"response\":\"O\"}}}");
   /**
    */
-  com.eqchains.avro.IO ping(com.eqchains.avro.IO cookie) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O ping(com.eqchains.avro.O c);
   /**
    */
-  com.eqchains.avro.IO getMinerList() throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getMinerList();
   /**
    */
-  com.eqchains.avro.IO getFullNodeList() throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getFullNodeList();
   /**
    */
-  com.eqchains.avro.IO getBlockTail() throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getBlockTail();
   /**
    */
-  com.eqchains.avro.IO getBlock(com.eqchains.avro.IO height) throws org.apache.avro.AvroRemoteException;
+  com.eqchains.avro.O getBlock(com.eqchains.avro.O h);
 
   @SuppressWarnings("all")
   public interface Callback extends SyncblockNetwork {
@@ -31,22 +30,22 @@ public interface SyncblockNetwork {
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void ping(com.eqchains.avro.IO cookie, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void ping(com.eqchains.avro.O c, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getMinerList(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getMinerList(org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getFullNodeList(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getFullNodeList(org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getBlockTail(org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getBlockTail(org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
     /**
      * @throws java.io.IOException The async call could not be completed.
      */
-    void getBlock(com.eqchains.avro.IO height, org.apache.avro.ipc.Callback<com.eqchains.avro.IO> callback) throws java.io.IOException;
+    void getBlock(com.eqchains.avro.O h, org.apache.avro.ipc.Callback<com.eqchains.avro.O> callback) throws java.io.IOException;
   }
 }

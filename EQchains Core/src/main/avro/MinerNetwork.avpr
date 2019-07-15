@@ -2,37 +2,40 @@
  "protocol": "MinerNetwork",
 
  "types": [
-     {"name": "IO", "type": "record",
+     {"name": "O", "type": "record",
       "fields": [
-          {"name": "object", "type": "bytes"}
+          {"name": "o", "type": "bytes"}
       ]
      }
  ],
 
  "messages": {
      "ping": {
-         "request": [{"name": "cookie", "type": "IO"}],
-         "response": "IO"
+     	 // c means cookie
+         "request": [{"name": "c", "type": "O"}],
+         "response": "O"
      },
      "getMinerList": {
          "request": [],
-         "response": "IO"
+         "response": "O"
      },
      "getFullNodeList": {
          "request": [],
-         "response": "IO"
+         "response": "O"
      },
-     "sendNewBlock": {
-         "request": [{"name": "block", "type": "IO"}],
-         "response": "IO"
+     "broadcastNewBlock": {
+     	 // b means block
+         "request": [{"name": "b", "type": "O"}],
+         "response": "O"
      },
      "getTransactionIndexList": {
          "request": [],
-         "response": "IO"
+         "response": "O"
      },
      "getTransactionList": {
-         "request": [{"name": "transactionIndexList", "type": "IO"}],
-         "response": "IO"
+         // t means transactionIndexList
+         "request": [{"name": "transactionIndexList", "type": "O"}],
+         "response": "O"
      }
  }
 }

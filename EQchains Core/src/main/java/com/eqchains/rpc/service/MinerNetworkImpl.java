@@ -27,11 +27,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.service;
+package com.eqchains.rpc.service;
 
 import org.apache.avro.AvroRemoteException;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.avro.MinerNetwork;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
@@ -41,7 +41,11 @@ import com.eqchains.rpc.Info;
 import com.eqchains.rpc.NewBlock;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
-import com.eqchains.service.PossibleNodeService.PossibleNode;
+import com.eqchains.service.PendingNewBlockService;
+import com.eqchains.service.PossibleNodeService;
+import com.eqchains.service.state.NewBlockState;
+import com.eqchains.service.state.PossibleNodeState;
+import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
@@ -56,20 +60,20 @@ public class MinerNetworkImpl implements MinerNetwork {
 	 * @see com.eqchains.avro.MinerNetwork#ping(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO ping(IO cookie) throws AvroRemoteException {
-		IO info = null;
+	public O ping(O cookie) {
+		O info = null;
 		Cookie cookie1 = null;
 		try {
 			cookie1 = new Cookie(cookie);
 			if (cookie1.isSanity()) {
-				PossibleNode possibleNode = new PossibleNode();
+				PossibleNodeState possibleNode = new PossibleNodeState();
 				possibleNode.setIp(cookie1.getIp());
 				possibleNode.setNodeType(NODETYPE.MINER);
 				possibleNode.setTime(System.currentTimeMillis());
 				PossibleNodeService.getInstance().offerNode(possibleNode);
-				info = Util.getDefaultInfo().getIO();
+				info = Util.getDefaultInfo().getO();
 			} else {
-				info = Util.getInfo(Code.WRONGPROTOCOL, null).getIO();
+				info = Util.getInfo(Code.WRONGPROTOCOL, null).getO();
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -83,10 +87,10 @@ public class MinerNetworkImpl implements MinerNetwork {
 	 * @see com.eqchains.avro.MinerNetwork#getMinerList()
 	 */
 	@Override
-	public IO getMinerList() throws AvroRemoteException {
-		IO minerList = null;
+	public O getMinerList() {
+		O minerList = null;
 		try {
-			minerList = EQCBlockChainH2.getInstance().getMinerList().getIO();
+			minerList = EQCBlockChainH2.getInstance().getMinerList().getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -99,10 +103,10 @@ public class MinerNetworkImpl implements MinerNetwork {
 	 * @see com.eqchains.avro.MinerNetwork#getFullNodeList()
 	 */
 	@Override
-	public IO getFullNodeList() throws AvroRemoteException {
-		IO fullNodeList = null;
+	public O getFullNodeList() {
+		O fullNodeList = null;
 		try {
-			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getIO();
+			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -115,17 +119,20 @@ public class MinerNetworkImpl implements MinerNetwork {
 	 * @see com.eqchains.avro.MinerNetwork#sendNewBlock(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO sendNewBlock(IO block) throws AvroRemoteException {
-		IO info = null;
+	public O broadcastNewBlock(O block) {
+		O info = null;
 		NewBlock newBlock = null;
+		NewBlockState newBlockState = null;
 		try {
 			newBlock = new NewBlock(block);
 			if(newBlock.getCookie().isSanity()) {
-				info = Util.getDefaultInfo().getIO();
-				// Here need do more job to handle new block
+				info = Util.getDefaultInfo().getO();
+				newBlockState = new NewBlockState(State.PENDINGNEWBLOCK);
+				newBlockState.setNewBlock(newBlock);
+				PendingNewBlockService.getInstance().offerNewBlockState(newBlockState);
 			}
 			else {
-				info = Util.getInfo(Code.WRONGPROTOCOL, null).getIO();
+				info = Util.getInfo(Code.WRONGPROTOCOL, null).getO();
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -139,12 +146,12 @@ public class MinerNetworkImpl implements MinerNetwork {
 	 * @see com.eqchains.avro.MinerNetwork#getTransactionIndexList()
 	 */
 	@Override
-	public IO getTransactionIndexList() throws AvroRemoteException {
-		IO io = null;
+	public O getTransactionIndexList() {
+		O io = null;
 		TransactionIndexList transactionIndexList = null;
 		try {
 			transactionIndexList = EQCBlockChainH2.getInstance().getTransactionIndexListInPool();
-			io = transactionIndexList.getIO();
+			io = transactionIndexList.getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -158,12 +165,12 @@ public class MinerNetworkImpl implements MinerNetwork {
 	 * @see com.eqchains.avro.MinerNetwork#getTransactionList(com.eqchains.avro.IO)
 	 */
 	@Override
-	public IO getTransactionList(IO transactionIndexList) throws AvroRemoteException {
-		IO io = null;
+	public O getTransactionList(O transactionIndexList) {
+		O io = null;
 		TransactionList transactionList = null;
 		try {
 			transactionList = EQCBlockChainH2.getInstance().getTransactionListInPool(new TransactionIndexList(transactionIndexList));
-			io = transactionList.getIO();
+			io = transactionList.getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

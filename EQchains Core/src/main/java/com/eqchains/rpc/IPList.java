@@ -33,7 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Vector;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -43,7 +43,7 @@ import com.eqchains.serialization.EQCType.ARRAY;
  * @date Jun 28, 2019
  * @email 10509759@qq.com
  */
-public class IPList extends AvroIO {
+public class IPList extends AvroO {
 	private Vector<String> ipList;
 	private long ipListSize;
 	
@@ -51,7 +51,7 @@ public class IPList extends AvroIO {
 		ipList = new Vector<>();
 	}
 	
-	public IPList(IO io) throws Exception {
+	public IPList(O io) throws Exception {
 		ipList = new Vector<>();
 		parse(io);
 	}
@@ -95,8 +95,9 @@ public class IPList extends AvroIO {
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		ARRAY array = EQCType.parseARRAY(is);
 		ipListSize = array.length;
+		ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(array.elements);
 		for(int i=0; i<ipListSize; ++i) {
-			ipList.add(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
+			ipList.add(EQCType.bytesToASCIISting(EQCType.parseBIN(byteArrayInputStream)));
 		}
 	}
 
@@ -116,10 +117,10 @@ public class IPList extends AvroIO {
 	public byte[] getBodyBytes() throws Exception {
 		Vector<byte[]> ips = new Vector<>();
 		for(String ip:ipList) {
-			ips.add(EQCType.stringToASCIIBytes(ip));
+			ips.add(EQCType.bytesToBIN(EQCType.stringToASCIIBytes(ip)));
 		}
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(EQCType.bytesArrayToBytes(ips));
+		os.write(EQCType.bytesArrayToARRAY(ips));
 		return os.toByteArray();
 	}
 
@@ -127,6 +128,28 @@ public class IPList extends AvroIO {
 		if(!ipList.contains(ip)) {
 			ipList.add(ip);
 		}
+	}
+
+	/**
+	 * @return the ipList
+	 */
+	public Vector<String> getIpList() {
+		return ipList;
+	}
+
+	/**
+	 * @param ipList the ipList to set
+	 */
+	public void setIpList(Vector<String> ipList) {
+		this.ipList = ipList;
+	}
+	
+	public boolean contains(String ip) {
+		return ipList.contains(ip);
+	}
+	
+	public boolean isEmpty() {
+		return ipList.isEmpty();
 	}
 	
 }

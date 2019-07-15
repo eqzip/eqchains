@@ -32,7 +32,7 @@ package com.eqchains.rpc;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -42,13 +42,13 @@ import com.eqchains.util.ID;
  * @date Jun 26, 2019
  * @email 10509759@qq.com
  */
-public class MaxNonce extends AvroIO {
+public class MaxNonce extends AvroO {
 	private ID nonce;
 	
 	public MaxNonce() {
 	}
 	
-	public MaxNonce(IO io) throws Exception {
+	public MaxNonce(O io) throws Exception {
 		parse(io);
 	}
 

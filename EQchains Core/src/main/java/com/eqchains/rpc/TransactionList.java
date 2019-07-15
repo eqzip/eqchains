@@ -3,13 +3,13 @@ package com.eqchains.rpc;
 import java.io.ByteArrayInputStream;
 import java.util.Vector;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
 
-public class TransactionList extends AvroIO {
+public class TransactionList extends AvroO {
 	private Vector<byte[]> transactionList;
 	private long transactonListSize;
 	
@@ -17,7 +17,7 @@ public class TransactionList extends AvroIO {
 		transactionList = new Vector<>();
 	}
 	
-	public TransactionList(IO io) throws Exception {
+	public TransactionList(O io) throws Exception {
 		transactionList = new Vector<>();
 		parse(io);
 	}

@@ -35,8 +35,6 @@ import java.util.Arrays;
 import java.util.Vector;
 
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.CompressionType;
-import org.rocksdb.MutableColumnFamilyOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteBatch;
@@ -44,7 +42,6 @@ import org.rocksdb.WriteBatch;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
@@ -60,27 +57,32 @@ import com.eqchains.util.Util;
  */
 public class Filter {
 	private AccountsMerkleTree accountsMerkleTree;
-	private byte[] columnFamilyName = null;
+//	private byte[] columnFamilyName = null;
 	private Vector<ColumnFamilyHandle> columnFamilyHandles;
 	
-	public Filter(byte[] columnFamilyName) throws RocksDBException {
-		if(EQCBlockChainRocksDB.getInstance().isDefaultColumnFamily(columnFamilyName)) {
-			new IllegalArgumentException("Filter's columnFamilyName can't the same as defaultColumnFamilyName");
+	public enum Mode {
+		MINERING, VALID
+	}
+	
+	public Filter(Mode mode) throws RocksDBException {
+		columnFamilyHandles = new Vector();
+		if (mode == Mode.MINERING) {
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_MINERING));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_MINERING_AI));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_MINERING_HASH));
+		} else {
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_VALID));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_VALID_AI));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_VALID_HASH));
 		}
-		this.columnFamilyName = columnFamilyName;
-		columnFamilyHandles  = new Vector();
-		columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(columnFamilyName));
-		columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_AI)));
-		columnFamilyHandles.add(EQCBlockChainRocksDB.createTable(EQCBlockChainRocksDB.addSuffix(columnFamilyName, EQCBlockChainRocksDB.SUFFIX_HASH)));
 		
-		MutableColumnFamilyOptions mutableColumnFamilyOptions = MutableColumnFamilyOptions.builder().setCompressionType(CompressionType.NO_COMPRESSION).build();
-			for(ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
-				EQCBlockChainRocksDB.getRocksDB().setOptions(columnFamilyHandle, mutableColumnFamilyOptions);
-				// In case before close the app crashed or abnormal interruption so here just clear the table
+		for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
+			// In case before close the app crashed or abnormal interruption so here just
+			// clear the table
 //				Log.info("Before cleartable: " + EQCBlockChainRocksDB.getTableItemNumbers(columnFamilyHandle));
-				EQCBlockChainRocksDB.clearTable(columnFamilyHandle);
+			EQCBlockChainRocksDB.clearTable(columnFamilyHandle);
 //				Log.info("After cleartable: " + EQCBlockChainRocksDB.getTableItemNumbers(columnFamilyHandle));
-			}
+		}
 	}
 	
 	public Account getAccount(ID id, boolean isLoadInFilter) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
@@ -274,10 +276,12 @@ public class Filter {
 		saveAccount(account);
 	}
 
-	public void close() throws RocksDBException {
+	public void clear() throws RocksDBException {
 		for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
 			EQCBlockChainRocksDB.clearTable(columnFamilyHandle);
-			EQCBlockChainRocksDB.dropTable(columnFamilyHandle);
+//			EQCBlockChainRocksDB.dropTable(columnFamilyHandle);
+//			// Bug fix for https://github.com/facebook/rocksdb/issues/189 which could cause JVM crash
+//			columnFamilyHandle.close();
 		}
 	}
 

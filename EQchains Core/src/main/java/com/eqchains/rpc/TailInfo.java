@@ -31,8 +31,9 @@ package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -43,15 +44,16 @@ import com.eqchains.util.ID;
  * @date Jun 24, 2019
  * @email 10509759@qq.com
  */
-public class Europa extends AvroIO {
+public class TailInfo extends AvroO implements Comparable<TailInfo> {
 	private ID height;
-	private ID nonce;
+	private ID europaNonce;
 	private byte[] blockTailProof;
+	private String ip;
 
-	public Europa() {
+	public TailInfo() {
 	}
 	
-	public Europa(IO io) throws Exception {
+	public TailInfo(O io) throws Exception {
 		parse(io);
 	}
 	
@@ -60,7 +62,7 @@ public class Europa extends AvroIO {
 	 */
 	@Override
 	public boolean isSanity() {
-		if(height == null || nonce == null) {
+		if(height == null || europaNonce == null) {
 			return false;
 		}
 		return true;
@@ -90,17 +92,17 @@ public class Europa extends AvroIO {
 	}
 
 	/**
-	 * @return the nonce
+	 * @return the europaNonce
 	 */
-	public ID getNonce() {
-		return nonce;
+	public ID getEuropaNonce() {
+		return europaNonce;
 	}
 
 	/**
-	 * @param nonce the nonce to set
+	 * @param europaNonce the europaNonce to set
 	 */
-	public void setNonce(ID nonce) {
-		this.nonce = nonce;
+	public void setEuropaNonce(ID europaNonce) {
+		this.europaNonce = europaNonce;
 	}
 
 	@Override
@@ -112,7 +114,7 @@ public class Europa extends AvroIO {
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		height = new ID(EQCType.parseEQCBits(is));
-		nonce = new ID(EQCType.parseEQCBits(is));
+		europaNonce = new ID(EQCType.parseEQCBits(is));
 		blockTailProof = EQCType.parseBIN(is);
 	}
 
@@ -126,7 +128,7 @@ public class Europa extends AvroIO {
 	public byte[] getBodyBytes() throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(height.getEQCBits());
-		os.write(nonce.getEQCBits());
+		os.write(europaNonce.getEQCBits());
 		os.write(EQCType.bytesToBIN(blockTailProof));
 		return os.toByteArray();
 	}
@@ -143,6 +145,39 @@ public class Europa extends AvroIO {
 	 */
 	public void setBlockTailProof(byte[] blockTailProof) {
 		this.blockTailProof = blockTailProof;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		TailInfo tailInfo = (TailInfo) obj;
+		return height.equals(tailInfo.height) && europaNonce.equals(tailInfo.europaNonce) && Arrays.equals(blockTailProof, tailInfo.blockTailProof);
+	}
+
+	@Override
+	public int compareTo(TailInfo o) {
+		if(!europaNonce.equals(o.europaNonce)) {
+			return europaNonce.subtract(o.europaNonce).intValue();
+		}
+		else {
+			return height.subtract(o.height).intValue();
+		}
+	}
+
+	/**
+	 * @return the ip
+	 */
+	public String getIp() {
+		return ip;
+	}
+
+	/**
+	 * @param ip the ip to set
+	 */
+	public void setIp(String ip) {
+		this.ip = ip;
 	}
 	
 }

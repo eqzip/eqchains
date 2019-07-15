@@ -43,14 +43,9 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -61,7 +56,6 @@ import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPrivateKeySpec;
@@ -82,44 +76,32 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.net.ssl.StandardConstants;
-
-import org.apache.commons.collections.functors.IfClosure;
-import org.apache.commons.collections.functors.SwitchClosure;
-import org.apache.commons.net.nntp.NewGroupsOrNewsQuery;
 import org.apache.commons.net.ntp.NTPUDPClient;
 import org.apache.commons.net.ntp.TimeInfo;
 import org.apache.commons.net.ntp.TimeStamp;
 import org.bouncycastle.crypto.digests.RIPEMD128Digest;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
-import org.bouncycastle.jcajce.provider.symmetric.Threefish;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.EQCHeader;
-import com.eqchains.blockchain.Index;
 import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.EQCRoot;
-import com.eqchains.blockchain.TransactionsHeader;
-import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.account.Account.AccountType;
-import com.eqchains.blockchain.account.Asset.AssetType;
 import com.eqchains.blockchain.account.SmartContractAccount.LanguageType;
 import com.eqchains.blockchain.account.SmartContractAccount.State;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TransferTransaction;
-import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.crypto.EQCPublicKey;
@@ -130,13 +112,13 @@ import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
+import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
+import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
-import com.eqchains.serialization.EQCType.ARRAY;
 import com.eqchains.test.Test;
 import com.eqchains.util.Util.AddressTool.AddressType;
-import com.eqchains.util.Util.AddressTool.P2SHAddress.Peer;
 
 /**
  * @author Xun Wang
@@ -308,7 +290,9 @@ public final class Util {
 	
 	public static final String REGEX_VERSION = "";
 	
-	public static final String IP = "14.221.176.94";//"129.28.206.27";
+	public static final String SINGULARITY_IP = "129.28.206.27";
+	
+	public static final String IP = "14.221.177.42";//"129.28.206.27";
 	
 	public static final int MINER_NETWORK_PORT = 7799;
 	
@@ -453,6 +437,7 @@ public final class Util {
 		info = new Info();
 		info.setCode(Code.OK);
 		info.setCookie(cookie);
+//		syncMinerList();
 	}
 
 //	private static void init(final OS os) {
@@ -1191,7 +1176,37 @@ public final class Util {
 		public final static int T2_PUBLICKEY_LEN = 67;
 
 		public enum AddressType {
-			T1, T2, T3, T4
+			T1, T2, T3, T4, INVALID;
+			public static AddressType get(int ordinal) {
+				AddressType addressType = null;
+				switch (ordinal) {
+				case 0:
+					addressType = AddressType.T1;
+					break;
+				case 2:
+					addressType = AddressType.T2;
+					break;
+//				case 3:
+//					addressType = AddressType.T3;
+//					break;
+//				case 4:
+//					addressType = AddressType.T4;
+//					break;
+				default:
+					addressType = AddressType.INVALID;
+					break;
+				}
+				return addressType;
+			}
+			public boolean isSanity() {
+				if((this.ordinal() < T1.ordinal()) || (this.ordinal() > INVALID.ordinal()) || (this.ordinal() == INVALID.ordinal())) {
+					return false;
+				}
+				return true;
+			}
+			public byte[] getEQCBits() {
+				return EQCType.intToEQCBits(this.ordinal());
+			}
 		}
 
 		private AddressTool() {
@@ -1973,6 +1988,7 @@ public final class Util {
 					return publickeyList;
 				}
 
+				@Override
 				public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 					// TODO Auto-generated method stub
 					return false;
@@ -2152,6 +2168,7 @@ public final class Util {
 				return isValid;
 			}
 
+			@Override
 			public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
 				// TODO Auto-generated method stub
 				return false;
@@ -2217,7 +2234,7 @@ public final class Util {
 		saveEQCBlockTailHeight(ID.ZERO);
 		// Create AccountsMerkleTree
 		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO,
-				new Filter(EQCBlockChainRocksDB.ACCOUNT_MINERING_TABLE));
+				new Filter(Mode.MINERING));
 
 		// Create EQC block
 		eqcBlock = new EQCHive();
@@ -2276,6 +2293,8 @@ public final class Util {
 		account.getAssetSubchainHeader().setUrl("www.eqchains.com");
 		account.getAssetSubchainHeader().setLogo(new byte[64]);
 		account.setTxFeeRate((byte) 10);
+		account.setCheckPointHeight(ID.ZERO);
+		account.setCheckPointHash(Util.EQCCHA_MULTIPLE_DUAL_MIX(Util.MAGIC_HASH, Util.HUNDREDPULS, true, true));
 		
 		account.setTotalStateSizeUpdateHeight(ID.ZERO);
 		account.setTotalStateSize(account.getBytes().length);
@@ -2335,6 +2354,7 @@ public final class Util {
 		accountsMerkleTree.buildAccountsMerkleTree();
 		accountsMerkleTree.generateRoot();
 		accountsMerkleTree.merge();
+		accountsMerkleTree.clear();
 
 //		// Create Index
 //		Index index = new Index();
@@ -2363,9 +2383,14 @@ public final class Util {
 		header.setNonce(ID.ZERO);
 		header.setRootHash(root.getHash());
 		eqcBlock.setEqcHeader(header);
-
+		
+		while(!header.isDifficultyValid()) {
+			header.setNonce(header.getNonce().getNextID());
+		}
+		
 //		eqcBlock.setIndex(index);
 		eqcBlock.setRoot(root);
+		Log.info(eqcBlock.toString());
 		return eqcBlock;
 	}
 
@@ -2745,6 +2770,28 @@ public final class Util {
 			return false;
 		}
 		return value.matches(regex);
+	}
+	
+	public static void syncMinerList() throws ClassNotFoundException, SQLException, Exception {
+		IPList ipList = EQCBlockChainH2.getInstance().getMinerList();
+		IPList ipList2 = null;
+		if (ipList.isEmpty()) {
+			if (IP.equals(SINGULARITY_IP)) {
+				return;
+			}
+			ipList = MinerNetworkClient.getMinerList(SINGULARITY_IP);
+			if (ipList == null || ipList.isEmpty()) {
+				return;
+			}
+		}
+		for(String ip:ipList.getIpList()) {
+			ipList2 = MinerNetworkClient.getMinerList(ip);
+			if(ipList2 != null) {
+				for(String ip1:ipList2.getIpList()) {
+					EQCBlockChainH2.getInstance().saveMiner(ip1);
+				}
+			}
+		}
 	}
 	
 }

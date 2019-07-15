@@ -37,7 +37,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Vector;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -389,13 +389,17 @@ public class EQCType {
 
 	public static byte[] bytesArrayToBytes(Vector<byte[]> vec) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		for (byte[] bytes : vec) {
-			try {
-				os.write(bytes);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error(e.getMessage());
+		if (vec == null || vec.size() == 0) {
+			os.write(NULL);
+		} else {
+			for (byte[] bytes : vec) { 
+				try {
+					os.write(bytes);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(e.getMessage());
+				}
 			}
 		}
 		return os.toByteArray();

@@ -33,7 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
@@ -46,7 +46,7 @@ import com.eqchains.util.Util;
  * @date Jun 25, 2019
  * @email 10509759@qq.com
  */
-public class Cookie extends AvroIO {
+public class Cookie extends AvroO {
 	private String ip;
 	private ID version;
 
@@ -59,7 +59,7 @@ public class Cookie extends AvroIO {
 		version = Util.PROTOCOL_VERSION;
 	}
 	
-	public Cookie(IO io) throws Exception {
+	public Cookie(O io) throws Exception {
 		parse(io);
 	}
 

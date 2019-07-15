@@ -260,10 +260,6 @@ public class OperationTransaction extends TransferTransaction {
 			return false;
 		}
 		
-		if(!getAssetID().equals(Asset.EQCOIN)) {
-			return false;
-		}
-		
 		if(operation == null) {
 			return false;
 		}

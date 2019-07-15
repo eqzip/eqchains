@@ -32,7 +32,7 @@ package com.eqchains.rpc;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-import com.eqchains.avro.IO;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
@@ -43,16 +43,19 @@ import com.eqchains.util.Util;
  * @date Jul 4, 2019
  * @email 10509759@qq.com
  */
-public class NewBlock extends AvroIO {
+public class NewBlock extends AvroO implements Comparable<NewBlock> {
 	private Cookie cookie;
 	private EQCHive eqcHive;
+	private long time;
 
 	public NewBlock() {
 		cookie = Util.getCookie();
+		time = System.currentTimeMillis();
 	}
 	
-	public NewBlock(IO io) throws Exception {
+	public NewBlock(O io) throws Exception {
 		parse(io);
+		time = System.currentTimeMillis();
 	}
 	
 	/* (non-Javadoc)
@@ -142,6 +145,25 @@ public class NewBlock extends AvroIO {
 	 */
 	public void setEqcHive(EQCHive eqcHive) {
 		this.eqcHive = eqcHive;
+	}
+
+	@Override
+	public int compareTo(NewBlock o) {
+		return (int) (o.time - time);
+	}
+
+	/**
+	 * @return the time
+	 */
+	public long getTime() {
+		return time;
+	}
+
+	/**
+	 * @param time the time to set
+	 */
+	public void setTime(long time) {
+		this.time = time;
 	}
 	
 }

@@ -22,7 +22,7 @@
  * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTON) HOWEVER CAUSED AND ON ANY
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -31,92 +31,52 @@ package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.serialization.EQCInheritable;
+import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 
 /**
  * @author Xun Wang
- * @date Jun 27, 2019
+ * @date Jun 25, 2019
  * @email 10509759@qq.com
  */
-public class SignHash extends AvroO {
-	private byte[] signHash;
+public abstract class AvroO implements EQCTypable, EQCInheritable {
 	
-	public SignHash() {
-	}
+	public AvroO() {}
 	
-	public SignHash(O io) throws Exception {
-		parse(io);
+	public AvroO(ByteArrayInputStream is) throws Exception {
+		parseBody(is);
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isSanity()
-	 */
-	@Override
-	public boolean isSanity() {
-		// TODO Auto-generated method stub
-		return false;
+	protected void parse(O o) throws Exception {
+		byte[] bytes = o.getO().array();
+		if(EQCType.isNULL(bytes)) {
+			return;
+		}
+		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		parseBody(is);
+		EQCType.assertNoRedundantData(is);
+	}
+	
+	public O getO() throws Exception {
+		return new O(ByteBuffer.wrap(getBytes()));
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
-	 */
-	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
-	 */
-	@Override
-	public void parseHeader(ByteArrayInputStream is) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
-	 */
-	@Override
-	public void parseBody(ByteArrayInputStream is) throws Exception {
-		signHash = EQCType.parseBIN(is);
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
-	 */
-	@Override
-	public byte[] getHeaderBytes() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
-	 */
-	@Override
-	public byte[] getBodyBytes() throws Exception {
+	public byte[] getBytes() throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(EQCType.bytesToBIN(signHash));
+		os.write(getBodyBytes());
 		return os.toByteArray();
 	}
-
-	/**
-	 * @return the signHash
+	
+	/* (non-Javadoc)
+	 * @see com.eqchains.serialization.EQCTypable#getBin()
 	 */
-	public byte[] getSignHash() {
-		return signHash;
-	}
-
-	/**
-	 * @param signHash the signHash to set
-	 */
-	public void setSignHash(byte[] signHash) {
-		this.signHash = signHash;
+	@Override
+	public byte[] getBin() throws Exception {
+		return EQCType.bytesToBIN(getBytes());
 	}
 	
 }

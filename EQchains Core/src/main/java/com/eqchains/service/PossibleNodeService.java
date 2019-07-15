@@ -30,62 +30,86 @@
 package com.eqchains.service;
 
 import java.util.Queue;
+import java.util.Vector;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
-import com.eqchains.rpc.MinerNetworkProxy;
-import com.eqchains.rpc.SyncblockNetworkProxy;
+import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.client.MinerNetworkClient;
+import com.eqchains.rpc.client.SyncblockNetworkClient;
+import com.eqchains.service.state.EQCServiceState;
+import com.eqchains.service.state.PossibleNodeState;
+import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
  * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class PossibleNodeService extends EQCService {
-	private PriorityBlockingQueue<PossibleNode> pendingMessage;
+public final class PossibleNodeService extends EQCService {
+	private static PossibleNodeService instance;
+	private IPList blackList;
+	
+	private PossibleNodeService() {
+    	super();
+    	blackList = new IPList();
+	}
 	
 	public static PossibleNodeService getInstance() {
 		if (instance == null) {
-			synchronized (Keystore.class) {
+			synchronized (PossibleNodeService.class) {
 				if (instance == null) {
 					instance = new PossibleNodeService();
 				}
 			}
 		}
-		return (PossibleNodeService) instance;
-	}
-	
-    public PossibleNodeService() {
-    	pendingMessage = new PriorityBlockingQueue<>();
-    	start();
+		return instance;
 	}
 	
 	/* (non-Javadoc)
-	 * @see com.eqchains.service.EQCService#runner()
+	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
 	 */
 	@Override
-	protected void runner() {
-		PossibleNode possibleNode = null;
+	protected void onDefault(EQCServiceState state) {
+		PossibleNodeState possibleNode = null;
 		try {
-			possibleNode = pendingMessage.take();
+			this.state.set(State.POSSIBLENODE);
+			possibleNode = (PossibleNodeState) state;
 			if(possibleNode.getNodeType() == NODETYPE.NONE) {
 				return;
 			}
-			if(EQCBlockChainH2.getInstance().isIPExists(possibleNode.ip, possibleNode.nodeType)) {
+			if(blackList.contains(possibleNode.getIp())) {
+				return;
+			}
+			if(Util.SINGULARITY_IP.equals(possibleNode.getIp())) {
+				return;
+			}
+			if(EQCBlockChainH2.getInstance().isIPExists(possibleNode.getIp(), possibleNode.getNodeType())) {
 				return;
 			}
 			if(possibleNode.getNodeType() == NODETYPE.MINER) {
-				if(MinerNetworkProxy.ping(possibleNode.getIp()) > 0) {
+				if(MinerNetworkClient.ping(possibleNode.getIp()) > 0) {
 					EQCBlockChainH2.getInstance().saveMiner(possibleNode.getIp());
-				}      
+				}
+				else {
+					if(!blackList.contains(possibleNode.getIp())) {
+						blackList.addIP(possibleNode.getIp());
+					}
+				}
 			}
 			else {
-				if(SyncblockNetworkProxy.ping(possibleNode.getIp()) > 0) {
+				if(SyncblockNetworkClient.ping(possibleNode.getIp()) > 0) {
 					EQCBlockChainH2.getInstance().saveFullNode(possibleNode.getIp());
+				}
+				else {
+					if(!blackList.contains(possibleNode.getIp())) {
+						blackList.addIP(possibleNode.getIp());
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -94,70 +118,9 @@ public class PossibleNodeService extends EQCService {
 			Log.Error(e.getMessage());
 		}
 	}
-	
-	public static class PossibleNode implements Comparable<PossibleNode> {
-		private String ip;
-		private NODETYPE nodeType;
-		private long time;
-		@Override
-		public int compareTo(PossibleNode o) {
-			if(nodeType == o.nodeType) {
-				return (int) (o.time - time);
-			}
-			return nodeType.compareTo(o.nodeType);
-		}
-		/**
-		 * @return the ip
-		 */
-		public String getIp() {
-			return ip;
-		}
-		/**
-		 * @param ip the ip to set
-		 */
-		public void setIp(String ip) {
-			this.ip = ip;
-		}
-		/**
-		 * @return the nodeType
-		 */
-		public NODETYPE getNodeType() {
-			return nodeType;
-		}
-		/**
-		 * @param nodeType the nodeType to set
-		 */
-		public void setNodeType(NODETYPE nodeType) {
-			this.nodeType = nodeType;
-		}
-		/**
-		 * @return the time
-		 */
-		public long getTime() {
-			return time;
-		}
-		/**
-		 * @param time the time to set
-		 */
-		public void setTime(long time) {
-			this.time = time;
-		}
-	}
-	
-	public void offerNode(PossibleNode possibleNode) {
-		pendingMessage.offer(possibleNode);
-	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.service.EQCService#stop()
-	 */
-	@Override
-	public void stop() {
-		// TODO Auto-generated method stub
-		super.stop();
-		PossibleNode possibleNode = new PossibleNode();
-		possibleNode.setNodeType(NODETYPE.NONE);
-		offerNode(possibleNode);
+	public void offerNode(PossibleNodeState possibleNode) {
+		offerState(possibleNode);
 	}
 	
 }
