@@ -75,41 +75,45 @@ public final class PossibleNodeService extends EQCService {
 	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
 	 */
 	@Override
-	protected void onDefault(EQCServiceState state) {
+	protected synchronized void onDefault(EQCServiceState state) {
 		PossibleNodeState possibleNode = null;
 		try {
 			this.state.set(State.POSSIBLENODE);
 			possibleNode = (PossibleNodeState) state;
-			if(possibleNode.getNodeType() == NODETYPE.NONE) {
-				return;
-			}
-			if(blackList.contains(possibleNode.getIp())) {
-				return;
-			}
+//			Log.info("Receieve possible node: " + possibleNode.getIp());
+//			if(blackList.contains(possibleNode.getIp())) {
+//				Log.info(possibleNode.getIp() + " already in the black list just return");
+//				return;
+//			}
 			if(Util.SINGULARITY_IP.equals(possibleNode.getIp())) {
+				Log.info(possibleNode.getIp() + " is SINGULARITY_IP just return");
 				return;
 			}
 			if(EQCBlockChainH2.getInstance().isIPExists(possibleNode.getIp(), possibleNode.getNodeType())) {
+				Log.info(possibleNode.getIp() + " already in the miner list just return");
 				return;
 			}
 			if(possibleNode.getNodeType() == NODETYPE.MINER) {
 				if(MinerNetworkClient.ping(possibleNode.getIp()) > 0) {
+					Log.info("Received New Miner Node: " + possibleNode.getIp() + " save it to MinerList");
 					EQCBlockChainH2.getInstance().saveMiner(possibleNode.getIp());
 				}
 				else {
-					if(!blackList.contains(possibleNode.getIp())) {
-						blackList.addIP(possibleNode.getIp());
-					}
+					Log.info("Received Miner Node: " + possibleNode.getIp() + " but can't access");
+//					if(!blackList.contains(possibleNode.getIp())) {
+//						blackList.addIP(possibleNode.getIp());
+//					}
 				}
 			}
 			else {
 				if(SyncblockNetworkClient.ping(possibleNode.getIp()) > 0) {
+					Log.info("Received New Full Node: " + possibleNode.getIp());
 					EQCBlockChainH2.getInstance().saveFullNode(possibleNode.getIp());
 				}
 				else {
-					if(!blackList.contains(possibleNode.getIp())) {
-						blackList.addIP(possibleNode.getIp());
-					}
+//					if(!blackList.contains(possibleNode.getIp())) {
+//						blackList.addIP(possibleNode.getIp());
+//					}
 				}
 			}
 		} catch (Exception e) {
@@ -119,8 +123,8 @@ public final class PossibleNodeService extends EQCService {
 		}
 	}
 
-	public void offerNode(PossibleNodeState possibleNode) {
-		offerState(possibleNode);
+	public void offerNode(PossibleNodeState possibleNodeState) {
+		offerState(possibleNodeState);
 	}
 	
 }

@@ -5,36 +5,37 @@
  */
 package com.eqchains.avro;
 
+@SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface TransactionNetwork {
   public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"TransactionNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"O\",\"fields\":[{\"name\":\"o\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"c\",\"type\":\"O\"}],\"response\":\"O\"},\"getMinerList\":{\"request\":[],\"response\":\"O\"},\"sendTransaction\":{\"request\":[{\"name\":\"r\",\"type\":\"O\"}],\"response\":\"O\"},\"getID\":{\"request\":[{\"name\":\"a\",\"type\":\"O\"}],\"response\":\"O\"},\"getAccount\":{\"request\":[{\"name\":\"i\",\"type\":\"O\"}],\"response\":\"O\"},\"getMaxNonce\":{\"request\":[{\"name\":\"n\",\"type\":\"O\"}],\"response\":\"O\"},\"getBalance\":{\"request\":[{\"name\":\"n\",\"type\":\"O\"}],\"response\":\"O\"},\"getSignHash\":{\"request\":[{\"name\":\"i\",\"type\":\"O\"}],\"response\":\"O\"},\"getPendingTransactionList\":{\"request\":[{\"name\":\"i\",\"type\":\"O\"}],\"response\":\"O\"}}}");
   /**
    */
-  com.eqchains.avro.O ping(com.eqchains.avro.O c);
+  com.eqchains.avro.O ping(com.eqchains.avro.O c) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getMinerList();
+  com.eqchains.avro.O getMinerList() throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O sendTransaction(com.eqchains.avro.O r);
+  com.eqchains.avro.O sendTransaction(com.eqchains.avro.O r) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getID(com.eqchains.avro.O a);
+  com.eqchains.avro.O getID(com.eqchains.avro.O a) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getAccount(com.eqchains.avro.O i);
+  com.eqchains.avro.O getAccount(com.eqchains.avro.O i) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getMaxNonce(com.eqchains.avro.O n);
+  com.eqchains.avro.O getMaxNonce(com.eqchains.avro.O n) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getBalance(com.eqchains.avro.O n);
+  com.eqchains.avro.O getBalance(com.eqchains.avro.O n) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getSignHash(com.eqchains.avro.O i);
+  com.eqchains.avro.O getSignHash(com.eqchains.avro.O i) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getPendingTransactionList(com.eqchains.avro.O i);
+  com.eqchains.avro.O getPendingTransactionList(com.eqchains.avro.O i) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
   public interface Callback extends TransactionNetwork {

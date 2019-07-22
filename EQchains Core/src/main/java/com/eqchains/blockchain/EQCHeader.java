@@ -384,7 +384,12 @@ public class EQCHeader implements EQCTypable {
 		bytes[1] = preHash[51];
 		bytes[2] = rootHash[33];
 		bytes[3] = rootHash[51];
-		bytes[4] = timestamp.getEQCBits()[3];
+		if(timestamp.equals(ID.ZERO)) {
+			bytes[4] = 0;
+		}
+		else {
+			bytes[4] = timestamp.getEQCBits()[3];
+		}
 		return bytes;
 	}
 	

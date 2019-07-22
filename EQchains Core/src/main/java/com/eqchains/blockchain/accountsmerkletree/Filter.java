@@ -67,23 +67,23 @@ public class Filter {
 	public Filter(Mode mode) throws RocksDBException {
 		columnFamilyHandles = new Vector();
 		if (mode == Mode.MINERING) {
-			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_MINERING));
-			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_MINERING_AI));
-			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_MINERING_HASH));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING_AI));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING_HASH));
 		} else {
-			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_VALID));
-			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_VALID_AI));
-			columnFamilyHandles.add(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_VALID_HASH));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_VALID));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_VALID_AI));
+			columnFamilyHandles.add(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_VALID_HASH));
 		}
 		
-		for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
+ 		for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
 			// In case before close the app crashed or abnormal interruption so here just
 			// clear the table
-//				Log.info("Before cleartable: " + EQCBlockChainRocksDB.getTableItemNumbers(columnFamilyHandle));
-			EQCBlockChainRocksDB.clearTable(columnFamilyHandle);
-//				Log.info("After cleartable: " + EQCBlockChainRocksDB.getTableItemNumbers(columnFamilyHandle));
+//				Log.info("Before cleartable: " + EQCBlockChainRocksDB.getInstance().getTableItemNumbers(columnFamilyHandle));
+			EQCBlockChainRocksDB.getInstance().clearTable(columnFamilyHandle);
+//				Log.info("After cleartable: " + EQCBlockChainRocksDB.getInstance().getTableItemNumbers(columnFamilyHandle));
 		}
-	}
+    	}
 	
 	public Account getAccount(ID id, boolean isLoadInFilter) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
 		return getAccount(id.getEQCBits(), isLoadInFilter);
@@ -101,7 +101,7 @@ public class Filter {
 	public boolean isAccountExists(Passport passport) throws RocksDBException {
 		boolean isSucc = false;
 		// For security issue only support search address via AddressAI
-		if ((EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), passport.getAddressAI()) != null)) {
+		if ((EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandles.get(1), passport.getAddressAI()) != null)) {
 			isSucc = true;
 		}
 		return isSucc;
@@ -112,7 +112,7 @@ public class Filter {
 		byte[] bytes = null;
 		Account account = null;
 			// For security issue only support search address via AddressAI
-			if((bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI())) != null) {
+			if((bytes = EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI())) != null) {
 				// Here maybe still exists some issue
 				account = Account.parseAccount(bytes);
 				if(account.getLockCreateHeight().compareTo(height) <= 0)
@@ -126,49 +126,55 @@ public class Filter {
 		writeBatch.put(columnFamilyHandles.get(0), account.getIDEQCBits(), account.getBytes());
 		writeBatch.put(columnFamilyHandles.get(1), account.getPassport().getAddressAI(),
 				account.getIDEQCBits());
-		EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
+		EQCBlockChainRocksDB.getInstance().getRocksDB().write(EQCBlockChainRocksDB.getInstance().getWriteOptions(), writeBatch);
 	}
 	
 	public void saveAccountHash(Account account, byte[] accountHash) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
 		writeBatch.put(columnFamilyHandles.get(2), account.getIDEQCBits(), accountHash);
-		EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
+		EQCBlockChainRocksDB.getInstance().getRocksDB().write(EQCBlockChainRocksDB.getInstance().getWriteOptions(), writeBatch);
 	}
 	
 	public void batchUpdate(WriteBatch writeBatch) throws RocksDBException {
-		EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
+		EQCBlockChainRocksDB.getInstance().getRocksDB().write(EQCBlockChainRocksDB.getInstance().getWriteOptions(), writeBatch);
 	}
 
-	public Account getAccount(byte[] id, boolean isLoadInFilter) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
-		Account account = null;
+	public Account getAccount(byte[] id, boolean isLoadInFilter) throws RocksDBException, NoSuchFieldException,
+			IllegalStateException, IOException, ClassNotFoundException, SQLException {
+  		Account account = null;
 		byte[] bytes = null;
-			bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(0), id);
-			if (bytes != null) {
-				account = Account.parseAccount(bytes);
-			} else {
-				if (accountsMerkleTree.getHeight().compareTo(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight()) < 0) {
-					account = EQCBlockChainH2.getInstance().getAccountSnapshot(new ID(id), accountsMerkleTree.getHeight());
-				}
-				if (account == null) {
-					bytes = EQCBlockChainRocksDB.get(TABLE.ACCOUNT, id);
-					if (bytes != null) {
-						account = Account.parseAccount(bytes);
-					}
-				} 
-				if (isLoadInFilter && account != null) {
-					saveAccount(account);
+		// Get Account from filter
+		bytes = EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandles.get(0), id);
+		if (bytes != null) {
+			account = Account.parseAccount(bytes);
+		} else {
+			if (accountsMerkleTree.getHeight()
+					.compareTo(EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight()) < 0) {
+				account = EQCBlockChainH2.getInstance().getAccountSnapshot(new ID(id), accountsMerkleTree.getHeight());
+			}
+			else {
+				bytes = EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, id);
+				if (bytes != null) {
+					account = Account.parseAccount(bytes);
 				}
 			}
+			if (account == null) {
+				throw new IllegalStateException("No. " + new ID(id) + " doesn't exists.");
+			}
+			if (isLoadInFilter) {
+				saveAccount(account);
+			}
+		}
 		return account;
 	}
 	
 	@Deprecated
 	public byte[] getAccountHash(ID id) throws RocksDBException {
 		byte[] bytes = null;
-			bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(2),
+			bytes = EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandles.get(2),
 					id.getEQCBits());
 			if(bytes == null) {
-				bytes = EQCBlockChainRocksDB.get(TABLE.ACCOUNT_HASH, id.getEQCBits());
+				bytes = EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_HASH, id.getEQCBits());
 			}
 		return bytes;
 	}
@@ -176,25 +182,25 @@ public class Filter {
 	public void merge() throws Exception {
 		Account account = null;
 		WriteBatch writeBatch = null;
-		RocksIterator rocksIterator = EQCBlockChainRocksDB.getRocksDB().newIterator(columnFamilyHandles.get(0));
+		RocksIterator rocksIterator = EQCBlockChainRocksDB.getInstance().getRocksDB().newIterator(columnFamilyHandles.get(0));
 		rocksIterator.seekToFirst();
 		while(rocksIterator.isValid()) {
 				account = Account.parseAccount(rocksIterator.value());
 				writeBatch = new WriteBatch();
-				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT), rocksIterator.key(), rocksIterator.value());
+				writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT), rocksIterator.key(), rocksIterator.value());
 //				Log.info(account.toString());
 //				Log.info(Util.dumpBytes(account.getAddress().getAddressAI(), 16));
-				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(), account.getIDEQCBits());
-				writeBatch.put(EQCBlockChainRocksDB.getTableHandle(TABLE.ACCOUNT_HASH), account.getIDEQCBits(), EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(2), account.getIDEQCBits()));
-				EQCBlockChainRocksDB.getRocksDB().write(EQCBlockChainRocksDB.getWriteOptions(), writeBatch);
-//				EQCBlockChainRocksDB.getInstance().saveAccount(account);
+				writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(), account.getIDEQCBits());
+				writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_HASH), account.getIDEQCBits(), EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandles.get(2), account.getIDEQCBits()));
+				EQCBlockChainRocksDB.getInstance().getRocksDB().write(EQCBlockChainRocksDB.getInstance().getWriteOptions(), writeBatch);
+//				EQCBlockChainRocksDB.getInstance().getInstance().saveAccount(account);
 				rocksIterator.next();
 		}
 	}
 	
 	public void takeSnapshot() throws Exception {
 		boolean isSucc = true;
-		RocksIterator rocksIterator = EQCBlockChainRocksDB.getRocksDB().newIterator(columnFamilyHandles.get(0));
+		RocksIterator rocksIterator = EQCBlockChainRocksDB.getInstance().getRocksDB().newIterator(columnFamilyHandles.get(0));
 		rocksIterator.seekToFirst();
 		AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
 		
@@ -203,7 +209,7 @@ public class Filter {
 				Account account = Account.parseAccount(rocksIterator.value());
 				if (account.getID()
 						.compareTo(assetSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers()) <= 0) {
-					if (!EQCBlockChainH2.getInstance().saveAccountSnapshot(EQCBlockChainRocksDB.getInstance().getAccount(account.getID()), accountsMerkleTree.getHeight())) {
+					if (!EQCBlockChainH2.getInstance().saveAccountSnapshot(account, accountsMerkleTree.getHeight().getNextID())) {
 						isSucc = false;
 						Log.Error("During takeSnapshot error occur saveAccountSnapshot failed.");
 						break;
@@ -220,15 +226,15 @@ public class Filter {
 	public ID getAddressID(Passport address) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
 		ID id = null;
 		byte[] bytes = null;
-			bytes = EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI());
+			bytes = EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandles.get(1), address.getAddressAI());
 			if(bytes != null) {
 				id = new ID(bytes);
 			}
 			else {
-				bytes = EQCBlockChainRocksDB.get(TABLE.ACCOUNT_AI, address.getAddressAI());
+				bytes = EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_AI, address.getAddressAI());
 				if(bytes != null) {
 						id = new ID(bytes);
-						byte[] data = EQCBlockChainRocksDB.get(TABLE.ACCOUNT, bytes);
+						byte[] data = EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, bytes);
 						Account account = Account.parseAccount(data);
 						saveAccount(account);
 				}
@@ -278,8 +284,8 @@ public class Filter {
 
 	public void clear() throws RocksDBException {
 		for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
-			EQCBlockChainRocksDB.clearTable(columnFamilyHandle);
-//			EQCBlockChainRocksDB.dropTable(columnFamilyHandle);
+			EQCBlockChainRocksDB.getInstance().clearTable(columnFamilyHandle);
+//			EQCBlockChainRocksDB.getInstance().dropTable(columnFamilyHandle);
 //			// Bug fix for https://github.com/facebook/rocksdb/issues/189 which could cause JVM crash
 //			columnFamilyHandle.close();
 		}

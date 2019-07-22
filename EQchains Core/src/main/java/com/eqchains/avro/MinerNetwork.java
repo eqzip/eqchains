@@ -5,27 +5,28 @@
  */
 package com.eqchains.avro;
 
+@SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface MinerNetwork {
   public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"MinerNetwork\",\"namespace\":\"com.eqchains.avro\",\"types\":[{\"type\":\"record\",\"name\":\"O\",\"fields\":[{\"name\":\"o\",\"type\":\"bytes\"}]}],\"messages\":{\"ping\":{\"request\":[{\"name\":\"c\",\"type\":\"O\"}],\"response\":\"O\"},\"getMinerList\":{\"request\":[],\"response\":\"O\"},\"getFullNodeList\":{\"request\":[],\"response\":\"O\"},\"broadcastNewBlock\":{\"request\":[{\"name\":\"b\",\"type\":\"O\"}],\"response\":\"O\"},\"getTransactionIndexList\":{\"request\":[],\"response\":\"O\"},\"getTransactionList\":{\"request\":[{\"name\":\"transactionIndexList\",\"type\":\"O\"}],\"response\":\"O\"}}}");
   /**
    */
-  com.eqchains.avro.O ping(com.eqchains.avro.O c);
+  com.eqchains.avro.O ping(com.eqchains.avro.O c) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getMinerList();
+  com.eqchains.avro.O getMinerList() throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getFullNodeList();
+  com.eqchains.avro.O getFullNodeList() throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O broadcastNewBlock(com.eqchains.avro.O b);
+  com.eqchains.avro.O broadcastNewBlock(com.eqchains.avro.O b) throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getTransactionIndexList();
+  com.eqchains.avro.O getTransactionIndexList() throws org.apache.avro.AvroRemoteException;
   /**
    */
-  com.eqchains.avro.O getTransactionList(com.eqchains.avro.O transactionIndexList);
+  com.eqchains.avro.O getTransactionList(com.eqchains.avro.O transactionIndexList) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
   public interface Callback extends MinerNetwork {

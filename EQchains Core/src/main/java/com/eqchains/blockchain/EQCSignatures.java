@@ -74,6 +74,7 @@ public class EQCSignatures implements EQCTypable {
 	}
 	
 	private void parseSignatures(byte[] bytes) throws NoSuchFieldException, IOException{
+		signatureList = new Vector<byte[]>();
 		ARRAY array = EQCType.parseARRAY(bytes);
 		if(!array.isNULL()) {
 			signatureListSize = array.length;

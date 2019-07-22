@@ -40,6 +40,7 @@ import com.eqchains.blockchain.EQCHive;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
+import com.eqchains.rpc.NewBlock;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
 import com.eqchains.util.Log;
@@ -112,14 +113,14 @@ public class MinerNetworkClient extends EQCClient {
 		return ipList;
 	}
 
-	public static Info broadcastNewBlock(EQCHive block, String ip) throws Exception {
+	public static Info broadcastNewBlock(NewBlock newBlock, String ip) throws Exception {
 		Info info = null;
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
-			info = new Info(client.broadcastNewBlock(block.getO()));
+			info = new Info(client.broadcastNewBlock(newBlock.getO()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -173,6 +174,7 @@ public class MinerNetworkClient extends EQCClient {
 	}
 
 	public static long ping(String remoteIP) {
+		Log.info("Begin ping: " + remoteIP);
     	NettyTransceiver nettyTransceiver = null;
     	MinerNetwork client = null;
     	long time = System.currentTimeMillis();

@@ -58,7 +58,7 @@ import com.eqchains.util.Util.AddressTool;
  * @date Jun 30, 2019
  * @email 10509759@qq.com
  */
-public class TransactionNetworkImpl implements TransactionNetwork {
+public class TransactionNetworkServiceImpl implements TransactionNetwork {
 
 	/* (non-Javadoc)
 	 * @see com.eqchains.avro.TransactionNetwork#ping(com.eqchains.avro.IO)

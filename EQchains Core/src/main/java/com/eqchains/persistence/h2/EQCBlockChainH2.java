@@ -1531,7 +1531,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public synchronized boolean deleteAccountSnapshot(ID height, boolean isForward) throws SQLException {
+	public synchronized boolean deleteAccountSnapshotFrom(ID height, boolean isForward) throws SQLException {
 		int result = 0;
 		PreparedStatement preparedStatement;
 			preparedStatement = connection.prepareStatement("DELETE FROM ACCOUNT_SNAPSHOT WHERE snapshot_height " + (isForward?">=?":"<=?"));

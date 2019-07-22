@@ -107,10 +107,11 @@ public class AccountsMerkleTree {
 		}
 		this.filter = filter;
 		if(height.compareTo(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight()) < 0) {
-			for(long i=1; i<totalAccountNumbers.longValue(); ++i) {
+			// Load all current AssetSubchainAccount's relevant Account into Filter which have exists snapshot in AccountSnapshot table otherwise the status is the same as in the current Account table
+			for(long i=1; i<=totalAccountNumbers.longValue(); ++i) {
 				Account account = EQCBlockChainH2.getInstance().getAccountSnapshot(new ID(i), height);
 				if(account != null) {
-					Log.info(account.toString());
+//					Log.info(account.toString());
 					filter.saveAccount(account);
 				}
 			}
@@ -182,7 +183,7 @@ public class AccountsMerkleTree {
 	 * @return the height
 	 */
 	public synchronized ID getHeight() {
-		return height;
+ 		return height;
 	}
 
 	/**
@@ -206,7 +207,7 @@ public class AccountsMerkleTree {
 				end = MAX_ACCOUNTS_PER_TREE + Util.INIT_ADDRESS_SERIAL_NUMBER;
 				remainder -= MAX_ACCOUNTS_PER_TREE;
 			} else {
-				end = (int) remainder + Util.INIT_ADDRESS_SERIAL_NUMBER;
+				end = (int) remainder + Util.INIT_ADDRESS_SERIAL_NUMBER; 
 			}
 			for (int j = begin; j < end; ++j) {
 				account = filter.getAccount(new ID(j), false);
@@ -227,7 +228,7 @@ public class AccountsMerkleTree {
 			merkleTree = null;
 			accountsHash.clear();
 		}
-		System.gc();
+//		System.gc();
 	}
 	
 	public void generateRoot() {
@@ -414,7 +415,7 @@ public class AccountsMerkleTree {
 		Statistics statistics = new Statistics();
 		for(int i=1; i<=totalAccountNumbers.longValue(); ++i) {
 			account = filter.getAccount(new ID(i).getEQCBits(), false);
-			Log.info(account.toString());
+//			Log.info(account.toString());
 			statistics.update(account.getAssetList());
 		}
 		// Calculate Coinbase Transaction's numbers

@@ -1197,19 +1197,19 @@ public class Test {
 			long begin = System.currentTimeMillis();
 			Log.info("" + begin);
 			for (int i = 0; i < 10000000; ++i) {
-				EQCBlockChainRocksDB.put(TABLE.ACCOUNT, new ID(BigInteger.valueOf(i)).getEQCBits(), bytes);
+				EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT, new ID(BigInteger.valueOf(i)).getEQCBits(), bytes);
 			}
 			long end = System.currentTimeMillis();
 			Log.info("Total put time: " + (end - begin) + " ms");
 			begin = System.currentTimeMillis();
-			Log.info("" + Util.dumpBytes(EQCBlockChainRocksDB.get(TABLE.ACCOUNT, ID.ZERO.getEQCBits()), 16));
+			Log.info("" + Util.dumpBytes(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, ID.ZERO.getEQCBits()), 16));
 			Log.info("" + begin);
 			for (int i = 0; i < 10000000; ++i) {
-				EQCBlockChainRocksDB.get(TABLE.ACCOUNT, new ID(BigInteger.valueOf(i)).getEQCBits());
+				EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, new ID(BigInteger.valueOf(i)).getEQCBits());
 			}
 			end = System.currentTimeMillis();
 			Log.info("Total get time: " + (end - begin) + " ms");
-			EQCBlockChainRocksDB.getInstance().close();
+			EQCBlockChainRocksDB.getInstance().getInstance().close();
 		} catch (RocksDBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1232,7 +1232,7 @@ public class Test {
 					new ColumnFamilyDescriptor(TABLE.EQCBLOCK.name().getBytes(), columnFamilyOptions),
 					new ColumnFamilyDescriptor(TABLE.ACCOUNT.name().getBytes(), columnFamilyOptions),
 					new ColumnFamilyDescriptor(TABLE.ACCOUNT_MINERING.name().getBytes(), columnFamilyOptions),
-					new ColumnFamilyDescriptor(EQCBlockChainRocksDB.MISC_TABLE, columnFamilyOptions));
+					new ColumnFamilyDescriptor(EQCBlockChainRocksDB.getInstance().MISC_TABLE, columnFamilyOptions));
 
 			columnFamilyHandle = rocksDB.createColumnFamily(columnFamilyDescriptors.get(1));
 			rocksDB.setOptions(columnFamilyHandle,
@@ -1291,15 +1291,15 @@ public class Test {
 		asset.deposit(new ID(500000));
 		account.setAsset(asset);
 		try {
-			EQCBlockChainRocksDB.getInstance().saveAccount(account);
-			account = EQCBlockChainRocksDB.getInstance().getAccount(ID.TWO);
+			EQCBlockChainRocksDB.getInstance().getInstance().saveAccount(account);
+			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(ID.TWO);
 			Log.info(account.getPassport().toString());
 		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-//		RocksIterator rocksIterator = EQCBlockChainRocksDB.getInstance().getRocksDB().newIterator(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT));
+//		RocksIterator rocksIterator = EQCBlockChainRocksDB.getInstance().getInstance().getRocksDB().newIterator(EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT));
 //		rocksIterator.seekToFirst();
 //		while(rocksIterator.isValid()) {
 //			account = null;
@@ -1317,9 +1317,9 @@ public class Test {
 	public static void testDisplayAccount() {
 		Account account;
 		try {
-			account = EQCBlockChainRocksDB.getInstance().getAccount(ID.TWO);
+			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(ID.TWO);
 			Log.info(account.getPassport().toString());
-			account = EQCBlockChainRocksDB.getInstance().getAccount(new ID(3));
+			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(new ID(3));
 			Log.info(account.getPassport().toString());
 		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException e) {
 			// TODO Auto-generated catch block
@@ -1329,7 +1329,7 @@ public class Test {
 
 	public static void testDisplayEQCBlock(ID height) {
 		try {
-			Log.info(EQCBlockChainRocksDB.getInstance().getEQCBlock(height, false).getRoot().toString());
+			Log.info(EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlock(height, false).getRoot().toString());
 		} catch (NoSuchFieldException | RocksDBException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1339,11 +1339,11 @@ public class Test {
 	public static void testDisplayAllAccount() {
 		BigInteger serialNumber;
 		try {
-			serialNumber = EQCBlockChainRocksDB.getInstance()
-					.getTotalAccountNumbers(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight());
+			serialNumber = EQCBlockChainRocksDB.getInstance().getInstance()
+					.getTotalAccountNumbers(EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight());
 			for (int i = Util.INIT_ADDRESS_SERIAL_NUMBER; i < serialNumber.longValue()
 					+ Util.INIT_ADDRESS_SERIAL_NUMBER; ++i) {
-				Log.info(EQCBlockChainRocksDB.getInstance().getAccount(new ID(i)).toString());
+				Log.info(EQCBlockChainRocksDB.getInstance().getInstance().getAccount(new ID(i)).toString());
 			}
 		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException | ClassNotFoundException | SQLException e) {
 			// TODO Auto-generated catch block
@@ -1389,8 +1389,8 @@ public class Test {
 			eqcBlock = Util.gestationSingularityBlock();
 			Log.info(eqcBlock.toString());
 			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
-			EQCBlockChainRocksDB.getInstance().saveEQCBlock(eqcBlock);
-			eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(eqcBlock.getHeight(), false);
+			EQCBlockChainRocksDB.getInstance().getInstance().saveEQCBlock(eqcBlock);
+			eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlock(eqcBlock.getHeight(), false);
 			Log.info(eqcBlock.toString());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -1437,18 +1437,18 @@ public class Test {
 		ColumnFamilyDescriptor columnFamilyDescriptor = new ColumnFamilyDescriptor("abc".getBytes());
 		try {
 
-			ColumnFamilyHandle columnFamilyHandle = EQCBlockChainRocksDB.getRocksDB()
+			ColumnFamilyHandle columnFamilyHandle = EQCBlockChainRocksDB.getInstance().getRocksDB()
 					.createColumnFamily(columnFamilyDescriptor);
 //			data = "a";
-//			EQCBlockChainRocksDB.getRocksDB().put(columnFamilyHandle, data.getBytes(), data.getBytes());
+//			EQCBlockChainRocksDB.getInstance().getRocksDB().put(columnFamilyHandle, data.getBytes(), data.getBytes());
 			data = "b";
-			EQCBlockChainRocksDB.getRocksDB().put(columnFamilyHandle, data.getBytes(), data.getBytes());
+			EQCBlockChainRocksDB.getInstance().getRocksDB().put(columnFamilyHandle, data.getBytes(), data.getBytes());
 
-//			Log.info("" + new String(EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandle, data.getBytes())));
-//			Log.info("" + new String(EQCBlockChainRocksDB.getRocksDB().get(data.getBytes())));
-			EQCBlockChainRocksDB.getRocksDB().dropColumnFamily(columnFamilyHandle);
-			Log.info("" + new String(EQCBlockChainRocksDB.getRocksDB().get(columnFamilyHandle, "b".getBytes())));
-//			Log.info("" + new String(EQCBlockChainRocksDB.getRocksDB().get(data.getBytes())));
+//			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandle, data.getBytes())));
+//			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(data.getBytes())));
+			EQCBlockChainRocksDB.getInstance().getRocksDB().dropColumnFamily(columnFamilyHandle);
+			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandle, "b".getBytes())));
+//			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(data.getBytes())));
 		} catch (RocksDBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1460,25 +1460,25 @@ public class Test {
 		String data;
 //		try {
 //			data = "a";
-//			EQCBlockChainRocksDB.put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
-//			data = "b";
-//			EQCBlockChainRocksDB.put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
-//			Log.info("ab");
-//			EQCBlockChainRocksDB.clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
-//			EQCBlockChainRocksDB.getInstance().close();
-//			EQCBlockChainRocksDB.dropTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
-//			EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING).close();
-//			Thread.sleep(1000);
-//			Log.info(new String(EQCBlockChainRocksDB.get(TABLE.ACCOUNT_MINERING, "a".getBytes())));
-//			Log.info("abc");
-//			EQCBlockChainRocksDB.getInstance().close();
-
 //			EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
-//			Log.info(new String(EQCBlockChainRocksDB.get(TABLE.ACCOUNT_MINERING, data.getBytes())));
-////			EQCBlockChainRocksDB.dropTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
-//			EQCBlockChainRocksDB.getRocksDB().delete(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING), data.getBytes());
+//			data = "b";
+//			EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
+//			Log.info("ab");
+//			EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
+//			EQCBlockChainRocksDB.getInstance().getInstance().close();
+//			EQCBlockChainRocksDB.getInstance().dropTable(EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
+//			EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT_MINERING).close();
+//			Thread.sleep(1000);
+//			Log.info(new String(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_MINERING, "a".getBytes())));
+//			Log.info("abc");
+//			EQCBlockChainRocksDB.getInstance().getInstance().close();
+
+//			EQCBlockChainRocksDB.getInstance().getInstance().put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
+//			Log.info(new String(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_MINERING, data.getBytes())));
+////			EQCBlockChainRocksDB.getInstance().dropTable(EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
+//			EQCBlockChainRocksDB.getInstance().getRocksDB().delete(EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT_MINERING), data.getBytes());
 //			
-//			Log.info(new String(EQCBlockChainRocksDB.get(TABLE.ACCOUNT_MINERING, data.getBytes())));
+//			Log.info(new String(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_MINERING, data.getBytes())));
 
 //		} catch (RocksDBException e) {
 //			// TODO Auto-generated catch block
@@ -1490,12 +1490,12 @@ public class Test {
 		String data;
 //		try {
 //			data = "a";
-//			EQCBlockChainRocksDB.put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
+//			EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
 //			data = "b";
-//			EQCBlockChainRocksDB.put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
-//			EQCBlockChainRocksDB.clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
-//			Log.info(new String(EQCBlockChainRocksDB.get(TABLE.ACCOUNT_MINERING, "a".getBytes())));
-//			Log.info(new String(EQCBlockChainRocksDB.get(TABLE.ACCOUNT_MINERING, "b".getBytes())));
+//			EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
+//			EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
+//			Log.info(new String(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_MINERING, "a".getBytes())));
+//			Log.info(new String(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_MINERING, "b".getBytes())));
 //		} catch (RocksDBException e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
@@ -1506,12 +1506,12 @@ public class Test {
 		String data;
 //		try {
 //			data = "a";
-//			EQCBlockChainRocksDB.put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
+//			EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
 //			data = "b";
-//			EQCBlockChainRocksDB.put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
-//			EQCBlockChainRocksDB.dropTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
-//			Log.info(new String(EQCBlockChainRocksDB.get(TABLE.ACCOUNT_MINERING, "a".getBytes())));
-//			Log.info(new String(EQCBlockChainRocksDB.get(TABLE.ACCOUNT_MINERING, "b".getBytes())));
+//			EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
+//			EQCBlockChainRocksDB.getInstance().dropTable(EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT_MINERING));
+//			Log.info(new String(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_MINERING, "a".getBytes())));
+//			Log.info(new String(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT_MINERING, "b".getBytes())));
 //		} catch (RocksDBException e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
@@ -1575,7 +1575,7 @@ public class Test {
 		txOut.setValue(50 * Util.ABC);
 		transaction.addTxOut(txOut);
 		try {
-			transaction.setNonce(EQCBlockChainRocksDB.getInstance().getAccount(txIn.getPassport().getAddressAI())
+			transaction.setNonce(EQCBlockChainRocksDB.getInstance().getInstance().getAccount(txIn.getPassport().getAddressAI())
 					.getAsset(Asset.EQCOIN).getNonce().getNextID());
 			byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
 			byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
@@ -1597,7 +1597,7 @@ public class Test {
 				e.printStackTrace();
 			}
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
-					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
+					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
 					new Filter(Mode.MINERING));
 			transaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
 			EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
@@ -1642,7 +1642,7 @@ public class Test {
 		operationTransaction.setOperation(updateAddressOperation);
 		operationTransaction.setTxIn(txIn);
 		try {
-			operationTransaction.setNonce(EQCBlockChainRocksDB.getInstance()
+			operationTransaction.setNonce(EQCBlockChainRocksDB.getInstance().getInstance()
 					.getAccount(txIn.getPassport().getAddressAI()).getAsset(Asset.EQCOIN).getNonce().getNextID());
 			operationTransaction.cypherTxInValue(TXFEE_RATE.POSTPONE0);
 			Log.info("getMaxBillingSize: " + operationTransaction.getMaxBillingSize());
@@ -1650,7 +1650,7 @@ public class Test {
 			Log.info("getQosRate: " + operationTransaction.getQosRate());
 			Log.info("getQos: " + operationTransaction.getQos());
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
-					EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight(),
+					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
 					new Filter(Mode.MINERING));
 			operationTransaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
 			EQCBlockChainH2.getInstance().saveTransactionInPool(operationTransaction);
@@ -1798,11 +1798,11 @@ public class Test {
 	public static void testVerifyBlock() {
 		ID id;
 		try {
-			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
+			id = EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight();
 			for (int i = 1; i < id.intValue(); ++i) {
 				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i - 1),
 						new Filter(Mode.MINERING));
-				EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+				EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlock(new ID(i), true);
 				try {
 					eqcBlock.verify(accountsMerkleTree);
 				} catch (Exception e) {
@@ -1951,7 +1951,7 @@ public class Test {
     		 // client code - attach to the server and send a message
     		SyncblockNetwork proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
     		EQCHive eqcHive = new EQCHive(proxy.getBlock(height.getO()), false);
-            System.out.println("Result: " + (System.currentTimeMillis() - time));// + "\n" + eqcHive);
+            System.out.println("Result: " + (System.currentTimeMillis() - time) + "\n" + eqcHive);
     	}
     	catch (Exception e) {
 			// TODO: handle exception

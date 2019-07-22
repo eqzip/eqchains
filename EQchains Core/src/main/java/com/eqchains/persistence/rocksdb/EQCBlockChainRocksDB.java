@@ -77,11 +77,11 @@ import com.eqchains.util.Util;
  */
 public class EQCBlockChainRocksDB implements EQCBlockChain {
 	private static EQCBlockChainRocksDB instance;
-	private static RocksDB rocksDB;
-	private static List<ColumnFamilyHandle> columnFamilyHandles;
-	private static List<byte[]> defaultColumnFamilyNames;
-	private static List<ColumnFamilyDescriptor> columnFamilyDescriptors;
-	private static WriteOptions writeOptions;
+	private RocksDB rocksDB;
+	private List<ColumnFamilyHandle> columnFamilyHandles;
+	private List<byte[]> defaultColumnFamilyNames;
+	private List<ColumnFamilyDescriptor> columnFamilyDescriptors;
+	private WriteOptions writeOptions;
 	public static final byte[] SUFFIX_AI = "AI".getBytes();
 	public static final byte[] SUFFIX_HASH = "Hash".getBytes();
 	public static final byte[] MISC_TABLE = "Misc".getBytes();
@@ -99,6 +99,9 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 
 	static {
 		RocksDB.loadLibrary();
+	}
+
+	private EQCBlockChainRocksDB() throws RocksDBException {
 		defaultColumnFamilyNames = Arrays.asList(
 				RocksDB.DEFAULT_COLUMN_FAMILY, 
 				TABLE.EQCBLOCK.name().getBytes(), TABLE.EQCBLOCK_HASH.name().getBytes(),
@@ -106,9 +109,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 				TABLE.ACCOUNT_MINERING.name().getBytes(), TABLE.ACCOUNT_MINERING_AI.name().getBytes(), TABLE.ACCOUNT_MINERING_HASH.name().getBytes(), 
 				TABLE.ACCOUNT_VALID.name().getBytes(), TABLE.ACCOUNT_VALID_AI.name().getBytes(), TABLE.ACCOUNT_VALID_HASH.name().getBytes(), 
 				TABLE.MISC.name().getBytes());
-	}
-
-	private EQCBlockChainRocksDB() throws RocksDBException {
 		List<byte[]> columnFamilyNames = new ArrayList<>();
 		columnFamilyNames.addAll(defaultColumnFamilyNames);
 		columnFamilyHandles = new ArrayList<>();
@@ -176,7 +176,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	/**
 	 * @return the rocksDB
 	 */
-	public static RocksDB getRocksDB() {
+	public RocksDB getRocksDB() {
 		return rocksDB;
 	}
 
@@ -190,37 +190,37 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return isExists;
 	}
 	
-	public static ColumnFamilyHandle getTableHandle(TABLE table) {
+	public ColumnFamilyHandle getTableHandle(TABLE table) {
 		return columnFamilyHandles.get(table.ordinal());
 	}
 	
-	public static void put(TABLE table, byte[] key, byte[] value) throws RocksDBException {
+	public void put(TABLE table, byte[] key, byte[] value) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
 		writeBatch.put(getTableHandle(table), key, value);
 		rocksDB.write(writeOptions, writeBatch);
 	}
 
-	public static byte[] get(TABLE table, byte[] key) throws RocksDBException {
+	public byte[] get(TABLE table, byte[] key) throws RocksDBException {
 		return rocksDB.get(getTableHandle(table), key);
 	}
 	
-	public static void delete(TABLE table, byte[] key) throws RocksDBException {
+	public void delete(TABLE table, byte[] key) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
 		writeBatch.delete(getTableHandle(table), key);
 		rocksDB.write(writeOptions, writeBatch);
 	}
 	
-	public static ColumnFamilyHandle  createTable(byte[] columnFamilyName) throws RocksDBException {
+	public ColumnFamilyHandle  createTable(byte[] columnFamilyName) throws RocksDBException {
 		ColumnFamilyHandle columnFamilyHandle = null;
 			columnFamilyHandle = rocksDB.createColumnFamily(new ColumnFamilyDescriptor(columnFamilyName));
 		return columnFamilyHandle;
 	}
 	
-	public static void dropTable(ColumnFamilyHandle columnFamilyHandle) throws IllegalArgumentException, RocksDBException {
+	public void dropTable(ColumnFamilyHandle columnFamilyHandle) throws IllegalArgumentException, RocksDBException {
 			rocksDB.dropColumnFamily(columnFamilyHandle);
 	}
 	
-	public static void clearTable(ColumnFamilyHandle columnFamilyHandle) throws RocksDBException {
+	public void clearTable(ColumnFamilyHandle columnFamilyHandle) throws RocksDBException {
 		WriteBatch writeBatch = null;
 		RocksIterator rocksIterator = rocksDB.newIterator(columnFamilyHandle);
 		rocksIterator.seekToFirst();
@@ -232,7 +232,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		}
 	}
 	
-	public static ID getTableItemNumbers(ColumnFamilyHandle columnFamilyHandle) {
+	public ID getTableItemNumbers(ColumnFamilyHandle columnFamilyHandle) {
 		ID id = ID.ZERO;
 		RocksIterator rocksIterator = rocksDB.newIterator(columnFamilyHandle);
 		rocksIterator.seekToFirst();
@@ -243,7 +243,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return id;
 	}
 	
-	public static ID getAccountNumbers() {
+	public ID getAccountNumbers() {
 		return getTableItemNumbers(getTableHandle(TABLE.ACCOUNT));
 //		if(numbers.mod(BigInteger.valueOf(3)).compareTo(BigInteger.valueOf(3)) != 0) {
 //			throw new IllegalStateException("Account table is not synchronized.");
@@ -251,7 +251,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 //		return new ID(numbers.divide(BigInteger.valueOf(3)));
 	}
 	
-	public static ID getEQCBlockNumbers() {
+	public ID getEQCBlockNumbers() {
 		return getTableItemNumbers(getTableHandle(TABLE.EQCBLOCK));
 	}
 	
@@ -414,14 +414,14 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	@Override
 	public byte[] getEQCHeaderHash(ID height) throws RocksDBException {
 		byte[] bytes = null;
-			bytes = get(TABLE.EQCBLOCK_HASH, height.getEQCBits());
+		 bytes = get(TABLE.EQCBLOCK_HASH, height.getEQCBits());
 		return bytes;
 	}
 
 	@Override
 	public ID getEQCBlockTailHeight() throws RocksDBException {
 		ID serialNumber = null;
-			serialNumber = new ID(get(TABLE.MISC, EQCBLOCK_TAIL_HEIGHT));
+		serialNumber = new ID(get(TABLE.MISC, EQCBLOCK_TAIL_HEIGHT));
 		return serialNumber;
 	}
 
@@ -493,7 +493,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public boolean deleteAccountSnapshot(ID height, boolean isForward) {
+	public boolean deleteAccountSnapshotFrom(ID height, boolean isForward) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -535,11 +535,11 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	/**
 	 * @return the writeOptions
 	 */
-	public static WriteOptions getWriteOptions() {
+	public WriteOptions getWriteOptions() {
 		return writeOptions;
 	}
 	
-	public static ID dumpTable(TABLE table) {
+	public ID dumpTable(TABLE table) {
 		ID tail = getTableItemNumbers(getTableHandle(table));
 		Log.info(table + " have " + tail + " elements.");
 		

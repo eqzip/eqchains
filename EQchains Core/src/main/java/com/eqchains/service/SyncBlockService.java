@@ -36,6 +36,7 @@ import java.util.Vector;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import org.apache.velocity.runtime.directive.Break;
+import org.h2.util.IntIntHashMap;
 
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
@@ -54,6 +55,7 @@ import com.eqchains.rpc.service.SyncblockNetworkService;
 import com.eqchains.rpc.service.TransactionNetworkService;
 import com.eqchains.service.state.EQCServiceState;
 import com.eqchains.service.state.EQCServiceState.State;
+import com.eqchains.service.state.SleepState;
 import com.eqchains.service.state.SyncBlockState;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -82,25 +84,41 @@ public class SyncBlockService extends EQCService {
 	
     private SyncBlockService() {
     	super();
-    	mode = MODE.FULL;
+    	mode = MODE.MINER;
 	}
-	
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.service.EQCService#stop()
+	 */
+	@Override
+	public synchronized void stop() {
+		super.stop();
+		PossibleNodeService.getInstance().stop();
+		MinerNetworkService.getInstance().stop();
+		TransactionNetworkService.getInstance().stop();
+		SyncblockNetworkService.getInstance().stop();
+	}
+
 	/* (non-Javadoc)
 	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
 	 */
 	@Override
 	protected void onDefault(EQCServiceState state) {
 		switch (state.getState()) {
+		case SERVER:
+			this.state.set(State.SERVER);
+			onServer(state);
+			break;
 		case FIND:
+			this.state.set(State.FIND);
 			onFind(state);
 			break;
 		case SYNC:
+			this.state.set(State.SYNC);
 			onSync(state);
 			break;
-		case SLEEP:
-			onSleep(state);
-			break;
 		case MINER:
+			this.state.set(State.MINER);
 			onMiner(state);
 			break;
 		default:
@@ -109,135 +127,186 @@ public class SyncBlockService extends EQCService {
 	}
 	
 	private void onFind(EQCServiceState state) {
-		boolean isSingularityNode = false;
 		IPList minerList = null;
-		String tail = null;
-		TailInfo tailInfo = null;
-		TailInfo currentTail = null;
+		String maxTail = null;
+		TailInfo minerTailInfo = null;
+		TailInfo maxTailInfo = null;
+		boolean isMaxTail = true;
 
 		try {
+			// Before already do syncMinerList in Util.init during every time EQchains core
+			// startup
 			minerList = EQCBlockChainH2.getInstance().getMinerList();
+			Log.info("MinerList's size: " + minerList.getIpList().size());
 			if (minerList.isEmpty()) {
 				if (Util.IP.equals(Util.SINGULARITY_IP)) {
 					// This is Singularity node and miner list is empty just start Minering
 					offerState(new EQCServiceState(State.MINER));
 					return;
-				} else {
-					tail = Util.SINGULARITY_IP;
-				}
-			} else {
-				Vector<TailInfo> tailInfos = new Vector<>();
-				IPList ipList = new IPList();
-				for (String ip : minerList.getIpList()) {
-					try {
-						tailInfo = SyncblockNetworkClient.getBlockTail(ip);
-					} catch (Exception e) {
-						tailInfo = null;
-						Log.Error(name + e.getMessage());
+				} 
+			}
+			minerList.addIP(Util.SINGULARITY_IP);
+			Vector<TailInfo> minerTailList = new Vector<>();
+			for (String ip : minerList.getIpList()) {
+				try {
+					if(!ip.equals(Util.IP)) {
+						minerTailInfo = SyncblockNetworkClient.getBlockTail(ip);
 					}
-					if (tailInfo != null) {
-						tailInfo.setIp(ip);
-						tailInfos.add(tailInfo);
-					}
+				} catch (Exception e) {
+					minerTailInfo = null;
+					Log.Error(name + e.getMessage());
 				}
-				Comparator<TailInfo> reverseComparator = Collections.reverseOrder();
-				Collections.sort(tailInfos, reverseComparator);
-				currentTail = tailInfos.get(0);
-				for (TailInfo tailInfo2 : tailInfos) {
-					if (tailInfo2.equals(tailInfos.get(0))) {
-						ipList.addIP(tailInfo2.getIp());
-					}
-				}
-				tail = MinerNetworkClient.getFastestServer(ipList);
-				if (tail == null) {
-					tail = Util.SINGULARITY_IP;
+				if (minerTailInfo != null) {
+					minerTailInfo.setIp(ip);
+					minerTailList.add(minerTailInfo);
 				}
 			}
-			if (Util.DB().getEQCBlockTailHeight().compareTo(currentTail.getHeight()) < 0) {
-				// Begin sync to tail
+			if(minerTailList.isEmpty()) {
+				if (Util.IP.equals(Util.SINGULARITY_IP)) {
+					// This is Singularity node and miner list is empty just start Minering
+					offerState(new EQCServiceState(State.MINER));
+					return;
+				} 
+				else {
+					// Network error all miner node and singularity node can't connect just sleep then try again 
+					Log.Error("Network error all miner node and singularity node can't connect just sleep then try again");
+					offerState(new SleepState(Util.BLOCK_INTERVAL/4));
+					return;
+				}
+			}
+			Comparator<TailInfo> reverseComparator = Collections.reverseOrder();
+			Collections.sort(minerTailList, reverseComparator);
+			// Retrieve the max Hive TailInfo
+			Log.info("minerTailList: " + minerTailList.size());
+			maxTailInfo = minerTailList.get(0);
+			Log.info("MaxTail: " + maxTailInfo.getHeight());
+			Log.info("LocalTail: " + Util.DB().getEQCBlockTailHeight());
+			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+			if (maxTailInfo.getCheckPointHeight().compareTo(eQcoinSubchainAccount.getCheckPointHeight()) >= 0
+					&& maxTailInfo.getHeight().compareTo(Util.DB().getEQCBlockTailHeight()) > 0) {
+				isMaxTail = false;
+				IPList minerIpList = new IPList();
+				for (TailInfo tailInfo2 : minerTailList) {
+					if (tailInfo2.equals(minerTailList.get(0))) {
+						minerIpList.addIP(tailInfo2.getIp());
+					}
+				}
+				maxTail = MinerNetworkClient.getFastestServer(minerIpList);
+				if (maxTail == null) {
+					offerState(new SleepState(Util.BLOCK_INTERVAL/4));
+				}
+			}
+			if (!isMaxTail) {
+				// Begin sync to MaxTail
 				SyncBlockState syncBlockState = new SyncBlockState();
-				syncBlockState.setIp(tail);
-				offerState(state);
+				syncBlockState.setIp(maxTail);
+				offerState(syncBlockState);
 			} else {
 				if (mode == MODE.MINER) {
 					offerState(new EQCServiceState(State.MINER));
 				} else {
-					// Sleep then find again
+					offerState(new SleepState(Util.BLOCK_INTERVAL/4));
 				}
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			// TODO Auto-generated catch bloc
 			e.printStackTrace();
 			Log.Error(name + e.getMessage());
+			offerState(new SleepState(Util.BLOCK_INTERVAL/4));
 		}
 	}
 	
 	private void onSync(EQCServiceState state) {
 		SyncBlockState syncBlockState = (SyncBlockState) state;
 		AccountsMerkleTree accountsMerkleTree = null;
+		boolean isValidChain = false;
 		
 		try {
-			EQCHive eqcHive = Util.DB().getEQCBlock(Util.DB().getEQCBlockTailHeight(), true);
-			if(syncBlockState.getEqcHive() == null) {
-				if(syncBlockState.getEqcHive().getHeight().isNextID(eqcHive.getHeight())) {
-					if(Arrays.equals(syncBlockState.getEqcHive().getEqcHeader().getPreHash(), eqcHive.getHash())) {
-						 accountsMerkleTree = new AccountsMerkleTree(eqcHive.getHeight(), new Filter(Mode.VALID));
+			EQCHive localTailHive = Util.DB().getEQCBlock(Util.DB().getEQCBlockTailHeight(), true);
+			if(syncBlockState.getEqcHive() != null) {
+				// Received new block from the Miner network
+				Log.info("Received new block from the Miner network");
+				if(syncBlockState.getEqcHive().getHeight().isNextID(localTailHive.getHeight())) {
+					if(Arrays.equals(syncBlockState.getEqcHive().getEqcHeader().getPreHash(), localTailHive.getHash())) {
+						 accountsMerkleTree = new AccountsMerkleTree(localTailHive.getHeight(), new Filter(Mode.VALID));
 						if(syncBlockState.getEqcHive().isValid(accountsMerkleTree)) {
+							// Maybe here need do more job
 							accountsMerkleTree.takeSnapshot();
 							accountsMerkleTree.merge();
 							accountsMerkleTree.clear();
+							Util.DB().saveEQCBlock(syncBlockState.getEqcHive());
+							Util.DB().saveEQCBlockTailHeight(syncBlockState.getEqcHive().getHeight());
+							Log.info("New block valid passed");
 						}
-						Util.DB().saveEQCBlock(syncBlockState.getEqcHive());
-						Util.DB().saveEQCBlockTailHeight(syncBlockState.getEqcHive().getHeight());
+						offerState(new EQCServiceState(State.FIND));
 						return;
 					}
 				}
 			}
-			TailInfo tailInfo = SyncblockNetworkClient.getBlockTail(syncBlockState.getIp());
-			ID tail = Util.DB().getEQCBlockTailHeight();
-			long i=tail.longValue();
-			// Here need change 0 to checkpoint height
-			for(; i>0; --i) {
-				if(Arrays.equals(Util.DB().getEQCHeaderHash(ID.valueOf(i)), SyncblockNetworkClient.getBlock(ID.valueOf(i+1), syncBlockState.getIp()).getEqcHeader().getPreHash())) {
-					break;
-				}
-			}
-			// Remove old block
-			for(long j=i+1; j<tail.longValue(); ++j) {
-				Util.DB().deleteEQCBlock(ID.valueOf(j));
-			}
-			// Remove unused Account 
-			if(i>tail.subtract(Util.EUROPA).longValue()) {
-				// Here need check if overhead the last checkpoint if true this Subchain is invalid
-				// Here need remove accounts after i
-				ID total = Util.DB().getTotalAccountNumbers(Util.DB().getEQCBlockTailHeight());
-				for(long l=i+1; l<=total.longValue(); ++l) {
-					Util.DB().deleteAccount(ID.valueOf(l));
-				}
-				Util.DB().saveEQCBlockTailHeight(ID.valueOf(i));
-			}
-			else {
-				
-			}
-			// Sync block
-			for(long k=i; k<=tailInfo.getHeight().longValue(); ++k) {
-				eqcHive = SyncblockNetworkClient.getBlock(ID.valueOf(k), syncBlockState.getIp());
-				if(eqcHive == null) {
-					Log.Error("During sync block error occur just  goto find again");
-					break;
-				}
-				accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(k), new Filter(Mode.VALID));
-				if(eqcHive.isValid(accountsMerkleTree)) {
-					Util.DB().saveEQCBlock(eqcHive);
-					accountsMerkleTree.takeSnapshot();
-					accountsMerkleTree.merge();
-					accountsMerkleTree.clear();
-					Util.saveEQCBlockTailHeight(ID.valueOf(k));
+			// Need sync so just begin sync to tail
+			TailInfo maxTailInfo = SyncblockNetworkClient.getBlockTail(syncBlockState.getIp());
+			Log.info("MaxTail: " + maxTailInfo.getHeight());
+			ID localTail = Util.DB().getEQCBlockTailHeight();
+			Log.info("LocalTail: " + localTail);
+			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+			long base = localTail.longValue();
+			if(maxTailInfo.getHeight().compareTo(localTail) > 0 && maxTailInfo.getCheckPointHeight().compareTo(eQcoinSubchainAccount.getCheckPointHeight()) >= 0) {
+				if(localTail.compareTo(ID.ZERO) > 0) {
+					for(; base>=eQcoinSubchainAccount.getCheckPointHeight().longValue(); --base) {
+						// Here need add getEQCHeader in SyncblockNetwork
+						if(Arrays.equals(Util.DB().getEQCHeaderHash(ID.valueOf(base)), SyncblockNetworkClient.getBlock(ID.valueOf(base+1), syncBlockState.getIp()).getEqcHeader().getPreHash())) {
+							isValidChain = true;
+							break;
+						}
+					}
+					if (isValidChain) {
+						// Here need check if from i to the fork chain's tail's difficulty is valid.
+						// Remove fork block
+						for (long i = base + 1; i <= localTail.longValue(); ++i) {
+							Util.DB().deleteEQCBlock(ID.valueOf(i));
+						}
+						// Remove Snapshot
+						EQCBlockChainH2.getInstance().deleteAccountSnapshotFrom(ID.valueOf(base + 1), true);
+						// Remove unused Account
+						EQcoinSubchainAccount eQcoinSubchainAccount2 = (EQcoinSubchainAccount) EQCBlockChainH2
+								.getInstance().getAccountSnapshot(ID.ONE, ID.valueOf(base));
+						// Here need remove accounts after base
+						ID originalAccountNumbers = eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers();
+						ID baseAccountNumbers = eQcoinSubchainAccount2.getAssetSubchainHeader().getTotalAccountNumbers();
+						for (long i = baseAccountNumbers.longValue() + 1; i <= originalAccountNumbers.longValue(); ++i) {
+							Util.DB().deleteAccount(ID.valueOf(i));
+						}
+						Util.DB().saveEQCBlockTailHeight(ID.valueOf(base));
+					}
 				}
 				else {
-					Log.Error("Valid blockchain failed just goto find");
-					accountsMerkleTree.clear();
-					return;
+					isValidChain = true;
+				}
+
+				// Sync block
+				if (isValidChain) {
+					for (long i = base + 1; i <= maxTailInfo.getHeight().longValue(); ++i) {
+						localTailHive = SyncblockNetworkClient.getBlock(ID.valueOf(i), syncBlockState.getIp());
+						if (localTailHive == null) {
+							Log.Error("During sync block error occur just  goto find again");
+							break;
+						}
+						accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(i-1), new Filter(Mode.VALID));
+ 						if (localTailHive.isValid(accountsMerkleTree)) {
+							Log.info("Verify No. " + i + " hive passed");
+							accountsMerkleTree.takeSnapshot();
+							accountsMerkleTree.merge();
+							accountsMerkleTree.clear();
+							Util.DB().saveEQCBlock(localTailHive);
+							Util.saveEQCBlockTailHeight(ID.valueOf(i));
+							Log.info("Current tail: " + Util.DB().getEQCBlockTailHeight());
+						} else {
+							Log.Error("Valid blockchain failed just goto find");
+							accountsMerkleTree.clear();
+							offerState(new SleepState(Util.BLOCK_INTERVAL/4));
+							return;
+						}
+					}
 				}
 			}
 			// Successful sync to current tail just goto find to check if reach the tail
@@ -245,29 +314,81 @@ public class SyncBlockService extends EQCService {
 		} catch (Exception e) {
 			e.printStackTrace();
 			Log.Error(name + e.getMessage());
+			offerState(new SleepState(Util.BLOCK_INTERVAL/4));
 		}
 	}
 	
 	private void onMiner(EQCServiceState state) {
+		Log.info("onMiner");
+		synchronized (EQCService.class) {
+			if (!MinerService.getInstance().isRunning()) {
+				MinerService.getInstance().start();
+			} else if (MinerService.getInstance().isPausing.get()) {
+				try {
+					if(MinerService.getInstance().getNewBlockHeight().compareTo(Util.DB().getEQCBlockTailHeight()) <= 0) {
+						Log.info("Changed to new minering base");
+						MinerService.getInstance().stop();
+						MinerService.getInstance().start();
+					}
+					else {
+						Log.info("Still in the tail just resume minering");
+						MinerService.getInstance().resumePause();
+					}
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(e.getMessage());
+				}
+			}
+		}
+		// If is Miner or Full node Ping the others to register in miner list
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.service.EQCService#onSleep(com.eqchains.service.state.SleepState)
+	 */
+	@Override
+	protected void onSleep(SleepState state) {
+		offerState(new EQCServiceState(State.FIND));
+	}
+	
+	private void onServer(EQCServiceState state) {
+		// During start service if any exception occur will interrupt the process then here will do nothing
 		if(!PossibleNodeService.getInstance().isRunning()) {
 			PossibleNodeService.getInstance().start();
 		}
 		if(!MinerNetworkService.getInstance().isRunning()) {
 			MinerNetworkService.getInstance().start();
 		}
-		if(!TransactionNetworkService.getInstance().isRunning()) {
+ 		if(!TransactionNetworkService.getInstance().isRunning()) {
 			TransactionNetworkService.getInstance().start();
 		}
 		if(!SyncblockNetworkService.getInstance().isRunning()) {
 			SyncblockNetworkService.getInstance().start();
 		}
-		if(!MinerService.getInstance().isRunning()) {
-			MinerService.getInstance().start();
+		if(!PendingNewBlockService.getInstance().isRunning()) {
+			PendingNewBlockService.getInstance().start();
 		}
-		else if(MinerService.getInstance().getState() == State.PAUSE) {
-				MinerService.getInstance().resumePause();
+		if(!BroadcastNewBlockService.getInstance().isRunning()) {
+			BroadcastNewBlockService.getInstance().start();
 		}
-		// If is Miner or Full node Ping the others to register in miner list
+		try {
+			if (!Util.IP.equals(Util.SINGULARITY_IP)) {
+				long time = 0;
+				for(int i=0; i<3; ++i) {
+					time = MinerNetworkClient.ping(Util.SINGULARITY_IP);
+					if(time != -1) {
+						break;
+					}
+				}
+				Util.syncMinerList();
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		offerState(new EQCServiceState(State.FIND));
 	}
 	
 }

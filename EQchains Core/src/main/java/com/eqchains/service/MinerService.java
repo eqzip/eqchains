@@ -86,7 +86,8 @@ import com.eqchains.util.Util;
 public final class MinerService extends EQCService {
 	private static MinerService instance;
 	private static AccountsMerkleTree accountsMerkleTree;
-
+	private ID newBlockHeight;
+	
 	private MinerService() {
 	}
 
@@ -109,6 +110,7 @@ public final class MinerService extends EQCService {
 		super.start();
 		worker.setPriority(Thread.MIN_PRIORITY);
 		offerState(EQCServiceState.getDefaultState());
+		Log.info(name + "started");
 	}
 
 	/*
@@ -122,11 +124,12 @@ public final class MinerService extends EQCService {
 		Log.info("Begin minering...");
 		this.state.set(State.MINER);
 		while (isRunning.get()) {
-//			try {
 			onPause();
+			if(!isRunning.get()) {
+				Log.info("Exit from prepare minering");
+				break;
+			}
 			// Get current EQCBlock's tail
-//			SerialNumber blockTailHeight = EQCBlockChainH2.getInstance().getEQCBlockTailHeight();
-//			EQCBlock blockTail = EQCBlockChainH2.getInstance().getEQCBlock(blockTailHeight, false);
 			ID blockTailHeight;
 			try {
 				blockTailHeight = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
@@ -146,7 +149,7 @@ public final class MinerService extends EQCService {
 				break;
 			}
 
-			// If haven't create AccountsMerkleTree just create it
+			// If create AccountsMerkleTree just create it
 			try {
 				accountsMerkleTree = new AccountsMerkleTree(blockTailHeight, new Filter(Mode.MINERING));
 			} catch (Exception e1) {
@@ -155,12 +158,9 @@ public final class MinerService extends EQCService {
 				Log.Error(e1.getMessage());
 				break;
 			}
-//			if(blockTailHeight.getSerialNumber().compareTo(BigInteger.ZERO) == 0 || AccountsMerkleTreeService.getInstance().getAccountsMerkleTree().getHeight(ACCOUNT_STATUS.FIXED).getSerialNumber().compareTo(blockTailHeight.getSerialNumber()) != 0 ) {
-//				AccountsMerkleTreeService.getInstance().getAccountsMerkleTree().createFromH2(blockTailHeight);
-//			}
-
+			
 			// Create new EQCBlock
-			ID newBlockHeight = new ID(blockTailHeight.add(BigInteger.ONE));
+			newBlockHeight = blockTailHeight.getNextID();
 			EQCHive newEQCBlock;
 			try {
 				newEQCBlock = new EQCHive(newBlockHeight, blockTail.getEqcHeader().getHash());
@@ -186,12 +186,15 @@ public final class MinerService extends EQCService {
 			// Send locked transactions to EQC network haven't implement, doesn't implement in MVP phase...
 
 			// Beginning calculate new EQCBlock's hash
-			byte[] bytes;
 			BigInteger hash;
 			ID nonce = ID.ZERO;
 			BigInteger difficulty = Util.targetBytesToBigInteger(newEQCBlock.getEqcHeader().getTarget());
 			while (true) {
-//				Log.info("" + newEQCBlock.getEqcHeader().getNonce());
+				onPause();
+				if(!isRunning.get()) {
+					Log.info("Exit from minering");
+					break;
+				}
 				newEQCBlock.getEqcHeader().setNonce(nonce);
 				hash = new BigInteger(1, newEQCBlock.getHash());
 				if (hash.compareTo(difficulty) <= 0) { 
@@ -204,24 +207,26 @@ public final class MinerService extends EQCService {
 //					Log.info(newEQCBlock.getRoot().toString());
 
 					try {
-						PendingNewBlockService.getInstance().waiting();
-						EQCBlockChainRocksDB.getInstance().saveEQCBlock(newEQCBlock);
-						accountsMerkleTree.takeSnapshot();
-						accountsMerkleTree.merge();
-						accountsMerkleTree.clear();
-						EQCBlockChainH2.getInstance().deleteTransactionsInPool(newEQCBlock);
-						EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(newEQCBlock.getHeight());
-						if (blockTailHeight.compareTo(Util.EUROPA) > 0) {
-								EQCBlockChainH2.getInstance()
-										.deleteAccountSnapshot(blockTailHeight.subtract(Util.EUROPA), false);
+						synchronized (EQCService.class) {
+							PendingNewBlockService.getInstance().waiting();
+							EQCBlockChainRocksDB.getInstance().saveEQCBlock(newEQCBlock);
+							// Save the snapshot of current tail height's changed Accounts from Account Table to Snapshot Table
+							accountsMerkleTree.takeSnapshot();
+							// Merge the new block tail height's all modified Accounts to Account Table 
+							accountsMerkleTree.merge();
+							accountsMerkleTree.clear();
+							EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(newEQCBlock.getHeight());
+							// Send new block to EQC Miner network
+							NewBlockState newBlockState = new NewBlockState(State.BROADCASTNEWBLOCK);
+							NewBlock newBlock = new NewBlock();
+							newBlock.setEqcHive(newEQCBlock);
+							newBlockState.setNewBlock(newBlock);
+							BroadcastNewBlockService.getInstance().offerNewBlockState(newBlockState);
+							EQCBlockChainH2.getInstance().deleteTransactionsInPool(newEQCBlock);
+							EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+							EQCBlockChainH2.getInstance().deleteAccountSnapshotFrom(eQcoinSubchainAccount.getCheckPointHeight(), false);
+							PendingNewBlockService.getInstance().resumeWaiting();
 						}
-						// Send new block to EQC Miner network
-						NewBlockState newBlockState = new NewBlockState(State.BROADCASTNEWBLOCK);
-						NewBlock newBlock = new NewBlock();
-						newBlock.setEqcHive(newEQCBlock);
-						newBlockState.setNewBlock(newBlock);
-						BroadcastNewBlockService.getInstance().offerNewBlockState(newBlockState);
-						PendingNewBlockService.getInstance().resumeWaiting();
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -234,4 +239,11 @@ public final class MinerService extends EQCService {
 		}
 	}
 
+	/**
+	 * @return the newBlockHeight
+	 */
+	public ID getNewBlockHeight() {
+		return newBlockHeight;
+	}
+	
 }

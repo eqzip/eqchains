@@ -233,7 +233,7 @@ public class EQCHive implements EQCTypable {
 
 		// Create CoinBase Transaction
 		Passport address = new Passport();
-		address.setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
+		address.setReadableAddress(Util.SINGULARITY_C);
 
 		// Add CoinBase into Transactions
 		pendingTransactionList.add(Util.generateCoinBaseTransaction(address, height, accountsMerkleTree));
@@ -351,179 +351,7 @@ public class EQCHive implements EQCTypable {
 	}
 
 	public boolean verify(AccountsMerkleTree accountsMerkleTree) {
-		try {
-
-			/**
-			 * Heal Protocol If height equal to a specific height then update the ID No.1's
-			 * Address to a new Address the more information you can reference to
-			 * https://github.com/eqzip/eqchains
-			 */
-
-			// Check if Transactions' size < 1 MB
-			if (transactions.getSize() > Util.ONE_MB) {
-				Log.Error("EQCBlock size is invalid");
-				return false;
-			}
-
-			// Check if Target is valid
-			if (!eqcHeader.isDifficultyValid(accountsMerkleTree)) {
-				Log.Error("EQCHeader difficulty is invalid");
-				return false;
-			}
-
-			// Check if AccountList is valid
-			if (!transactions.isNewPassportListValid(accountsMerkleTree)) {
-				Log.Error("EQCHeader AccountList is invalid");
-				return false;
-			}
-
-			// Check if PublickeyList is valid
-			if (!transactions.isNewPublickeyListValid(accountsMerkleTree)) {
-				Log.Error("EQCHeader PublickeyList is invalid");
-				return false;
-			}
-
-			// Check if Signatures' size and Transaction size is valid
-			if (signatures == null) {
-				if (transactions.getNewTransactionList().size() != 1) {
-					return false;
-				}
-			} else if (transactions.getNewTransactionList().size() != (signatures.getSignatureList().size() + 1)) {
-				return false;
-			}
-
-			// Check if every Transaction is valid except CoinBaseTransaction
-			long totalTxFee = 0;
-			Vector<Transaction> transactionList = transactions.getNewTransactionList();
-			for (int i = 1; i < transactionList.size(); ++i) {
-				Transaction transaction = transactionList.get(i);
-				
-				// Check if TxIn exists in previous block
-				if(!accountsMerkleTree.isAccountExists(transaction.getTxIn().getPassport(), false)) {
-					Log.Error("Transaction Account doesn't exist in previous block have to exit");
-					return false;
-				}
-				
-				try {
-					// Here exists one bug
-					transaction.prepareVerify(accountsMerkleTree, signatures.getSignatureList().get(i - 1));
-				} catch (IllegalStateException e) {
-					Log.Error(e.getMessage());
-					return false;
-				}
-
-				// Check if the Transaction's type is correct
-				if (!(transaction instanceof TransferTransaction || transaction instanceof OperationTransaction)) {
-					return false;
-				}
-
-				if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
-					Log.info("Transaction is invalid: " + transaction);
-					return false;
-				} else {
-					// Update AccountsMerkleTree relevant Account's status
-					transaction.update(accountsMerkleTree);
-					totalTxFee += transaction.getTxFee();
-				}
-			}
-
-			// Verify CoinBaseTransaction
-			CoinbaseTransaction coinbaseTransaction = (CoinbaseTransaction) transactionList.get(0);
-			coinbaseTransaction.prepareVerify(accountsMerkleTree, null);
-			coinbaseTransaction.setTxFee(totalTxFee);
-			if (!coinbaseTransaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
-				Log.info("CoinBaseTransaction is invalid: " + coinbaseTransaction);
-				return false;
-			}
-			else {
-				coinbaseTransaction.update(accountsMerkleTree);
-			}
-
-			// Update EQcoin Subchain's Header
-			AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
-			eqcoin.getAssetSubchainHeader().setTotalSupply(new ID(Util.cypherTotalSupply(eqcHeader.getHeight())));
-			eqcoin.getAssetSubchainHeader().setTotalAccountNumbers(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()
-					.add(BigInteger.valueOf(transactions.getNewPassportList().size())));
-			eqcoin.getAssetSubchainHeader().setTotalTransactionNumbers(eqcoin.getAssetSubchainHeader()
-					.getTotalTransactionNumbers().add(BigInteger.valueOf(transactions.getNewTransactionList().size())));
-			// Save EQcoin Subchain's Header
-			accountsMerkleTree.saveAccount(eqcoin);
-
-			// Verify Statistics
-			Statistics statistics = accountsMerkleTree.getStatistics();
-			if (!statistics.isValid(accountsMerkleTree)) {
-				Log.Error("Statistics data is invalid.");
-				return false;
-			}
-
-			// Build AccountsMerkleTree and generate Root and Statistics
-			accountsMerkleTree.buildAccountsMerkleTree();
-			accountsMerkleTree.generateRoot();
-
-			// Verify Root
-//		// Check total supply
-//		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
-//			Log.Error("Total supply is invalid doesn't equal cypherTotalSupply.");
-//			return false;
-//		}
-//		if(statistics.totalSupply != root.getTotalSupply()){
-//			Log.Error("Total supply is invalid doesn't equal root.");
-//			return false;
-//		}
-
-			EQCHive previousBlock = EQCBlockChainRocksDB.getInstance()
-					.getEQCBlock(eqcHeader.getHeight().getPreviousID(), true);
-			// Check total Account numbers
-//		if (!previousBlock.getRoot().getTotalAccountNumbers()
-//				.add(BigInteger.valueOf(transactions.getNewAccountList().size()))
-//				.equals(accountsMerkleTree.getTotalAccountNumbers())) {
-//			Log.Error("Total Account numbers is invalid doesn't equal accountsMerkleTree.");
-//			return false;
-//		}
-//		if(!root.getTotalAccountNumbers().equals(accountsMerkleTree.getTotalAccountNumbers())) {
-//			Log.Error("Total Account numbers is invalid doesn't equal root.");
-//			return false;
-//		}
-
-//		// Check total Transaction numbers
-//		if (!previousBlock.getRoot().getTotalTransactionNumbers()
-//				.add(BigInteger.valueOf(transactions.getNewTransactionList().size()))
-//				.equals(statistics.totalTransactionNumbers)) {
-//			Log.Error("Total Transaction numbers is invalid doesn't equal transactions.getNewTransactionList.");
-//			return false;
-//		}
-//		if(!statistics.totalTransactionNumbers.equals(root.getTotalTransactionNumbers())) {
-//			Log.Error("Total Transaction numbers is invalid doesn't equal root.getTotalTransactionNumbers.");
-//			return false;
-//		}
-			// Check AccountsMerkelTreeRoot
-			if (!Arrays.equals(eqcRoot.getAccountsMerkelTreeRoot(), accountsMerkleTree.getRoot())) {
-				Log.Error("AccountsMerkelTreeRoot is invalid!");
-				return false;
-			}
-			// Check TransactionsMerkelTreeRoot
-			if (!Arrays.equals(eqcRoot.getTransactionsMerkelTreeRoot(), getTransactionsMerkelTreeRoot())) {
-				Log.Error("AccountsMerkelTreeRoot is invalid!");
-				return false;
-			}
-			// Verify EQCHeader
-			if (!eqcHeader.isValid(accountsMerkleTree, eqcRoot.getHash())) {
-				Log.Error("EQCHeader is invalid!");
-				return false;
-			}
-
-			// Merge shouldn't be done at here
-//		// Merge AccountsMerkleTree relevant Account's status
-//		if(!accountsMerkleTree.merge()) {
-//			Log.Error("Merge AccountsMerkleTree relevant Account's status error occur");
-//			return false;
-//		}
-		} catch (Exception e) {
-			Log.Error("EQCHive is invalid: " + e.getMessage());
-			return false;
-		}
-
-		return true;
+		return false;
 	}
 
 	@Deprecated
@@ -835,8 +663,179 @@ public class EQCHive implements EQCTypable {
 
 	@Override
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
-		// TODO Auto-generated method stub
-		return false;
+		try {
+
+			/**
+			 * Heal Protocol If height equal to a specific height then update the ID No.1's
+			 * Address to a new Address the more information you can reference to
+			 * https://github.com/eqzip/eqchains
+			 */
+
+			// Check if Transactions' size < 1 MB
+			if (transactions.getSize() > Util.ONE_MB) {
+				Log.Error("EQCBlock size is invalid");
+				return false;
+			}
+
+			// Check if Target is valid
+			if (!eqcHeader.isDifficultyValid(accountsMerkleTree)) {
+				Log.Error("EQCHeader difficulty is invalid");
+				return false;
+			}
+
+			// Check if AccountList is valid
+			if (!transactions.isNewPassportListValid(accountsMerkleTree)) {
+				Log.Error("EQCHeader AccountList is invalid");
+				return false;
+			}
+
+			// Check if PublickeyList is valid
+			if (!transactions.isNewPublickeyListValid(accountsMerkleTree)) {
+				Log.Error("EQCHeader PublickeyList is invalid");
+				return false;
+			}
+
+			// Check if Signatures' size and Transaction size is valid
+			if (signatures == null) {
+				if (transactions.getNewTransactionList().size() != 1) {
+					return false;
+				}
+			} else if (transactions.getNewTransactionList().size() != (signatures.getSignatureList().size() + 1)) {
+				return false;
+			}
+
+			// Check if every Transaction is valid except CoinBaseTransaction
+			long totalTxFee = 0;
+			Vector<Transaction> transactionList = transactions.getNewTransactionList();
+			for (int i = 1; i < transactionList.size(); ++i) {
+				Transaction transaction = transactionList.get(i);
+				
+				// Check if TxIn exists in previous block
+				if(!accountsMerkleTree.isAccountExists(transaction.getTxIn().getPassport(), false)) {
+					Log.Error("Transaction Account doesn't exist in previous block have to exit");
+					return false;
+				}
+				
+				try {
+					// Here exists one bug
+					transaction.prepareVerify(accountsMerkleTree, signatures.getSignatureList().get(i - 1));
+				} catch (IllegalStateException e) {
+					Log.Error(e.getMessage());
+					return false;
+				}
+
+				// Check if the Transaction's type is correct
+				if (!(transaction instanceof TransferTransaction || transaction instanceof OperationTransaction)) {
+					return false;
+				}
+
+				if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+					Log.info("Transaction is invalid: " + transaction);
+					return false;
+				} else {
+					// Update AccountsMerkleTree relevant Account's status
+					transaction.update(accountsMerkleTree);
+					totalTxFee += transaction.getTxFee();
+				}
+			}
+
+			// Verify CoinBaseTransaction
+			CoinbaseTransaction coinbaseTransaction = (CoinbaseTransaction) transactionList.get(0);
+			coinbaseTransaction.prepareVerify(accountsMerkleTree, null);
+			coinbaseTransaction.setTxFee(totalTxFee);
+			if (!coinbaseTransaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+				Log.info("CoinBaseTransaction is invalid: " + coinbaseTransaction);
+				return false;
+			}
+			else {
+				coinbaseTransaction.update(accountsMerkleTree);
+			}
+
+			// Update EQcoin Subchain's Header
+			AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
+			eqcoin.getAssetSubchainHeader().setTotalSupply(new ID(Util.cypherTotalSupply(eqcHeader.getHeight())));
+			eqcoin.getAssetSubchainHeader().setTotalAccountNumbers(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()
+					.add(BigInteger.valueOf(transactions.getNewPassportList().size())));
+			eqcoin.getAssetSubchainHeader().setTotalTransactionNumbers(eqcoin.getAssetSubchainHeader()
+					.getTotalTransactionNumbers().add(BigInteger.valueOf(transactions.getNewTransactionList().size())));
+			// Save EQcoin Subchain's Header
+			accountsMerkleTree.saveAccount(eqcoin);
+
+			// Verify Statistics
+			Statistics statistics = accountsMerkleTree.getStatistics();
+			if (!statistics.isValid(accountsMerkleTree)) {
+				Log.Error("Statistics data is invalid.");
+				return false;
+			}
+
+			// Build AccountsMerkleTree and generate Root and Statistics
+			accountsMerkleTree.buildAccountsMerkleTree();
+			accountsMerkleTree.generateRoot();
+
+			// Verify Root
+//		// Check total supply
+//		if (statistics.totalSupply != Util.cypherTotalSupply(eqcHeader.getHeight())) {
+//			Log.Error("Total supply is invalid doesn't equal cypherTotalSupply.");
+//			return false;
+//		}
+//		if(statistics.totalSupply != root.getTotalSupply()){
+//			Log.Error("Total supply is invalid doesn't equal root.");
+//			return false;
+//		}
+
+			EQCHive previousBlock = EQCBlockChainRocksDB.getInstance()
+					.getEQCBlock(eqcHeader.getHeight().getPreviousID(), true);
+			// Check total Account numbers
+//		if (!previousBlock.getRoot().getTotalAccountNumbers()
+//				.add(BigInteger.valueOf(transactions.getNewAccountList().size()))
+//				.equals(accountsMerkleTree.getTotalAccountNumbers())) {
+//			Log.Error("Total Account numbers is invalid doesn't equal accountsMerkleTree.");
+//			return false;
+//		}
+//		if(!root.getTotalAccountNumbers().equals(accountsMerkleTree.getTotalAccountNumbers())) {
+//			Log.Error("Total Account numbers is invalid doesn't equal root.");
+//			return false;
+//		}
+
+//		// Check total Transaction numbers
+//		if (!previousBlock.getRoot().getTotalTransactionNumbers()
+//				.add(BigInteger.valueOf(transactions.getNewTransactionList().size()))
+//				.equals(statistics.totalTransactionNumbers)) {
+//			Log.Error("Total Transaction numbers is invalid doesn't equal transactions.getNewTransactionList.");
+//			return false;
+//		}
+//		if(!statistics.totalTransactionNumbers.equals(root.getTotalTransactionNumbers())) {
+//			Log.Error("Total Transaction numbers is invalid doesn't equal root.getTotalTransactionNumbers.");
+//			return false;
+//		}
+			// Check AccountsMerkelTreeRoot
+			if (!Arrays.equals(eqcRoot.getAccountsMerkelTreeRoot(), accountsMerkleTree.getRoot())) {
+				Log.Error("AccountsMerkelTreeRoot is invalid!");
+				return false;
+			}
+			// Check TransactionsMerkelTreeRoot
+			if (!Arrays.equals(eqcRoot.getTransactionsMerkelTreeRoot(), getTransactionsMerkelTreeRoot())) {
+				Log.Error("AccountsMerkelTreeRoot is invalid!");
+				return false;
+			}
+			// Verify EQCHeader
+			if (!eqcHeader.isValid(accountsMerkleTree, eqcRoot.getHash())) {
+				Log.Error("EQCHeader is invalid!");
+				return false;
+			}
+
+			// Merge shouldn't be done at here
+//		// Merge AccountsMerkleTree relevant Account's status
+//		if(!accountsMerkleTree.merge()) {
+//			Log.Error("Merge AccountsMerkleTree relevant Account's status error occur");
+//			return false;
+//		}
+		} catch (Exception e) {
+			Log.Error("EQCHive is invalid: " + e.getMessage());
+			return false;
+		}
+
+		return true;
 	}
 
 //	public boolean isAddressListAddressUnique() {

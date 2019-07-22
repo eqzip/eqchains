@@ -110,6 +110,7 @@ import com.eqchains.keystore.Keystore;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.IPList;
@@ -292,13 +293,19 @@ public final class Util {
 	
 	public static final String SINGULARITY_IP = "129.28.206.27";
 	
-	public static final String IP = "14.221.177.42";//"129.28.206.27";
+	public static final String IP = "14.221.176.110";//"192.168.0.101";//"14.221.177.223";//"129.28.206.27";
 	
 	public static final int MINER_NETWORK_PORT = 7799;
 	
 	public static final int SYNCBLOCK_NETWORK_PORT = 7997;
 	
 	public static final int TRANSACTION_NETWORK_PORT = 7979;
+	
+	public static final String SINGULARITY_A = "2K75eyxjBj5ZWrvJi2Z8B5sJzmSXTnhC4AMnpHzHayFGGVo8Hr";
+	
+	public static final String SINGULARITY_B = "22pXMrTT6WqwuXuS6C8mZFvikq38dvYA5kXFmxcJb3JVPPWA1fn";
+	
+	public static final String SINGULARITY_C = "22aqRTWHt6xUhKQATrhxFkKrQePWndTz8A4TXngX1XX4iWR3yoW";
 	
 //	public static ID [] FIBONACCI = {
 //			new ID(1597),
@@ -413,7 +420,7 @@ public final class Util {
 		if (!Configuration.getInstance().isInitSingularityBlock()
 				/* && Keystore.getInstance().getUserAccounts().size() > 0 Will Remove when Cold Wallet ready */) {
 //			Log.info("0");
-			Test.testKeystore();
+//			Test.testKeystore();
 			EQCHive eqcBlock = gestationSingularityBlock();
 //			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
 //			Log.info("1");
@@ -2247,7 +2254,7 @@ public final class Util {
 		// Create Transaction
 		TransferTransaction transaction = new CoinbaseTransaction();
 		TxOut txOut = new TxOut();
-		txOut.getPassport().setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		txOut.getPassport().setReadableAddress(SINGULARITY_A);
 		txOut.getPassport().setID(ID.ONE);
 		txOut.setValue(EQC_FOUNDATION_COINBASE_REWARD);
 		txOut.setNew(true);
@@ -2303,7 +2310,7 @@ public final class Util {
 		accountsMerkleTree.increaseTotalAccountNumbers();
 
 		txOut = new TxOut();
-		txOut.getPassport().setReadableAddress(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress());
+		txOut.getPassport().setReadableAddress(SINGULARITY_B);
 		txOut.getPassport().setID(ID.TWO);
 		txOut.setValue(EQZIP_COINBASE_REWARD);
 		txOut.setNew(true);
@@ -2324,7 +2331,7 @@ public final class Util {
 		accountsMerkleTree.increaseTotalAccountNumbers();
 		
 		txOut = new TxOut();
-		txOut.getPassport().setReadableAddress(Keystore.getInstance().getUserAccounts().get(2).getReadableAddress());
+		txOut.getPassport().setReadableAddress(SINGULARITY_C);
 		txOut.getPassport().setID(new ID(3));
 		txOut.setValue(MINER_COINBASE_REWARD);
 		txOut.setNew(true);
@@ -2782,16 +2789,145 @@ public final class Util {
 			ipList = MinerNetworkClient.getMinerList(SINGULARITY_IP);
 			if (ipList == null || ipList.isEmpty()) {
 				return;
-			}
-		}
-		for(String ip:ipList.getIpList()) {
-			ipList2 = MinerNetworkClient.getMinerList(ip);
-			if(ipList2 != null) {
-				for(String ip1:ipList2.getIpList()) {
-					EQCBlockChainH2.getInstance().saveMiner(ip1);
+			} else {
+				for (String ip : ipList.getIpList()) {
+					EQCBlockChainH2.getInstance().saveMiner(ip);
 				}
 			}
 		}
+		for (String ip : ipList.getIpList()) {
+			if(!Util.IP.equals(ip)) {
+				try {
+					ipList2 = MinerNetworkClient.getMinerList(ip);
+				} catch (Exception e) {
+					Log.Error(e.getMessage());
+				}
+				if (ipList2 != null) {
+					for (String ip1 : ipList2.getIpList()) {
+						EQCBlockChainH2.getInstance().saveMiner(ip1);
+					}
+				}
+			}
+		}
+		ipList2 = EQCBlockChainH2.getInstance().getMinerList();
+		for (String ip : ipList2.getIpList()) {
+			if (!Util.IP.equals(ip)) {
+				if (MinerNetworkClient.ping(ip) == -1) {
+					Log.info("Can't connected to " + ip + " just delete it from MinerList");
+					EQCBlockChainH2.getInstance().deleteMiner(ip);
+				}
+			}
+		}
+	}
+	
+	public static void recoveryAccounts(ID height) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+		// From height to checkpoint verify if Block is valid
+		EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+		if(height.compareTo(eQcoinSubchainAccount.getCheckPointHeight()) < 0) {
+			throw new IllegalStateException("Can't recovery to the height: " + height + " which below the check point: " + eQcoinSubchainAccount.getCheckPointHeight());
+		}
+		if(height.compareTo(Util.DB().getEQCBlockTailHeight()) > 0) {
+			throw new IllegalStateException("Can't recovery to the height: " + height + " which above current block's tail: " + Util.DB().getEQCBlockTailHeight());
+		}
+		long checkPointHeight = eQcoinSubchainAccount.getCheckPointHeight().longValue();
+		if(checkPointHeight == 0) {
+			checkPointHeight = 1;
+		}
+		long base = height.longValue();
+		boolean isSanity = false;
+		AccountsMerkleTree accountsMerkleTree = null;
+		Log.info("Begin Recovery Account's status from height: " + height);
+		for (; base >= checkPointHeight; --base) {
+			Log.info("Try to recovery No. " + base + "'s Account status");
+			accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(base - 1), new Filter(Mode.VALID));
+			if (Util.DB().getEQCBlock(ID.valueOf(base), true).isValid(accountsMerkleTree)) {
+				Log.info("No. " + base + " verify passed");
+				// Through merge recovery all relevant Account
+				accountsMerkleTree.merge();
+				Log.info("Successful recovery No. " + base + " 's Account Status");
+				accountsMerkleTree.clear();
+				isSanity = true;
+				break;
+			}
+			else {
+				Log.info("Try to recovery No. " + base + "'s Account status failed");
+			}
+		}
+
+		if (!isSanity) {
+			throw new IllegalStateException("Sanity test failed please check your computer");
+		}
+
+		// Due to base height's Account status saved in the Account table so here just deleteAccountSnapshotFrom base
+		EQCBlockChainH2.getInstance().deleteAccountSnapshotFrom(ID.valueOf(base), true);
+		
+		// Delete extra Account
+		EQcoinSubchainAccount eQcoinSubchainAccount2 = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+		for (long i=eQcoinSubchainAccount2.getAssetSubchainHeader().getTotalAccountNumbers().getNextID().longValue(); i<=eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers().longValue(); ++i) {
+			Util.DB().deleteAccount(ID.valueOf(i));
+		}
+		
+		// Delete extra EQCHive
+		for(long i=base; i<=Util.DB().getEQCBlockTailHeight().longValue(); ++i) {
+			Util.DB().deleteEQCBlock(ID.valueOf(i));
+		}
+		
+		Util.DB().saveEQCBlockTailHeight(ID.valueOf(base));
+		Log.info("Recovery to new tail: " + base);
+//		long i = base;
+//		for (; i <= height.longValue(); ++i) {
+//			accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(i - 1), new Filter(Mode.VALID));
+//			if (Util.DB().getEQCBlock(ID.valueOf(i), false).isValid(accountsMerkleTree)) {
+//				Log.info("No. " + base + " verify passed");
+//				accountsMerkleTree.takeSnapshot();
+//				accountsMerkleTree.merge();
+//				accountsMerkleTree.clear();
+//				Util.DB().saveEQCBlockTailHeight(ID.valueOf(i));
+//			} else {
+//				break;
+//			}
+//		}
+//		if (i < height.longValue()) {
+//			for (i += 1; i <= height.longValue(); ++i) {
+//				Log.info("Begin delete No. " + i + " Hive");
+//				Util.DB().deleteEQCBlock(ID.valueOf(i));
+//			}
+//		}
+	}
+	
+	public static void generateAccounts() throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+//		EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+//		Log.info("Current have " + eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers() + " Accounts");
+//		for(long i=1; i<=eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers().longValue(); ++i) {
+//			Util.DB().deleteAccount(ID.valueOf(i));
+//			Log.info("Delete Account No. " + i);
+//		}
+		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT));
+		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_AI));
+		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_HASH));
+		Configuration.getInstance().updateIsInitSingularityBlock(false);
+		ID tail = Util.DB().getEQCBlockTailHeight();
+		gestationSingularityBlock();
+		EQCBlockChainH2.getInstance().deleteAccountSnapshotFrom(ID.ZERO, true);
+		Log.info("Delete all AccountSnapshot");
+		Log.info("Current have " + tail + " EQCHive");
+		long base = 1;
+		AccountsMerkleTree accountsMerkleTree = null;
+		for(; base<tail.longValue(); ++base) {
+			accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(base-1), new Filter(Mode.VALID));
+			if(Util.DB().getEQCBlock(ID.valueOf(base), false).isValid(accountsMerkleTree)) {
+				accountsMerkleTree.takeSnapshot();
+				accountsMerkleTree.merge();
+				accountsMerkleTree.clear();
+				Log.info("No. " + base + " verify passed");
+			}
+		}
+		for(long i=base+1; i<=tail.longValue(); ++i) {
+			Util.DB().deleteEQCBlock(ID.valueOf(i));
+			Log.info("Successful delete extra EQCHive No. " + i);
+		}
+		Log.info("Current tail: " + base);
+		Util.DB().saveEQCBlockTailHeight(ID.valueOf(base));
 	}
 	
 }

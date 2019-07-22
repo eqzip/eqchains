@@ -69,7 +69,7 @@ public class SyncblockNetworkService extends NetworkService {
 	
 	public static SyncblockNetworkService getInstance() {
 		if (instance == null) {
-			synchronized (Keystore.class) {
+			synchronized (SyncblockNetworkService.class) {
 				if (instance == null) {
 					instance = new SyncblockNetworkService();
 				}
@@ -80,7 +80,7 @@ public class SyncblockNetworkService extends NetworkService {
 
 	public void start() {
 		super.start();
-		server = new NettyServer(new SpecificResponder(SyncblockNetwork.class, new SyncblockNetworkImpl()),
+		server = new NettyServer(new SpecificResponder(SyncblockNetwork.class, new SyncblockNetworkServiceImpl()),
 				new InetSocketAddress(Util.SYNCBLOCK_NETWORK_PORT));
 		Log.info(this.getClass().getSimpleName() + " started...");
 	}

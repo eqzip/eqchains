@@ -38,6 +38,7 @@ import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
+import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Cookie;
@@ -53,7 +54,7 @@ import com.eqchains.util.Util;
  * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class SyncblockNetworkImpl implements SyncblockNetwork {
+public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 
 	@Override
 	public O ping(O cookie) {
@@ -104,12 +105,12 @@ public class SyncblockNetworkImpl implements SyncblockNetwork {
 	public O getBlockTail() {
 		O io = null;
 		TailInfo europa = null;
-		Account account = null;
+		EQcoinSubchainAccount eQcoinSubchainAccount = null;
 		try {
 			europa = new TailInfo();
 			europa.setHeight(Util.DB().getEQCBlockTailHeight());
-			account = Util.DB().getAccount(ID.THREE);
-			europa.setEuropaNonce(account.getAsset(Asset.EQCOIN).getNonce());
+			eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+			europa.setCheckPointHeight(eQcoinSubchainAccount.getCheckPointHeight());
 			europa.setBlockTailProof(Util.DB().getEQCBlock(europa.getHeight(), true).getEqcHeader().getProof());
 			io = europa.getO();
 		} catch (Exception e) {

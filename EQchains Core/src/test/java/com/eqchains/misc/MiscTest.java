@@ -106,14 +106,16 @@ public class MiscTest {
 		   ID id;
 		try {
 			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
-			 for(int i=0; i<id.intValue(); ++i) {
+			 for(int i=22; i<=id.intValue(); ++i) {
 				   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINERING));
 					accountsMerkleTree.buildAccountsMerkleTree();
 					accountsMerkleTree.generateRoot();
 					Log.info(Util.dumpBytes(accountsMerkleTree.getRoot(), 16));
 					EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
 					accountsMerkleTree.clear();
+					Log.info("Begin verify No. " + i);
 					assertArrayEquals(accountsMerkleTree.getRoot(), eqcBlock.getRoot().getAccountsMerkelTreeRoot());
+					Log.info("Passed verify No. " + i);
 				   }
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -126,10 +128,10 @@ public class MiscTest {
 		   ID id;
 		try {
 			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
-			 for(int i=1; i<id.intValue(); ++i) {
-			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i-1), new Filter(Mode.MINERING));
+			 for(int i=22; i<=id.intValue(); ++i) {
+			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINERING));
 			   EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
-				assertTrue(eqcBlock.verify(accountsMerkleTree));
+				assertTrue(eqcBlock.isValid(accountsMerkleTree));
 				accountsMerkleTree.clear();
 				 Log.info("i: " + i + " passed");
 			   }

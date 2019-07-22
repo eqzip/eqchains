@@ -32,6 +32,7 @@ package com.eqchains.rpc.service;
 import org.apache.avro.AvroRemoteException;
 
 import com.eqchains.avro.O;
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.avro.MinerNetwork;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
@@ -54,7 +55,7 @@ import com.eqchains.util.Util;
  * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class MinerNetworkImpl implements MinerNetwork {
+public class MinerNetworkServiceImpl implements MinerNetwork {
 
 	/* (non-Javadoc)
 	 * @see com.eqchains.avro.MinerNetwork#ping(com.eqchains.avro.IO)
@@ -65,6 +66,7 @@ public class MinerNetworkImpl implements MinerNetwork {
 		Cookie cookie1 = null;
 		try {
 			cookie1 = new Cookie(cookie);
+			Log.info("Received ping from: " + cookie1.getIp());
 			if (cookie1.isSanity()) {
 				PossibleNodeState possibleNode = new PossibleNodeState();
 				possibleNode.setIp(cookie1.getIp());
@@ -80,6 +82,7 @@ public class MinerNetworkImpl implements MinerNetwork {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 		}
+		Log.info("Give ping response to " + cookie1.getIp());
 		return info;
 	}
 
@@ -125,11 +128,13 @@ public class MinerNetworkImpl implements MinerNetwork {
 		NewBlockState newBlockState = null;
 		try {
 			newBlock = new NewBlock(block);
+			Log.info("MinerNetworkServiceImpl received new block");
 			if(newBlock.getCookie().isSanity()) {
 				info = Util.getDefaultInfo().getO();
 				newBlockState = new NewBlockState(State.PENDINGNEWBLOCK);
 				newBlockState.setNewBlock(newBlock);
 				PendingNewBlockService.getInstance().offerNewBlockState(newBlockState);
+				Log.info("Call PendingNewBlockService handle the new block");
 			}
 			else {
 				info = Util.getInfo(Code.WRONGPROTOCOL, null).getO();

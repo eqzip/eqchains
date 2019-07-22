@@ -58,7 +58,7 @@ public class PendingTransactionService extends EQCService {
 	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
 	 */
 	@Override
-	protected void onDefault(EQCServiceState state) {
+	protected synchronized void onDefault(EQCServiceState state) {
 		PendingTransactionState pendingTransactionState = null;
 		Transaction transaction = null;
 		try {
@@ -72,7 +72,7 @@ public class PendingTransactionService extends EQCService {
 		}
 	}
 
-	public void offerPendingTransactionState(PendingTransactionState pendingTransactionState) {
+	public synchronized void offerPendingTransactionState(PendingTransactionState pendingTransactionState) {
 		pendingMessage.offer(pendingTransactionState);
 	}
 

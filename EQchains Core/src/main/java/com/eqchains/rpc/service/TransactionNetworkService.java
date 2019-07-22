@@ -58,7 +58,7 @@ public class TransactionNetworkService extends NetworkService {
 	
 	public static TransactionNetworkService getInstance() {
 		if (instance == null) {
-			synchronized (Keystore.class) {
+			synchronized (TransactionNetworkService.class) {
 				if (instance == null) {
 					instance = new TransactionNetworkService();
 				}
@@ -75,7 +75,7 @@ public class TransactionNetworkService extends NetworkService {
 	@Override
 	public synchronized void start() {
 		super.start();
-		server = new NettyServer(new SpecificResponder(TransactionNetwork.class, new TransactionNetworkImpl()),
+		server = new NettyServer(new SpecificResponder(TransactionNetwork.class, new TransactionNetworkServiceImpl()),
 				new InetSocketAddress(Util.TRANSACTION_NETWORK_PORT));
 		Log.info(this.getClass().getSimpleName() + " started...");
 	}

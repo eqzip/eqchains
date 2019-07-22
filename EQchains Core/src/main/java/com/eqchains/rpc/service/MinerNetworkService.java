@@ -57,7 +57,7 @@ public class MinerNetworkService extends NetworkService {
 	
 	public static NetworkService getInstance() {
 		if (instance == null) {
-			synchronized (Keystore.class) {
+			synchronized (MinerNetworkService.class) {
 				if (instance == null) {
 					instance = new MinerNetworkService();
 				}
@@ -68,7 +68,7 @@ public class MinerNetworkService extends NetworkService {
 
 	public void start() {
 		super.start();
-		server = new NettyServer(new SpecificResponder(MinerNetwork.class, new MinerNetworkImpl()),
+		server = new NettyServer(new SpecificResponder(MinerNetwork.class, new MinerNetworkServiceImpl()),
 				new InetSocketAddress(Util.MINER_NETWORK_PORT));
 		isRunning.set(true);
 		Log.info(this.getClass().getSimpleName() + " started...");

@@ -32,6 +32,7 @@ package com.eqchains.service;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.h2.EQCBlockChainH2;
 import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.Info;
 import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.service.state.EQCServiceState;
 import com.eqchains.service.state.NewBlockState;
@@ -68,12 +69,28 @@ public class BroadcastNewBlockService extends EQCService {
 			this.state.set(State.BROADCASTNEWBLOCK);
 			newBlockState = (NewBlockState) state;
 			if(!Util.IP.equals(Util.SINGULARITY_IP)) {
-				MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock().getEqcHive(), Util.SINGULARITY_IP);
+				try {
+//					Log.info("BroadcastNewBlock to SINGULARITY_IP: ");
+					Info info = MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock(), Util.SINGULARITY_IP);
+					Log.info("BroadcastNewBlock to SINGULARITY_IP result: " + info.getCode());
+				}
+				catch (Exception e) {
+					Log.Error(e.getMessage());
+				}
 			}
 			IPList minerList = EQCBlockChainH2.getInstance().getMinerList();
 			if(!minerList.isEmpty()) {
 				for(String ip:minerList.getIpList()) {
-					MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock().getEqcHive(), ip);
+					if(!Util.IP.equals(ip)) {
+						try {
+//							Log.info("BroadcastNewBlock to: " + ip);
+							Info info = MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock(), ip);
+							Log.info("BroadcastNewBlock to: " + ip + " result: " + info.getCode());
+						}
+						catch (Exception e) {
+							Log.Error(e.getMessage());
+						}
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -84,6 +101,7 @@ public class BroadcastNewBlockService extends EQCService {
 	}
 
 	public void offerNewBlockState(NewBlockState newBlockState) {
+//		Log.info("offerNewBlockState: " + newBlockState);
 		offerState(newBlockState);
 	}
 	

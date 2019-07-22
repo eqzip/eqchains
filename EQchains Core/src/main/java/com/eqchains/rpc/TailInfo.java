@@ -46,7 +46,7 @@ import com.eqchains.util.ID;
  */
 public class TailInfo extends AvroO implements Comparable<TailInfo> {
 	private ID height;
-	private ID europaNonce;
+	private ID checkPointHeight;
 	private byte[] blockTailProof;
 	private String ip;
 
@@ -62,7 +62,7 @@ public class TailInfo extends AvroO implements Comparable<TailInfo> {
 	 */
 	@Override
 	public boolean isSanity() {
-		if(height == null || europaNonce == null) {
+		if(height == null || checkPointHeight == null) {
 			return false;
 		}
 		return true;
@@ -92,17 +92,17 @@ public class TailInfo extends AvroO implements Comparable<TailInfo> {
 	}
 
 	/**
-	 * @return the europaNonce
+	 * @return the checkPointHeight
 	 */
-	public ID getEuropaNonce() {
-		return europaNonce;
+	public ID getCheckPointHeight() {
+		return checkPointHeight;
 	}
 
 	/**
-	 * @param europaNonce the europaNonce to set
+	 * @param checkPointHeight the checkPointHeight to set
 	 */
-	public void setEuropaNonce(ID europaNonce) {
-		this.europaNonce = europaNonce;
+	public void setCheckPointHeight(ID checkPointHeight) {
+		this.checkPointHeight = checkPointHeight;
 	}
 
 	@Override
@@ -114,7 +114,7 @@ public class TailInfo extends AvroO implements Comparable<TailInfo> {
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		height = new ID(EQCType.parseEQCBits(is));
-		europaNonce = new ID(EQCType.parseEQCBits(is));
+		checkPointHeight = new ID(EQCType.parseEQCBits(is));
 		blockTailProof = EQCType.parseBIN(is);
 	}
 
@@ -128,7 +128,7 @@ public class TailInfo extends AvroO implements Comparable<TailInfo> {
 	public byte[] getBodyBytes() throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(height.getEQCBits());
-		os.write(europaNonce.getEQCBits());
+		os.write(checkPointHeight.getEQCBits());
 		os.write(EQCType.bytesToBIN(blockTailProof));
 		return os.toByteArray();
 	}
@@ -153,16 +153,16 @@ public class TailInfo extends AvroO implements Comparable<TailInfo> {
 	@Override
 	public boolean equals(Object obj) {
 		TailInfo tailInfo = (TailInfo) obj;
-		return height.equals(tailInfo.height) && europaNonce.equals(tailInfo.europaNonce) && Arrays.equals(blockTailProof, tailInfo.blockTailProof);
+		return height.equals(tailInfo.height) && checkPointHeight.equals(tailInfo.checkPointHeight) && Arrays.equals(blockTailProof, tailInfo.blockTailProof);
 	}
 
 	@Override
 	public int compareTo(TailInfo o) {
-		if(!europaNonce.equals(o.europaNonce)) {
-			return europaNonce.subtract(o.europaNonce).intValue();
+		if(!checkPointHeight.equals(o.checkPointHeight)) {
+			return checkPointHeight.intValue() - o.checkPointHeight.intValue();
 		}
 		else {
-			return height.subtract(o.height).intValue();
+			return height.intValue() - o.height.intValue();
 		}
 	}
 

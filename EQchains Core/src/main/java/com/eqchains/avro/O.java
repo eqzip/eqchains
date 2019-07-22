@@ -5,13 +5,12 @@
  */
 package com.eqchains.avro;
 
-import org.apache.avro.generic.GenericArray;
 import org.apache.avro.specific.SpecificData;
-import org.apache.avro.util.Utf8;
 import org.apache.avro.message.BinaryMessageEncoder;
 import org.apache.avro.message.BinaryMessageDecoder;
 import org.apache.avro.message.SchemaStore;
 
+@SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class O extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
   private static final long serialVersionUID = 6411761234612037559L;
@@ -27,16 +26,7 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
       new BinaryMessageDecoder<O>(MODEL$, SCHEMA$);
 
   /**
-   * Return the BinaryMessageEncoder instance used by this class.
-   * @return the message encoder used by this class
-   */
-  public static BinaryMessageEncoder<O> getEncoder() {
-    return ENCODER;
-  }
-
-  /**
    * Return the BinaryMessageDecoder instance used by this class.
-   * @return the message decoder used by this class
    */
   public static BinaryMessageDecoder<O> getDecoder() {
     return DECODER;
@@ -45,27 +35,17 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
   /**
    * Create a new BinaryMessageDecoder instance for this class that uses the specified {@link SchemaStore}.
    * @param resolver a {@link SchemaStore} used to find schemas by fingerprint
-   * @return a BinaryMessageDecoder instance for this class backed by the given SchemaStore
    */
   public static BinaryMessageDecoder<O> createDecoder(SchemaStore resolver) {
     return new BinaryMessageDecoder<O>(MODEL$, SCHEMA$, resolver);
   }
 
-  /**
-   * Serializes this O to a ByteBuffer.
-   * @return a buffer holding the serialized data for this instance
-   * @throws java.io.IOException if this instance could not be serialized
-   */
+  /** Serializes this O to a ByteBuffer. */
   public java.nio.ByteBuffer toByteBuffer() throws java.io.IOException {
     return ENCODER.encode(this);
   }
 
-  /**
-   * Deserializes a O from a ByteBuffer.
-   * @param b a byte buffer holding serialized data for an instance of this class
-   * @return a O instance decoded from the given buffer
-   * @throws java.io.IOException if the given bytes could not be deserialized into an instance of this class
-   */
+  /** Deserializes a O from a ByteBuffer. */
   public static O fromByteBuffer(
       java.nio.ByteBuffer b) throws java.io.IOException {
     return DECODER.decode(b);
@@ -88,7 +68,6 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
     this.o = o;
   }
 
-  public org.apache.avro.specific.SpecificData getSpecificData() { return MODEL$; }
   public org.apache.avro.Schema getSchema() { return SCHEMA$; }
   // Used by DatumWriter.  Applications should not call.
   public java.lang.Object get(int field$) {
@@ -115,7 +94,6 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
     return o;
   }
 
-
   /**
    * Sets the value of the 'o' field.
    * @param value the value to set.
@@ -138,11 +116,7 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
    * @return A new O RecordBuilder
    */
   public static com.eqchains.avro.O.Builder newBuilder(com.eqchains.avro.O.Builder other) {
-    if (other == null) {
-      return new com.eqchains.avro.O.Builder();
-    } else {
-      return new com.eqchains.avro.O.Builder(other);
-    }
+    return new com.eqchains.avro.O.Builder(other);
   }
 
   /**
@@ -151,11 +125,7 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
    * @return A new O RecordBuilder
    */
   public static com.eqchains.avro.O.Builder newBuilder(com.eqchains.avro.O other) {
-    if (other == null) {
-      return new com.eqchains.avro.O.Builder();
-    } else {
-      return new com.eqchains.avro.O.Builder(other);
-    }
+    return new com.eqchains.avro.O.Builder(other);
   }
 
   /**
@@ -179,7 +149,7 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
       super(other);
       if (isValidValue(fields()[0], other.o)) {
         this.o = data().deepCopy(fields()[0].schema(), other.o);
-        fieldSetFlags()[0] = other.fieldSetFlags()[0];
+        fieldSetFlags()[0] = true;
       }
     }
 
@@ -188,7 +158,7 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
      * @param other The existing instance to copy.
      */
     private Builder(com.eqchains.avro.O other) {
-      super(SCHEMA$);
+            super(SCHEMA$);
       if (isValidValue(fields()[0], other.o)) {
         this.o = data().deepCopy(fields()[0].schema(), other.o);
         fieldSetFlags()[0] = true;
@@ -202,7 +172,6 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
     public java.nio.ByteBuffer getO() {
       return o;
     }
-
 
     /**
       * Sets the value of the 'o' field.
@@ -242,8 +211,6 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
         O record = new O();
         record.o = fieldSetFlags()[0] ? this.o : (java.nio.ByteBuffer) defaultValue(fields()[0]);
         return record;
-      } catch (org.apache.avro.AvroMissingFieldException e) {
-        throw e;
       } catch (java.lang.Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);
       }
@@ -268,43 +235,4 @@ public class O extends org.apache.avro.specific.SpecificRecordBase implements or
     READER$.read(this, SpecificData.getDecoder(in));
   }
 
-  @Override protected boolean hasCustomCoders() { return true; }
-
-  @Override public void customEncode(org.apache.avro.io.Encoder out)
-    throws java.io.IOException
-  {
-    out.writeBytes(this.o);
-
-  }
-
-  @Override public void customDecode(org.apache.avro.io.ResolvingDecoder in)
-    throws java.io.IOException
-  {
-    org.apache.avro.Schema.Field[] fieldOrder = in.readFieldOrderIfDiff();
-    if (fieldOrder == null) {
-      this.o = in.readBytes(this.o);
-
-    } else {
-      for (int i = 0; i < 1; i++) {
-        switch (fieldOrder[i].pos()) {
-        case 0:
-          this.o = in.readBytes(this.o);
-          break;
-
-        default:
-          throw new java.io.IOException("Corrupt ResolvingDecoder.");
-        }
-      }
-    }
-  }
 }
-
-
-
-
-
-
-
-
-
-

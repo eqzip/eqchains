@@ -29,16 +29,28 @@
  */
 package com.eqchains;
 
+import java.util.concurrent.atomic.AtomicReference;
+
+import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
+import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.Filter;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
+import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
 import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.NewBlock;
 import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.rpc.service.MinerNetworkService;
 import com.eqchains.rpc.service.SyncblockNetworkService;
+import com.eqchains.rpc.service.TransactionNetworkService;
+import com.eqchains.service.BroadcastNewBlockService;
 import com.eqchains.service.MinerService;
+import com.eqchains.service.PendingNewBlockService;
 import com.eqchains.service.PossibleNodeService;
 import com.eqchains.service.SyncBlockService;
 import com.eqchains.service.state.EQCServiceState;
+import com.eqchains.service.state.NewBlockState;
 import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.test.Test;
 import com.eqchains.util.ID;
@@ -69,8 +81,9 @@ public class Singularity {
 //		Test.ping("14.221.176.138", "129.28.206.27");
 //	    while(true)
 //		try {
-////			Util.DB();
-//			Util.init();
+////			Util.createDir(Util.PATH);
+////			Test.testKeystore();
+//			Log.info(Util.gestationSingularityBlock().toString());
 //		} catch (Exception e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
@@ -110,40 +123,91 @@ public class Singularity {
 //				Log.Error(e.getMessage());
 //			}
 //			Test.getBlockTail("129.28.206.27");
-		long i = 0;
-		while(true) {
-			Test.getBlock("129.28.206.27", ID.valueOf(79));
-			if(++i%1000 == 0) {
-				System.gc();
-			}
-		}
+//		long i = 0;
+//		while(true) {
+//			Test.getBlock("129.28.206.27", ID.valueOf(137));
+//			if(++i%1000 == 0) {
+//				System.gc();
+//			}
+//		}
 //		}
 //		Log.info("" + (int)'-');
 //		System.out.println("Begin testKeystore");
-//		try {
-//			Util.init();
-////			MinerNetworkService.getInstance().start();
-////			PossibleNodeService.getInstance().start();
+		try {
+			Util.init();
+			Log.info("" + Util.DB().getEQCBlockTailHeight());
+//			Util.recoveryAccounts(Util.DB().getEQCBlockTailHeight());
+//			Util.generateAccounts();
+//			Util.DB().saveEQCBlockTailHeight(ID.valueOf(106));
+//			AtomicReference<State> state = new AtomicReference<>();
+//			state.set(State.MINER);
+//			SyncBlockService.getInstance().start();
+//			if(SyncBlockService.getInstance().getState() == State.RUNNING) {
+//				Log.info("1");
+//			}
+//			else {
+//				Log.info("2");
+//			}
+			SyncBlockService.getInstance().start();
+			SyncBlockService.getInstance().offerState(new EQCServiceState(State.SERVER));
+//			PossibleNodeService.getInstance().start();
+//			MinerNetworkService.getInstance().start();
+//			BroadcastNewBlockService.getInstance().start();
+//			PendingNewBlockService.getInstance().start();
+//			MinerNetworkClient.ping(Util.IP);
+//			NewBlock newBlock = new NewBlock();
+//			newBlock.setEqcHive(Util.DB().getEQCBlock(Util.DB().getEQCBlockTailHeight(), false));
+//			newBlock.setCookie(Util.getCookie());
+//			NewBlock newBlock2 = new NewBlock(newBlock.getO());
+//			MinerNetworkClient.broadcastNewBlock(newBlock, Util.IP);
+//			MinerNetworkClient.broadcastNewBlock(newBlock, Util.IP);
+//			MinerNetworkClient.broadcastNewBlock(newBlock, Util.IP);
+//			EQCHive eqcHive = new EQCHive(Util.DB().getEQCBlock(Util.DB().getEQCBlockTailHeight(), false).getBytes(), false);
+//			MinerNetworkClient.ping(Util.SINGULARITY_IP);
+//			BroadcastNewBlockService.getInstance().start();
+//			NewBlockState newBlockState = new NewBlockState(State.BROADCASTNEWBLOCK);
+//			NewBlock newBlock = new NewBlock();
+//			newBlock.setEqcHive(Util.DB().getEQCBlock(Util.DB().getEQCBlockTailHeight(), false));
+//			newBlockState.setNewBlock(newBlock);
 ////			while(true)
-////			MinerNetworkClient.ping(Util.SINGULARITY_IP);
+//			Thread.sleep(3000);
+//			BroadcastNewBlockService.getInstance().offerNewBlockState(newBlockState);
+//			BroadcastNewBlockService.getInstance().offerNewBlockState(newBlockState);
+//			MinerNetworkClient.ping(Util.IP);
+//			for (int i = 72; i > 71; --i) {
+//				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(i - 1),
+//						new Filter(Mode.VALID));
+//				if (EQCBlockChainRocksDB.getInstance().getEQCBlock(ID.valueOf(i), false).isValid(accountsMerkleTree)) {
+//					Log.info("Passed: " + i);
+//					break;
+//				} else {
+//					Log.info("Failed");
+//				}
+//			}
+//			Log.info("" + EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight());
+//			EQCBlockChainRocksDB.getInstance().dumpAccount();
+//			EQCBlockChainRocksDB.getInstance().dumpEQCBlock();
+//			MinerNetworkService.getInstance().start();
+//			PossibleNodeService.getInstance().start();
+////			while(true)
+//			MinerNetworkClient.ping(Util.IP);
 //			IPList ipList = MinerNetworkClient.getMinerList(Util.SINGULARITY_IP);
-//			Log.info("IP: " + ipList.getIpList().size() + " address: " + ipList.getIpList().get(1));
-////			SyncBlockService.getInstance().start();
-////			SyncBlockService.getInstance().offerState(new EQCServiceState(State.FIND));
-////			MinerService.getInstance().start();
-////			SyncblockNetworkService.getInstance().start();
-////			Test.getBlockTail("129.28.206.27");
-////			Test.ping("14.221.176.138", "129.28.206.27");
-////			Log.info("Time: "+SyncblockNetworkProxy.ping("129.28.206.27"));
-////			SyncblockNetworkService.getInstance().stop();
-////			while(true) {
-////				Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.HUNDREDPULS, true, false);
-////			}
-//		} catch (Exception e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			Log.Error(e.getMessage());
-//		}
+//			Log.info("IP: " + ipList.getIpList().size() + " address: " + ipList.getIpList().get(0));
+//			Log.info("" + Util.DB().getEQCBlockTailHeight());
+//			MinerService.getInstance().start();
+//			SyncblockNetworkService.getInstance().start(); 
+//			Test.getBlockTail("129.28.206.27");
+//			Test.ping("14.221.176.138", "129.28.206.27");
+//			Log.info("Time: "+SyncblockNetworkProxy.ping("129.28.206.27"));
+//			SyncblockNetworkService.getInstance().stop();
+//			while(true) {
+//				Util.EQCCHA_MULTIPLE_DUAL(Util.getSecureRandomBytes(), Util.HUNDREDPULS, true, false);
+//			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
 //		try {
 //			EQCBlockChainH2.getInstance().dropTable();
 //			EQCBlockChainRocksDB.getInstance().dropTable();

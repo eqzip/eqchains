@@ -139,6 +139,6 @@ public interface EQCBlockChain {
 	
 	public boolean saveAccountSnapshot(Account account, ID height) throws SQLException, Exception;
 	
-	public boolean deleteAccountSnapshot(ID height, boolean isForward) throws SQLException, Exception;
+	public boolean deleteAccountSnapshotFrom(ID height, boolean isForward) throws SQLException, Exception;
 	
 }

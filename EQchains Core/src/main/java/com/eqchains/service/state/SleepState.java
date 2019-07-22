@@ -29,75 +29,31 @@
  */
 package com.eqchains.service.state;
 
-import com.eqchains.blockchain.transaction.operation.Operation.OP;
-
 /**
  * @author Xun Wang
- * @date Jul 6, 2019
+ * @date Jul 19, 2019
  * @email 10509759@qq.com
  */
-public class EQCServiceState implements Comparable<EQCServiceState> {
-	protected State state;
-	protected long time;
+public class SleepState extends EQCServiceState {
+	private long sleepTime;
 	
-	public EQCServiceState() {
-	}
-	
-	public EQCServiceState(State state) {
-		this.state = state;
-		time = System.currentTimeMillis();
-	}
-	
-	public enum State {
-		STOP,  WAIT, RUNNING, DEFAULT, ERROR, TAKE, SERVER, MINER, SLEEP, PAUSE, FIND, SYNC, POSSIBLENODE, PENDINGNEWBLOCK, PENDINGTRANSACTION, BROADCASTNEWBLOCK  
-	}
-	
-	@Override
-	public int compareTo(EQCServiceState o) {
-		if(state == o.state) {
-			return (int) (o.time - time);
-		}
-		return o.state.ordinal() - state.ordinal();
+	public SleepState(long sleepTime) {
+		super(State.SLEEP);
+		this.sleepTime = sleepTime;
 	}
 
 	/**
-	 * @return the state
+	 * @return the sleepTime
 	 */
-	public State getState() {
-		return state;
+	public long getSleepTime() {
+		return sleepTime;
 	}
 
 	/**
-	 * @param state the state to set
+	 * @param sleepTime the sleepTime to set
 	 */
-	public void setState(State state) {
-		this.state = state;
-	}
-
-	/**
-	 * @return the time
-	 */
-	public long getTime() {
-		return time;
-	}
-
-	/**
-	 * @param time the time to set
-	 */
-	public void setTime(long time) {
-		this.time = time;
-	}
-	
-	public static EQCServiceState getDefaultState() {
-		return new EQCServiceState(State.DEFAULT);
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		return state.name();
+	public void setSleepTime(long sleepTime) {
+		this.sleepTime = sleepTime;
 	}
 	
 }
