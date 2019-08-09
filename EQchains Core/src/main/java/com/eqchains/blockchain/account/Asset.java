@@ -62,7 +62,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	 * Body
 	 */
 	protected ID assetID;
-	protected ID assetCreateHeight;
+	protected ID createHeight;
 	protected ID balance;
 	protected ID balanceUpdateHeight;
 	protected ID nonce;
@@ -143,7 +143,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(getHeaderBytes());
-			os.write(getBodyBytes());
+ 			os.write(getBodyBytes());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -157,10 +157,10 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	}
 	@Override
 	public boolean isSanity() {
-		if(assetType == null || version == null || versionUpdateHeight == null || assetID == null || assetCreateHeight == null || balance == null || balanceUpdateHeight == null || nonce == null || nonceUpdateHeight == null) {
+		if(assetType == null || version == null || versionUpdateHeight == null || assetID == null || createHeight == null || balance == null || balanceUpdateHeight == null || nonce == null || nonceUpdateHeight == null) {
 			return false;
 		}
-		if(!version.isSanity() || !versionUpdateHeight.isSanity() || !assetID.isSanity() || !assetCreateHeight.isSanity() || !balance.isSanity() || !balanceUpdateHeight.isSanity() || !nonce.isSanity() || !nonceUpdateHeight.isSanity()) {
+		if(!version.isSanity() || !versionUpdateHeight.isSanity() || !assetID.isSanity() || !createHeight.isSanity() || !balance.isSanity() || !balanceUpdateHeight.isSanity() || !nonce.isSanity() || !nonceUpdateHeight.isSanity()) {
 			return false;
 		}
 		if(assetID.equals(Asset.EQCOIN)) {
@@ -221,7 +221,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 					"\"Version\":" + "\"" + version + "\"" + ",\n" +
 					"\"VersionUpdateHeight\":" + "\"" + versionUpdateHeight + "\"" + ",\n" +
 					"\"AssetID\":" + "\"" + assetID + "\"" + ",\n" +
-					"\"AssetCreateHeight\":" + "\"" + assetCreateHeight + "\"" + ",\n" +
+					"\"CreateHeight\":" + "\"" + createHeight + "\"" + ",\n" +
 					"\"Balance\":" + "\"" + balance + "\"" + ",\n" +
 					"\"BalanceUpdateHeight\":" + "\"" + balanceUpdateHeight + "\"" + ",\n" +
 					"\"Nonce\":" + "\"" + nonce + "\"" + ",\n" +
@@ -255,7 +255,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		assetID = new ID(EQCType.parseEQCBits(is));
 		
 		// Parse AssetCreateHeight
-		assetCreateHeight = new ID(EQCType.parseEQCBits(is));
+		createHeight = new ID(EQCType.parseEQCBits(is));
 		
 		// Parse Balance
 		balance = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
@@ -288,7 +288,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(assetID.getEQCBits());
-			os.write(assetCreateHeight.getEQCBits());
+			os.write(createHeight.getEQCBits());
 			os.write(balance.getEQCBits());
 			os.write(balanceUpdateHeight.getEQCBits());
 			os.write(nonce.getEQCBits());
@@ -340,13 +340,13 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	 * @param amount
 	 */
 	public void withdraw(ID amount) {
-		EQCType.assertNotHigher(amount, balance);
+		EQCType.assertNotBigger(amount, balance);
 		balance = balance.subtract(amount);
 	}
 	
 	public void deposit(ID amount) {
 		if(assetID.equals(EQCOIN)) {
-			EQCType.assertNotHigher(amount, ID.valueOf(Util.MAX_EQC));
+			EQCType.assertNotBigger(amount, ID.valueOf(Util.MAX_EQC));
 		}
 		balance = balance.add(amount);
 	}
@@ -366,17 +366,17 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	}
 
 	/**
-	 * @return the assetCreateHeight
+	 * @return the createHeight
 	 */
-	public ID getAssetCreateHeight() {
-		return assetCreateHeight;
+	public ID getCreateHeight() {
+		return createHeight;
 	}
 
 	/**
-	 * @param assetCreateHeight the assetCreateHeight to set
+	 * @param createHeight the createHeight to set
 	 */
-	public void setAssetCreateHeight(ID assetCreateHeight) {
-		this.assetCreateHeight = assetCreateHeight;
+	public void setCreateHeight(ID createHeight) {
+		this.createHeight = createHeight;
 	}
 
 	/**

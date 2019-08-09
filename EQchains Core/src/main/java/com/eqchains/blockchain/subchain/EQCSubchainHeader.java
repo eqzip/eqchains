@@ -27,105 +27,104 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc;
+package com.eqchains.blockchain.subchain;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
-import com.eqchains.avro.O;
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.serialization.EQCInheritable;
+import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
+import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 27, 2019
+ * @date July 30, 2019
  * @email 10509759@qq.com
  */
-public class TransactionIndex extends AvroO {
-	private ID id;
-	private ID nonce;
-	private byte[] proof;
+public class EQCSubchainHeader implements EQCTypable, EQCInheritable {
+	protected ID id;
+	protected ID totalTxFee;
+	/**
+	 * Calculate this according to newTransactionList ARRAY's length
+	 */
+	protected ID totalTransactionNumbers;
 	
-	public TransactionIndex(ByteArrayInputStream is) throws Exception {
-		super(is);
+	public EQCSubchainHeader() {
+		totalTxFee = ID.ZERO;
 	}
 	
-	public TransactionIndex() {
-	}
-	
-	public TransactionIndex(byte[] bytes) throws Exception {
+	public EQCSubchainHeader(byte[] bytes) throws Exception {
 		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseBody(is);
-		EQCType.assertNoRedundantData(is);
 	}
 	
-	public TransactionIndex(O io) throws Exception {
-		parse(io);
+	public EQCSubchainHeader(ByteArrayInputStream is) throws Exception {
+		parseBody(is);
 	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isSanity()
-	 */
-	@Override
-	public boolean isSanity() {
-		if(id == null || nonce == null || proof == null) {
-			return false;
-		}
-		if(!id.isSanity() || !nonce.isSanity() || proof.length != 5) {
-			return false;
-		}
-		return true;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
-	 */
-	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#parseHeader(java.io.ByteArrayInputStream)
-	 */
+	
 	@Override
 	public void parseHeader(ByteArrayInputStream is) throws Exception {
 		// TODO Auto-generated method stub
 
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#parseBody(java.io.ByteArrayInputStream)
-	 */
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		id = EQCType.parseID(is);
-		nonce = EQCType.parseID(is);
-		proof = EQCType.parseBIN(is);
+		totalTxFee = EQCType.parseID(is);
+		totalTransactionNumbers = EQCType.parseID(is);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#getHeaderBytes()
-	 */
 	@Override
 	public byte[] getHeaderBytes() throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCInheritable#getBodyBytes()
-	 */
 	@Override
 	public byte[] getBodyBytes() throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(id.getEQCBits());
-		os.write(nonce.getEQCBits());
-		os.write(EQCType.bytesToBIN(proof));
-		return null;
+		os.write(totalTxFee.getEQCBits());
+		os.write(totalTransactionNumbers.getEQCBits());
+		return os.toByteArray();
+	}
+
+	@Override
+	public byte[] getBytes() throws Exception {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		os.write(getBodyBytes());
+		return os.toByteArray();
+	}
+
+	@Override
+	public byte[] getBin() throws Exception {
+		return EQCType.bytesToBIN(getBytes());
+	}
+
+	@Override
+	public boolean isSanity() {
+		if(id == null || totalTxFee == null || totalTransactionNumbers == null) {
+			return false;
+		}
+		if(!id.isSanity() || !totalTxFee.isSanity() || !totalTransactionNumbers.isSanity()) {
+			return false;
+		}
+		return true;
+	}
+
+	@Override
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 	/**
@@ -143,31 +142,54 @@ public class TransactionIndex extends AvroO {
 	}
 
 	/**
-	 * @return the nonce
+	 * @return the totalTxFee
 	 */
-	public ID getNonce() {
-		return nonce;
+	public ID getTotalTxFee() {
+		return totalTxFee;
+	}
+
+//	/**
+//	 * @param totalTxFee the totalTxFee to set
+//	 */
+//	public void setTotalTxFee(ID totalTxFee) {
+//		this.totalTxFee = totalTxFee;
+//	}
+
+	/**
+	 * @return the totalTransactionNumbers
+	 */
+	public ID getTotalTransactionNumbers() {
+		return totalTransactionNumbers;
 	}
 
 	/**
-	 * @param nonce the nonce to set
+	 * @param totalTransactionNumbers the totalTransactionNumbers to set
 	 */
-	public void setNonce(ID nonce) {
-		this.nonce = nonce;
+	public void setTotalTransactionNumbers(ID totalTransactionNumbers) {
+		this.totalTransactionNumbers = totalTransactionNumbers;
 	}
-
-	/**
-	 * @return the proof
+	
+	public void depositTxFee(long txFee) {
+		totalTxFee = totalTxFee.add(ID.valueOf(txFee));
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
 	 */
-	public byte[] getProof() {
-		return proof;
-	}
+	@Override
+	public String toString() {
+		return
 
-	/**
-	 * @param proof the proof to set
-	 */
-	public void setProof(byte[] proof) {
-		this.proof = proof;
-	}
+		"{\n" + toInnerJson() + "\n}";
 
+	}
+	
+	protected String toInnerJson() {
+		return "\"EQCSubchainHeader\":" + "{\n" + "\"SubchainID\":" + "\"" + id + "\"" + ",\n"
+				+ "\"TotalTxFee\":" + "\"" + totalTxFee + "\"" + ",\n" + "\"TotalTransactionNumbers\":" + "\"" + totalTransactionNumbers + "\""
+				+ "\n" + "}";
+	}
+	
 }

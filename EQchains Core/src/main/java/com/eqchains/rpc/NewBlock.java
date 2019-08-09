@@ -33,9 +33,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.serialization.EQCType;
+import com.eqchains.util.ID;
 import com.eqchains.util.Util;
 
 /**
@@ -46,6 +47,7 @@ import com.eqchains.util.Util;
 public class NewBlock extends AvroO implements Comparable<NewBlock> {
 	private Cookie cookie;
 	private EQCHive eqcHive;
+	private ID checkPointHeight;
 	private long time;
 
 	public NewBlock() {
@@ -97,6 +99,7 @@ public class NewBlock extends AvroO implements Comparable<NewBlock> {
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		cookie = new Cookie(is);
 		eqcHive = new EQCHive(EQCType.parseBIN(is), false);
+		checkPointHeight = EQCType.parseID(is);
 	}
 
 	/* (non-Javadoc)
@@ -116,6 +119,7 @@ public class NewBlock extends AvroO implements Comparable<NewBlock> {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(cookie.getBytes());
 		os.write(eqcHive.getBin());
+		os.write(checkPointHeight.getEQCBits());
 		return os.toByteArray();
 	}
 
@@ -164,6 +168,20 @@ public class NewBlock extends AvroO implements Comparable<NewBlock> {
 	 */
 	public void setTime(long time) {
 		this.time = time;
+	}
+
+	/**
+	 * @return the checkPointHeight
+	 */
+	public ID getCheckPointHeight() {
+		return checkPointHeight;
+	}
+
+	/**
+	 * @param checkPointHeight the checkPointHeight to set
+	 */
+	public void setCheckPointHeight(ID checkPointHeight) {
+		this.checkPointHeight = checkPointHeight;
 	}
 	
 }

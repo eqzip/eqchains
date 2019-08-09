@@ -78,7 +78,6 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	}
 	
 	public AssetSubchainHeader(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		EQCType.assertNotNull(is);
 		parseBody(is);
 	}
 	

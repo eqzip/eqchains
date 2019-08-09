@@ -29,11 +29,17 @@
  */
 package com.eqchains.service;
 
+import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.keystore.Keystore;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.rpc.MaxNonce;
+import com.eqchains.rpc.Nest;
 import com.eqchains.service.state.EQCServiceState;
 import com.eqchains.service.state.PendingTransactionState;
+import com.eqchains.util.ID;
 import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
@@ -61,10 +67,39 @@ public class PendingTransactionService extends EQCService {
 	protected synchronized void onDefault(EQCServiceState state) {
 		PendingTransactionState pendingTransactionState = null;
 		Transaction transaction = null;
+		Account account = null;
+		MaxNonce maxNonce = null;
 		try {
+			Log.info("Received new Transaction");
 			pendingTransactionState = (PendingTransactionState) state;
 			transaction = Transaction.parseRPC(pendingTransactionState.getTransaction());
-			transaction.update();
+			account = Util.DB().getAccount(transaction.getTxIn().getPassport().getAddressAI());
+			if(account == null) {
+				Log.info("Transaction with readable address " + transaction.getTxIn().getPassport().getReadableAddress() + "'s relevant Account doesn't exists just discard it");
+				return;
+			}
+			if(transaction.getNonce().compareTo(account.getAsset(transaction.getAssetID()).getNonce()) < 0) {
+				Log.info("Transaction's nonce " + transaction.getNonce() + " less than relevant Account's Asset's nonce " + account.getAsset(transaction.getAssetID()).getNonce() + " just discard it");
+				return;
+			}
+			transaction.getTxIn().getPassport().setID(account.getID());
+//			maxNonce = EQCBlockChainH2.getInstance().getTransactionMaxNonce(transaction.getNest());
+//			// Here maybe exists one bug maybe need remove this
+//			if(transaction.getNonce().compareTo(maxNonce.getNonce().getNextID()) > 0) {
+//				Log.info("Transaction's nonce more than relevant Account's Asset's max nonce just discard it");
+//				return;
+//			}
+			// Here doesn't extra check to make sure nonce is continuously due to EQCBlockChainH2.getInstance().getTransactionMaxNonce may not synchronized
+			if(transaction.verifySignature()) {
+//				if(transaction.getNonce().compareTo(maxNonce.getNonce().getNextID()) == 0) {
+//					EQCBlockChainH2.getInstance().saveTransactionMaxNonce(transaction.getNest(), transaction.getMaxNonce());
+//				}
+				EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
+				Log.info("Transaction with ID " + transaction.getTxIn().getPassport().getID()  + " and nonce " + transaction.getNonce() + " is valid just save it");
+			}
+			else {
+				Log.Error("Transaction is invalid just discard it");
+			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -72,7 +107,7 @@ public class PendingTransactionService extends EQCService {
 		}
 	}
 
-	public synchronized void offerPendingTransactionState(PendingTransactionState pendingTransactionState) {
+	public void offerPendingTransactionState(PendingTransactionState pendingTransactionState) {
 		pendingMessage.offer(pendingTransactionState);
 	}
 

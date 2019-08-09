@@ -29,8 +29,10 @@
  */
 package com.eqchains.service;
 
+import java.io.IOException;
+
 import com.eqchains.keystore.Keystore;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
 import com.eqchains.rpc.client.MinerNetworkClient;
@@ -70,7 +72,7 @@ public class BroadcastNewBlockService extends EQCService {
 			newBlockState = (NewBlockState) state;
 			if(!Util.IP.equals(Util.SINGULARITY_IP)) {
 				try {
-//					Log.info("BroadcastNewBlock to SINGULARITY_IP: ");
+					Log.info("Begin BroadcastNewBlock to SINGULARITY_IP");
 					Info info = MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock(), Util.SINGULARITY_IP);
 					Log.info("BroadcastNewBlock to SINGULARITY_IP result: " + info.getCode());
 				}
@@ -83,11 +85,14 @@ public class BroadcastNewBlockService extends EQCService {
 				for(String ip:minerList.getIpList()) {
 					if(!Util.IP.equals(ip)) {
 						try {
-//							Log.info("BroadcastNewBlock to: " + ip);
+							Log.info("Begin BroadcastNewBlock to: " + ip);
 							Info info = MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock(), ip);
 							Log.info("BroadcastNewBlock to: " + ip + " result: " + info.getCode());
 						}
 						catch (Exception e) {
+							if(e instanceof IOException) {
+								Util.updateDisconnectIPStatus(ip);
+							}
 							Log.Error(e.getMessage());
 						}
 					}

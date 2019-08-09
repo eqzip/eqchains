@@ -65,11 +65,11 @@ public class MerkleTree {
 		while (iterator.hasNext()) {
 			// Left node
 			left = iterator.next();
-			iterator.remove();
+//			iterator.remove();
 			// Right node
 			if (iterator.hasNext()) {
 				right = iterator.next();
-				iterator.remove();
+//				iterator.remove();
 				// Left node and right node's EQCCHA's hash
 				bytes = new byte[left.length + right.length];
 				System.arraycopy(left, 0, bytes, 0, left.length);

@@ -33,8 +33,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import org.apache.avro.AvroRemoteException;
-import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
+import org.apache.avro.ipc.netty.NettyServer;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
 import com.eqchains.avro.O;
@@ -49,13 +49,13 @@ import com.eqchains.util.Util;
  * @date Jan 24, 2019
  * @email 10509759@qq.com
  */
-public class MinerNetworkService extends NetworkService {
+public class MinerNetworkService extends EQCRPCService {
 	private static MinerNetworkService instance;
 	
 	private MinerNetworkService() {
 	}
 	
-	public static NetworkService getInstance() {
+	public static EQCRPCService getInstance() {
 		if (instance == null) {
 			synchronized (MinerNetworkService.class) {
 				if (instance == null) {

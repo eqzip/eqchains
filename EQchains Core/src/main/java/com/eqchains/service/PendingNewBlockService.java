@@ -31,10 +31,11 @@ package com.eqchains.service;
 
 import java.util.concurrent.PriorityBlockingQueue;
 
+import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.NewBlock;
 import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.service.state.EQCServiceState;
@@ -43,6 +44,7 @@ import com.eqchains.service.state.NewBlockState;
 import com.eqchains.service.state.PossibleNodeState;
 import com.eqchains.service.state.SleepState;
 import com.eqchains.service.state.SyncBlockState;
+import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
@@ -53,7 +55,7 @@ import com.eqchains.util.Util;
  */
 public class PendingNewBlockService extends EQCService {
 	private static PendingNewBlockService instance;
-	
+
 	public static PendingNewBlockService getInstance() {
 		if (instance == null) {
 			synchronized (Keystore.class) {
@@ -65,49 +67,63 @@ public class PendingNewBlockService extends EQCService {
 		return instance;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.EQCServiceState)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.eqchains.service.EQCService#onDefault(com.eqchains.service.state.
+	 * EQCServiceState)
 	 */
 	@Override
 	protected void onDefault(EQCServiceState state) {
 		NewBlockState newBlockState = null;
-		long ping = 0;
+//		long ping = 0;
 		try {
-			if(!(SyncBlockService.getInstance().getState() == State.MINER)) {
-				Log.info(name + "Current SyncBlockService's state is: " + SyncBlockService.getInstance().getState() + " just return");
-				return;
-			}
-			
+//			if (!(SyncBlockService.getInstance().getState() == State.MINER)) {
+//				Log.info(name + "Current SyncBlockService's state is: " + SyncBlockService.getInstance().getState()
+//						+ " just return");
+//				return;
+//			}
+
 			this.state.set(State.PENDINGNEWBLOCK);
 			newBlockState = (NewBlockState) state;
-			Log.info("PendingNewBlockService receive new block from: " + newBlockState.getNewBlock().getCookie().getIp() + " height: " + newBlockState.getNewBlock().getEqcHive().getHeight());
-			PossibleNodeState possibleNodeState = new PossibleNodeState();
-			possibleNodeState.setIp(newBlockState.getNewBlock().getCookie().getIp());
-			possibleNodeState.setNodeType(NODETYPE.MINER);
-			PossibleNodeService.getInstance().offerNode(possibleNodeState);
-//			ping = MinerNetworkClient.ping(newBlockState.getNewBlock().getCookie().getIp());
-//			if(ping != -1) {
-				synchronized (EQCService.class) {
-					Log.info(name + " MinerService's state: " + MinerService.getInstance().getState());
-					
-					if(!(SyncBlockService.getInstance().getState() == State.MINER)) {
-						// Here doesn't need do anything because when Find or Sync finished will reach the tail
-						Log.info(name + "Current SyncBlockService's state is: " + SyncBlockService.getInstance().getState() + " just return");
-						return;
-					}
-					else {
-						MinerService.getInstance().pause();
-						// Call SyncBlockService valid the new block
-						SyncBlockState syncBlockState = new SyncBlockState();
-						syncBlockState.setIp(newBlockState.getNewBlock().getCookie().getIp());
-						syncBlockState.setEqcHive(newBlockState.getNewBlock().getEqcHive());
-						SyncBlockService.getInstance().offerState(syncBlockState);
-						Log.info("call SyncBlockService valid the new block");
-					}
-				}
+			Log.info("PendingNewBlockService receive new block from: " + newBlockState.getNewBlock().getCookie().getIp()
+					+ " height: " + newBlockState.getNewBlock().getEqcHive().getHeight());
+
+//			onPause();
+//			if (!isRunning.get()) {
+//				Log.info("Exit from PendingNewBlockService");
+//				return;
 //			}
-//			else {
-//				EQCBlockChainH2.getInstance().deleteMiner(newBlockState.getNewBlock().getCookie().getIp());
+
+//			if (!(SyncBlockService.getInstance().getState() == State.MINER)) {
+//				// Here doesn't need do anything because when Find or Sync finished will reach
+//				// the tail
+//				Log.info(name + "Current SyncBlockService's state is: " + SyncBlockService.getInstance().getState()
+//						+ " just return");
+//				return;
+//			} else {
+			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+			// Here need do more job to check if the checkpoint is valid need add checkpoint
+			// transaction in NewBlock add isValid in NewBlock to handle this
+			if (newBlockState.getNewBlock().getEqcHive().getHeight().compareTo(Util.DB().getEQCBlockTailHeight()) > 0
+					&& newBlockState.getNewBlock().getCheckPointHeight()
+							.compareTo(eQcoinSubchainAccount.getCheckPointHeight()) >= 0
+					&& newBlockState.getNewBlock().getEqcHive().getEqcHeader().isDifficultyValid()) {
+				// Begin handle PossibleNode
+				PossibleNodeState possibleNodeState = new PossibleNodeState();
+				possibleNodeState.setIp(newBlockState.getNewBlock().getCookie().getIp());
+				possibleNodeState.setNodeType(NODETYPE.MINER);
+				PossibleNodeService.getInstance().offerNode(possibleNodeState);
+
+				// Call SyncBlockService valid the new block
+				SyncBlockState syncBlockState = new SyncBlockState();
+				syncBlockState.setIp(newBlockState.getNewBlock().getCookie().getIp());
+				syncBlockState.setEqcHive(newBlockState.getNewBlock().getEqcHive());
+				SyncBlockService.getInstance().offerState(syncBlockState);
+				Log.info("Newblock is valid call SyncBlockService valid the new block");
+			} else {
+				Log.info("New block is invalid just discard it");
+			}
 //			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

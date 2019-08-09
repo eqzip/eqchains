@@ -36,10 +36,10 @@ import java.util.Arrays;
 
 import javax.print.attribute.standard.RequestingUserName;
 
-import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.blockchain.transaction.CompressedPublickey;
+import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.serialization.EQCAddressShapeTypable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -169,13 +169,6 @@ public class Passport implements EQCAddressShapeTypable {
 	}
 	
 	/**
-	 * @return the ID's EQCBits
-	 */
-	public byte[] getIDEQCBits() {
-		return id.getEQCBits();
-	}
-
-	/**
 	 * @return the ID
 	 */
 	public ID getID() {
@@ -269,12 +262,12 @@ public class Passport implements EQCAddressShapeTypable {
 		return isGood(null);
 	}
 
-	public boolean isGood(PublicKey publickey) {
-		AddressTool.AddressType addressType = Util.AddressTool.getAddressType(readableAddress);
-
-		if ((readableAddress == null) || (id == null)) {
+	public boolean isGood(CompressedPublickey publickey) {
+		if (readableAddress == null) {
 			return false;
 		}
+		
+		AddressTool.AddressType addressType = Util.AddressTool.getAddressType(readableAddress);
 
 		// Check Address length is valid
 		if (readableAddress.length() > Util.MAX_ADDRESS_LEN || readableAddress.length() < Util.MIN_ADDRESS_LEN) {
@@ -287,18 +280,13 @@ public class Passport implements EQCAddressShapeTypable {
 				return false;
 			}
 			if (publickey != null) {
-				if (!AddressTool.verifyAddressPublickey(readableAddress, publickey.getPublicKey())) {
+				if (!AddressTool.verifyAddressPublickey(readableAddress, publickey.getCompressedPublickey())) {
 					return false;
 				}
 			}
 		}
 		// The others Address Type is invalid
 		else {
-			return false;
-		}
-
-		// Check if Address' Serial Number is valid which should >= 1
-		if (id.compareTo(ID.ONE) < 0) {
 			return false;
 		}
 
@@ -317,6 +305,7 @@ public class Passport implements EQCAddressShapeTypable {
 			if (id == null) {
 				return false;
 			}
+			// Check if Address' Serial Number is valid which should >= 1
 			if(id.compareTo(ID.ONE) < 0) {
 				return false;
 			}
@@ -329,6 +318,7 @@ public class Passport implements EQCAddressShapeTypable {
 				if (id == null) {
 					return false;
 				}
+				// Check if Address' Serial Number is valid which should >= 1
 				if(id.compareTo(ID.ONE) < 0) {
 					return false;
 				}

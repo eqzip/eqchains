@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.persistence.rocksdb;
+package com.eqchains.persistence;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,10 +35,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Vector;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.MutableColumnFamilyOptions;
@@ -47,27 +49,29 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.WALRecoveryMode;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
-import com.eqchains.blockchain.EQCHive;
-import com.eqchains.blockchain.EQCBlockChain;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Balance;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.MaxNonce;
 import com.eqchains.rpc.Nest;
+import com.eqchains.rpc.SignHash;
+import com.eqchains.rpc.TransactionIndex;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
+import com.eqchains.util.Util.AddressTool;
 
 
 /**
@@ -81,7 +85,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	private List<ColumnFamilyHandle> columnFamilyHandles;
 	private List<byte[]> defaultColumnFamilyNames;
 	private List<ColumnFamilyDescriptor> columnFamilyDescriptors;
-	private WriteOptions writeOptions;
 	public static final byte[] SUFFIX_AI = "AI".getBytes();
 	public static final byte[] SUFFIX_HASH = "Hash".getBytes();
 	public static final byte[] MISC_TABLE = "Misc".getBytes();
@@ -112,21 +115,24 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		List<byte[]> columnFamilyNames = new ArrayList<>();
 		columnFamilyNames.addAll(defaultColumnFamilyNames);
 		columnFamilyHandles = new ArrayList<>();
-		writeOptions = new WriteOptions();
-		final DBOptions dbOptions = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true).setStatsDumpPeriodSec(0);
+		final DBOptions dbOptions = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true).setStatsDumpPeriodSec(0).setWalRecoveryMode(WALRecoveryMode.AbsoluteConsistency);
 			for(byte[] bytes: RocksDB.listColumnFamilies(new Options(), Util.ROCKSDB_PATH)) {
 				if(!isDefaultColumnFamily(bytes)) {
 					columnFamilyNames.add(bytes);
 				}
 			}
 			final List<ColumnFamilyDescriptor> columnFamilyDescriptors = new Vector();
+			ColumnFamilyOptions columnFamilyOptions = null;
 			for(byte[] bytes : columnFamilyNames) {
-				columnFamilyDescriptors.add(new ColumnFamilyDescriptor(bytes));
+				columnFamilyOptions = new ColumnFamilyOptions();
+				columnFamilyOptions.setCompressionType(CompressionType.NO_COMPRESSION);
+				columnFamilyDescriptors.add(new ColumnFamilyDescriptor(bytes, columnFamilyOptions));
 			}
 			rocksDB = RocksDB.open(dbOptions, Util.ROCKSDB_PATH, columnFamilyDescriptors,
 					columnFamilyHandles);
 			List<ColumnFamilyHandle> tempColumnFamilyHandles = new ArrayList<>();
 			for(int i=0; i<columnFamilyNames.size(); ++i) {
+				Log.info("No." + i + "'s columnFamilyNames " + new String(columnFamilyNames.get(i)));
 				if(!isDefaultColumnFamily(columnFamilyNames.get(i))) {
 					Log.info("Exists undefault table " + new String(columnFamilyDescriptors.get(i).getName()) + " just clear it.");
 					clearTable(columnFamilyHandles.get(i));
@@ -135,36 +141,15 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 					tempColumnFamilyHandles.add(columnFamilyHandles.get(i));
 				}
 			}
-			columnFamilyHandles.removeAll(tempColumnFamilyHandles);
-			MutableColumnFamilyOptions mutableColumnFamilyOptions = MutableColumnFamilyOptions.builder().setCompressionType(CompressionType.NO_COMPRESSION).build();
-			rocksDB.setOptions(getTableHandle(TABLE.EQCBLOCK), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.EQCBLOCK_HASH), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_AI), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_HASH), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_MINERING), mutableColumnFamilyOptions);
- 			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_MINERING_AI), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_MINERING_HASH), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_VALID), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_VALID_AI), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.ACCOUNT_VALID_HASH), mutableColumnFamilyOptions);
-			rocksDB.setOptions(getTableHandle(TABLE.MISC), mutableColumnFamilyOptions);
+			if(!tempColumnFamilyHandles.isEmpty()) {
+				Log.info("Exists undefault ColumnFamilyHandles just remove it");
+				columnFamilyHandles.removeAll(tempColumnFamilyHandles);
+			}
 	}
 	
-	private boolean isContains(List<byte[]> columnFamilyNames, byte[] columnFamilyName) {
-		boolean isSucc = false;
-		for(byte[] bytes : columnFamilyNames) {
-			if(Arrays.equals(bytes, columnFamilyName)) {
-				isSucc = true;
-				break;
-			}
-		}
-		return isSucc;
-	}
-
-	public synchronized static EQCBlockChainRocksDB getInstance() throws RocksDBException {
+	public  static EQCBlockChainRocksDB getInstance() throws RocksDBException {
 		if (instance == null) {
-			synchronized (EQCBlockChainH2.class) {
+			synchronized (EQCBlockChainRocksDB.class) {
 				if (instance == null) {
 					instance = new EQCBlockChainRocksDB();
 				}
@@ -173,14 +158,15 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return instance;
 	}
 	
-	/**
-	 * @return the rocksDB
-	 */
-	public RocksDB getRocksDB() {
-		return rocksDB;
+	public   void batchUpdate(WriteBatch writeBatch) throws RocksDBException {
+		rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 	}
 
-	public boolean isDefaultColumnFamily(byte[] columnFamilyName) {
+	public   RocksIterator getRocksIterator (TABLE table) {
+		return rocksDB.newIterator(getTableHandle(table));
+	}
+	
+	public   boolean isDefaultColumnFamily(byte[] columnFamilyName) {
 		boolean isExists = false;
 		for(byte[] bytes : defaultColumnFamilyNames) {
 			if(Arrays.equals(bytes, columnFamilyName)) {
@@ -190,49 +176,54 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return isExists;
 	}
 	
-	public ColumnFamilyHandle getTableHandle(TABLE table) {
+	public   ColumnFamilyHandle getTableHandle(TABLE table) {
 		return columnFamilyHandles.get(table.ordinal());
 	}
 	
-	public void put(TABLE table, byte[] key, byte[] value) throws RocksDBException {
+	public  void put(TABLE table, byte[] key, byte[] value) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
 		writeBatch.put(getTableHandle(table), key, value);
-		rocksDB.write(writeOptions, writeBatch);
+		rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 	}
 
-	public byte[] get(TABLE table, byte[] key) throws RocksDBException {
+	public  byte[] get(TABLE table, byte[] key) throws RocksDBException {
 		return rocksDB.get(getTableHandle(table), key);
 	}
 	
-	public void delete(TABLE table, byte[] key) throws RocksDBException {
+	public   void delete(TABLE table, byte[] key) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
 		writeBatch.delete(getTableHandle(table), key);
-		rocksDB.write(writeOptions, writeBatch);
+		rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 	}
 	
-	public ColumnFamilyHandle  createTable(byte[] columnFamilyName) throws RocksDBException {
+	public   ColumnFamilyHandle  createTable(byte[] columnFamilyName) throws RocksDBException {
 		ColumnFamilyHandle columnFamilyHandle = null;
 			columnFamilyHandle = rocksDB.createColumnFamily(new ColumnFamilyDescriptor(columnFamilyName));
 		return columnFamilyHandle;
 	}
 	
-	public void dropTable(ColumnFamilyHandle columnFamilyHandle) throws IllegalArgumentException, RocksDBException {
+	public   void dropTable(ColumnFamilyHandle columnFamilyHandle) throws IllegalArgumentException, RocksDBException {
 			rocksDB.dropColumnFamily(columnFamilyHandle);
 	}
 	
-	public void clearTable(ColumnFamilyHandle columnFamilyHandle) throws RocksDBException {
-		WriteBatch writeBatch = null;
+	public   void clearTable(ColumnFamilyHandle columnFamilyHandle) throws RocksDBException {
+		WriteBatch writeBatch =  new WriteBatch();
+		boolean isExistsObject = false;
 		RocksIterator rocksIterator = rocksDB.newIterator(columnFamilyHandle);
 		rocksIterator.seekToFirst();
+		isExistsObject = rocksIterator.isValid();
 		while(rocksIterator.isValid()) {
-				writeBatch = new WriteBatch();
+				Log.info("Begin delete No. " + rocksIterator.key());
 				writeBatch.delete(columnFamilyHandle, rocksIterator.key());
-				rocksDB.write(writeOptions, writeBatch);
 				rocksIterator.next();
+		}
+		if(isExistsObject) {
+			Log.info("Exists object in table " + columnFamilyHandle.getName() + " begin delete it");
+			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 		}
 	}
 	
-	public ID getTableItemNumbers(ColumnFamilyHandle columnFamilyHandle) {
+	public   ID getTableItemNumbers(ColumnFamilyHandle columnFamilyHandle) {
 		ID id = ID.ZERO;
 		RocksIterator rocksIterator = rocksDB.newIterator(columnFamilyHandle);
 		rocksIterator.seekToFirst();
@@ -243,29 +234,25 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return id;
 	}
 	
-	public ID getAccountNumbers() {
+	public   ID getAccountNumbers() {
 		return getTableItemNumbers(getTableHandle(TABLE.ACCOUNT));
-//		if(numbers.mod(BigInteger.valueOf(3)).compareTo(BigInteger.valueOf(3)) != 0) {
-//			throw new IllegalStateException("Account table is not synchronized.");
-//		}
-//		return new ID(numbers.divide(BigInteger.valueOf(3)));
 	}
 	
-	public ID getEQCBlockNumbers() {
+	public   ID getEQCBlockNumbers() {
 		return getTableItemNumbers(getTableHandle(TABLE.EQCBLOCK));
 	}
 	
 	@Deprecated
-	public void deleteAddress(Passport passport) throws RocksDBException {
+	public   void deleteAddress(Passport passport) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
 			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), passport.getID().getEQCBits());
 			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), passport.getAddressAI());
 			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), addPrefixH(passport.getID().getEQCBits()));
-			rocksDB.write(writeOptions, writeBatch);
+			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 	}
 
 	@Deprecated
-	public boolean deleteAddressFromHeight(ID height) {
+	public   boolean deleteAddressFromHeight(ID height) {
 		boolean isSucc = true;
 		WriteBatch writeBatch = new WriteBatch();
 		try {
@@ -278,7 +265,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 				writeBatch.delete(account.getPassport().getAddressAI());
 				writeBatch.delete(addPrefixH(account.getPassport().getID().getEQCBits()));
 			}
-			rocksDB.write(writeOptions, writeBatch);
+			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
 			isSucc = false;
 			e.printStackTrace();
@@ -287,151 +274,179 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return isSucc;
 	}
 
-	public static byte[] addPrefixH(byte[] bytes) {
+	public   static byte[] addPrefixH(byte[] bytes) {
 		return addPrefix(PREFIX_H, bytes);
 	}
 	
-	public static byte[] addPrefix(byte[] prefix, byte[] bytes) {
+	public   static byte[] addPrefix(byte[] prefix, byte[] bytes) {
 		return ByteBuffer.allocate(prefix.length + bytes.length).put(prefix).put(bytes).array();
 	}
 	
-	public static byte[] addSuffix(byte[] bytes, byte[] suffix) {
+	public   static byte[] addSuffix(byte[] bytes, byte[] suffix) {
 		return ByteBuffer.allocate(bytes.length + suffix.length).put(bytes).put(suffix).array();
 	}
 
-//	@Override
-//	public ID getTotalAccountNumbers(ID height) {
-//		return getEQCBlock(height, true).getRoot().getTotalAccountNumber();
-//	}
-
 	@Override
-	public void saveAccount(Account account) throws RocksDBException {
+	public   boolean saveAccount(Account account) throws RocksDBException {
 		WriteBatch writeBatch = new WriteBatch();
-			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getIDEQCBits(), account.getBytes());
+			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getID().getEQCBits(), account.getBytes());
 //			Log.info(account.toString());
 //			Log.info(Util.dumpBytes(account.getAddress().getAddressAI(), 16));
-			writeBatch.put(getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(), account.getIDEQCBits());
-			writeBatch.put(getTableHandle(TABLE.ACCOUNT_HASH), account.getIDEQCBits(), account.getHash());
-			rocksDB.write(writeOptions, writeBatch);
+			writeBatch.put(getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(), account.getID().getEQCBits());
+			writeBatch.put(getTableHandle(TABLE.ACCOUNT_HASH), account.getID().getEQCBits(), account.getHash());
+			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
+			return false;
 	}
 
 	@Override
-	public Account getAccount(ID id) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
+	public  boolean deleteAccount(ID id)
+			throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
+		WriteBatch writeBatch = new WriteBatch();
+		Account account = Account.parseAccount(Objects.requireNonNull(get(TABLE.ACCOUNT, id.getEQCBits())));
+		writeBatch.delete(getTableHandle(TABLE.ACCOUNT), id.getEQCBits());
+		writeBatch.delete(getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI());
+		writeBatch.delete(getTableHandle(TABLE.ACCOUNT_HASH), id.getEQCBits());
+		rocksDB.write(new WriteOptions().setSync(true), writeBatch);
+		return false;
+	}
+	
+	@Override
+	public  void deleteAccountFromTo(ID fromID, ID toID) throws Exception {
+		WriteBatch writeBatch = new WriteBatch();
+		Account account = null;
+		ID id = null;
+		for(long i=fromID.longValue(); i<=toID.longValue(); ++i) {
+			id = ID.valueOf(i);
+			account = Account.parseAccount(Objects.requireNonNull(get(TABLE.ACCOUNT, id.getEQCBits())));
+			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), id.getEQCBits());
+			writeBatch.delete(getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI());
+			writeBatch.delete(getTableHandle(TABLE.ACCOUNT_HASH), id.getEQCBits());
+		}
+		rocksDB.write(new WriteOptions().setSync(true), writeBatch);
+	}
+	
+	@Override
+	public   Account getAccount(ID id) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
 		Account account = null;
 		byte[] bytes = null;
-			bytes = get(TABLE.ACCOUNT, id.getEQCBits());
-			if(bytes != null) {
-					account = Account.parseAccount(bytes);
-			}
+		bytes = get(TABLE.ACCOUNT, id.getEQCBits());
+		if(bytes == null) {
+			throw new NullPointerException("No. " + id + " is NULL");
+		}
+		account = Account.parseAccount(bytes);
 		return account;
 	}
 	
-	public ID getAccountID(byte[] addressAI) throws RocksDBException {
+	public   ID getAccountID(byte[] addressAI) throws RocksDBException {
 		ID id = null;
 		byte[] bytes = null;
-			bytes = get(TABLE.ACCOUNT_AI, addressAI);
-			if(bytes != null) {
-					id = new ID(bytes);
-			}
+		bytes = get(TABLE.ACCOUNT_AI, addressAI);
+		if (bytes != null) {
+			id = new ID(bytes);
+		}
 		return id;
 	}
 	
-	public byte[] getAccountHash(ID id) throws RocksDBException {
+	public   byte[] getAccountHash(ID id) throws RocksDBException {
 		byte[] bytes = null;
 			bytes = get(TABLE.ACCOUNT_HASH, id.getEQCBits());
 		return bytes;
 	}
 
 	@Override
-	public void deleteAccount(ID serialNumber) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
-		WriteBatch writeBatch = new WriteBatch();
-			byte[] bytes = get(TABLE.ACCOUNT, serialNumber.getEQCBits());
-			if (null != bytes) {
-				Account account = Account.parseAccount(bytes);
-				writeBatch.delete(getTableHandle(TABLE.ACCOUNT), serialNumber.getEQCBits());
-				writeBatch.delete(getTableHandle(TABLE.ACCOUNT), account.getPassport().getAddressAI());
-				writeBatch.delete(getTableHandle(TABLE.ACCOUNT), addPrefixH(serialNumber.getEQCBits()));
-				rocksDB.write(writeOptions, writeBatch);
-			}
-	}
-	
-	@Override
-	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws NoSuchFieldException, RocksDBException, IOException {
-		EQCHive eqcBlock = null;
+	public   EQCHive getEQCHive(ID height, boolean isSegwit) throws Exception {
+		EQCHive eqcHive = null;
 		byte[] bytes = null;
 		if ((bytes = get(TABLE.EQCBLOCK, height.getEQCBits())) != null) {
-			eqcBlock = new EQCHive(bytes, isSegwit);
+			eqcHive = new EQCHive(bytes, isSegwit);
 		}
-		return eqcBlock;
+		return eqcHive;
 	}
 	
 	@Override
-	public void saveEQCBlock(EQCHive eqcBlock) throws RocksDBException {
+	public   boolean saveEQCHive(EQCHive eqcHive) throws RocksDBException {
+			Objects.requireNonNull(eqcHive);
 			WriteBatch writeBatch = new WriteBatch();
-			writeBatch.put(getTableHandle(TABLE.EQCBLOCK), eqcBlock.getHeight().getEQCBits(), eqcBlock.getBytes());
-			writeBatch.put(getTableHandle(TABLE.EQCBLOCK_HASH), eqcBlock.getHeight().getEQCBits(), eqcBlock.getEqcHeader().getHash());
-			rocksDB.write(writeOptions, writeBatch);
+			writeBatch.put(getTableHandle(TABLE.EQCBLOCK), eqcHive.getHeight().getEQCBits(), eqcHive.getBytes());
+			writeBatch.put(getTableHandle(TABLE.EQCBLOCK_HASH), eqcHive.getHeight().getEQCBits(), eqcHive.getEqcHeader().getHash());
+			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
+			return false;
 	}
 
 	@Override
-	public void deleteEQCBlock(ID height) throws RocksDBException {
+	public   boolean deleteEQCHive(ID height) throws RocksDBException {
 			WriteBatch writeBatch = new WriteBatch();
 			writeBatch.delete(getTableHandle(TABLE.EQCBLOCK), height.getEQCBits());
-			writeBatch.delete(getTableHandle(TABLE.EQCBLOCK), addPrefixH(height.getEQCBits()));
-			rocksDB.write(writeOptions, writeBatch);
+			writeBatch.delete(getTableHandle(TABLE.EQCBLOCK_HASH), height.getEQCBits());
+			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
+			return false;
+	}
+	
+	@Override
+	public   void deleteEQCHiveFromTo(ID fromHeight, ID toHeight) throws RocksDBException {
+			WriteBatch writeBatch = new WriteBatch();
+			ID id = null;
+			for(long i=fromHeight.longValue(); i<=toHeight.longValue(); ++i) {
+				id = ID.valueOf(i);
+				writeBatch.delete(getTableHandle(TABLE.EQCBLOCK), id.getEQCBits());
+				writeBatch.delete(getTableHandle(TABLE.EQCBLOCK_HASH), id.getEQCBits());
+			}
+			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 	}
 
 	@Override
-	public Vector<Transaction> getTransactionListInPool() {
+	public   Vector<Transaction> getTransactionListInPool() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean saveTransactionInPool(Transaction transaction) {
+	public   boolean saveTransactionInPool(Transaction transaction) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean deleteTransactionInPool(Transaction transaction) {
+	public   boolean deleteTransactionInPool(Transaction transaction) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean deleteTransactionsInPool(EQCHive eqcBlock) {
+	public   boolean deleteTransactionsInPool(EQCHive eqcBlock) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean isTransactionExistsInPool(Transaction transaction) {
+	public   boolean isTransactionExistsInPool(Transaction transaction) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public byte[] getEQCHeaderHash(ID height) throws RocksDBException {
+	public   byte[] getEQCHeaderHash(ID height) throws RocksDBException {
 		byte[] bytes = null;
 		 bytes = get(TABLE.EQCBLOCK_HASH, height.getEQCBits());
 		return bytes;
 	}
 
 	@Override
-	public ID getEQCBlockTailHeight() throws RocksDBException {
-		ID serialNumber = null;
-		serialNumber = new ID(get(TABLE.MISC, EQCBLOCK_TAIL_HEIGHT));
-		return serialNumber;
+	public   ID getEQCBlockTailHeight() throws RocksDBException {
+		ID id = null;
+		id = new ID(get(TABLE.MISC, EQCBLOCK_TAIL_HEIGHT));
+		return id;
 	}
 
 	@Override
-	public void saveEQCBlockTailHeight(ID height) throws RocksDBException {
+	public   boolean saveEQCBlockTailHeight(ID height) throws RocksDBException {
+			Objects.requireNonNull(height);
 			put(TABLE.MISC, EQCBLOCK_TAIL_HEIGHT, height.getEQCBits());
+			return false;
 	}
 	
 	@Override
-	public synchronized boolean close() {
+	public  boolean close() {
 		if (columnFamilyHandles != null) {
 			for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
 				columnFamilyHandle.close();
@@ -454,22 +469,28 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public Account getAccount(byte[] addressAI) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
+	public   Account getAccount(byte[] addressAI)
+			throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException {
 		Account account = null;
 		byte[] bytes = null;
-			bytes = get(TABLE.ACCOUNT_AI, addressAI);
-			if (bytes != null) {
-				bytes = get(TABLE.ACCOUNT, bytes);
-				if (bytes != null) {
-					account = Account.parseAccount(bytes);
-				}
+		bytes = get(TABLE.ACCOUNT_AI, addressAI);
+//		if (bytes == null) {
+//			throw new NullPointerException(AddressTool.AIToAddress(addressAI) + " relevant Account ID is NULL");
+//		}
+		if (bytes != null) {
+//			Log.info("ID: " + new ID(bytes));
+			bytes = get(TABLE.ACCOUNT, bytes);
+			if (bytes == null) {
+				throw new NullPointerException(AddressTool.AIToAddress(addressAI) + " relevant Account is NULL");
 			}
+			account = Account.parseAccount(bytes);
+		}
 		return account;
 	}
 
 	@Override
-	public ID getTotalAccountNumbers(ID height) throws NoSuchFieldException, IllegalStateException, RocksDBException,
-			IOException, ClassNotFoundException, SQLException {
+	public   ID getTotalAccountNumbers(ID height) throws Exception {
+		EQCType.assertNotBigger(height, getEQCBlockTailHeight());
 		AssetSubchainAccount assetSubchainAccount = null;
 
 		if (height.compareTo(getEQCBlockTailHeight()) < 0) {
@@ -482,42 +503,43 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public Account getAccountSnapshot(ID accountID, ID height) {
+	public   Account getAccountSnapshot(ID accountID, ID height) {
 		return null;
 	}
 
 	@Override
-	public boolean saveAccountSnapshot(Account account, ID height) {
+	public   boolean saveAccountSnapshot(Account account, ID height) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean deleteAccountSnapshotFrom(ID height, boolean isForward) {
+	public   boolean deleteAccountSnapshotFrom(ID height, boolean isForward) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public void dropTable() throws RocksDBException {
+	public   boolean dropTable() throws RocksDBException {
 		for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
 				clearTable(columnFamilyHandle);
 				if(!Arrays.equals(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyHandle.getName())) {
 					dropTable(columnFamilyHandle);
 				}
 		}
+		return false;
 	}
 	
-	public void dumpEQCBlock() throws NoSuchFieldException, RocksDBException, IOException {
+	public   void dumpEQCBlock() throws Exception {
 		ID tail = getEQCBlockNumbers();
 		Log.info("Current have " + tail + " blocks.");
 		for(int i=0; i<tail.longValue(); ++i) {
-			Log.info(getEQCBlock(new ID(i), false).toString());
+			Log.info(getEQCHive(new ID(i), false).toString());
 			Log.info("EQCHeader's Hash: " + Util.dumpBytes(getEQCHeaderHash(new ID(i)), 16));
 		}
 	}
 	
-	public void dumpAccount() throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public   void dumpAccount() throws Exception {
 		ID tail = getTotalAccountNumbers(getEQCBlockTailHeight());
 		Log.info("Current have " + tail + " Accounts.");
 		Account account = null;
@@ -530,16 +552,9 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		}
 	}
 	
-	public void dumpAccountID() {}
+	public   void dumpAccountID() {}
 
-	/**
-	 * @return the writeOptions
-	 */
-	public WriteOptions getWriteOptions() {
-		return writeOptions;
-	}
-	
-	public ID dumpTable(TABLE table) {
+	public   ID dumpTable(TABLE table) {
 		ID tail = getTableItemNumbers(getTableHandle(table));
 		Log.info(table + " have " + tail + " elements.");
 		
@@ -569,121 +584,166 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
+	public   byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
 		byte[] hash = null;
 		ID tail = getEQCBlockTailHeight();
 		// Due to the latest Account is got from current node so it's xxxUpdateHeight doesn't higher than tail
-		EQCType.assertNotHigher(height, tail);
-		if(height.compareTo(tail) < 0) {
+//		EQCType.assertNotBigger(height, tail);
+		if(height.compareTo(tail) <= 0) {
 			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(height);
 		}
-		else {
+		else if(height.equals(tail.getNextID())){
 			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(tail);
+		}
+		else {
+			throw new IllegalArgumentException("Height " + height + " shouldn't bigger than tail " + tail + " more than one");
 		}
 		return hash;
 	}
 
 	@Override
-	public boolean isMinerExists(String ip) throws SQLException, Exception {
+	public   boolean isMinerExists(String ip) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean saveMiner(String ip) throws SQLException, Exception {
+	public   boolean saveMiner(String ip) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean deleteMiner(String ip) throws SQLException, Exception {
+	public   boolean deleteMiner(String ip) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public IPList getMinerList() throws SQLException, Exception {
+	public   IPList getMinerList() throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean isFullNodeExists(String ip) throws SQLException, Exception {
+	public   boolean isFullNodeExists(String ip) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean saveFullNode(String ip) throws SQLException, Exception {
+	public   boolean saveFullNode(String ip) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean deleteFullNode(String ip) throws SQLException, Exception {
+	public   boolean deleteFullNode(String ip) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public IPList getFullNodeList() throws SQLException, Exception {
+	public   IPList getFullNodeList() throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean isIPExists(String ip, NODETYPE nodeType) throws SQLException {
+	public   boolean isIPExists(String ip, NODETYPE nodeType) throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean isTransactionMaxNonceExists(Nest nest) throws SQLException {
+	public   boolean isTransactionMaxNonceExists(Nest nest) throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean saveTransactionMaxNonce(Nest nest, MaxNonce maxNonce) throws SQLException {
+	public   boolean saveTransactionMaxNonce(Nest nest, MaxNonce maxNonce) throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public MaxNonce getTransactionMaxNonce(Nest nest) throws SQLException {
+	public   MaxNonce getTransactionMaxNonce(Nest nest) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean deleteTransactionMaxNonce(Nest nest) throws SQLException {
+	public   boolean deleteTransactionMaxNonce(Nest nest) throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public Balance getBalance(Nest nest) throws SQLException, Exception {
+	public   Balance getBalance(Nest nest) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Vector<byte[]> getPendingTransactionListInPool(ID id) throws SQLException, Exception {
+	public   Vector<Transaction> getPendingTransactionListInPool(Nest nest) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public TransactionIndexList getTransactionIndexListInPool() throws SQLException, Exception {
+	public   TransactionIndexList getTransactionIndexListInPool(long previousSyncTime, long currentSyncTime) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public TransactionList getTransactionListInPool(TransactionIndexList transactionIndexList)
+	public   TransactionList getTransactionListInPool(TransactionIndexList transactionIndexList)
 			throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
+	@Override
+	public   boolean saveMinerSyncTime(String ip, long syncTime) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public   long getMinerSyncTime(String ip) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public   SignHash getSignHash(ID id) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public   Account getAccountSnapshot(byte[] addressAI, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean saveIPCounter(String ip, int counter) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public int getIPCounter(String ip) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public boolean isTransactionExistsInPool(TransactionIndex transactionIndex) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

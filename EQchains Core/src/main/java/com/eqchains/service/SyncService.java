@@ -1,0 +1,126 @@
+/**
+ * EQchains core - EQchains Foundation's EQchains core library
+ * @copyright 2018-present EQchains Foundation All rights reserved...
+ * Copyright of all works released by EQchains Foundation or jointly released by
+ * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * and entitled to protection available from copyright law by country as well as
+ * international conventions.
+ * Attribution — You must give appropriate credit, provide a link to the license.
+ * Non Commercial — You may not use the material for commercial purposes.
+ * No Derivatives — If you remix, transform, or build upon the material, you may
+ * not distribute the modified material.
+ * For any use of above stated content of copyright beyond the scope of fair use
+ * or without prior written permission, EQchains Foundation reserves all rights to
+ * take any legal action and pursue any right or remedy available under applicable
+ * law.
+ * https://www.eqchains.com
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package com.eqchains.service;
+
+import java.util.Vector;
+
+import com.eqchains.blockchain.transaction.Transaction;
+import com.eqchains.keystore.Keystore;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.TransactionIndex;
+import com.eqchains.rpc.TransactionIndexList;
+import com.eqchains.rpc.TransactionList;
+import com.eqchains.rpc.client.MinerNetworkClient;
+import com.eqchains.rpc.client.TransactionNetworkClient;
+import com.eqchains.service.state.SleepState;
+import com.eqchains.util.Log;
+import com.eqchains.util.Util;
+
+/**
+ * @author Xun Wang
+ * @date Aug 6, 2019
+ * @email 10509759@qq.com
+ */
+public class SyncService extends EQCService {
+	private static SyncService instance;
+
+	public static SyncService getInstance() {
+		if (instance == null) {
+			synchronized (Keystore.class) {
+				if (instance == null) {
+					instance = new SyncService();
+				}
+			}
+		}
+		return instance;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.service.EQCService#onSleep(com.eqchains.service.state.SleepState)
+	 */
+	@Override
+	protected void onSleep(SleepState state) {
+		try {
+//			Log.info("Begin onSync");
+			// Check if miner in miner list is online doesn't need check at here move to the ohter's place
+//			IPList ipList = EQCBlockChainH2.getInstance().getMinerList();
+//			for(String ip:ipList.getIpList()) {
+//				if(MinerNetworkClient.ping(ip) == -1) {
+//					Util.updateDisconnectIPStatus(ip);
+//				}
+//			}
+			
+			// Sync Transaction
+			IPList ipList = EQCBlockChainH2.getInstance().getMinerList();
+			ipList.addIP(Util.SINGULARITY_IP);
+			TransactionIndexList transactionIndexList = null;
+			TransactionIndexList needSyncList = null;
+			TransactionList transactionList = null;
+			Transaction transaction = null;
+			for(String ip:ipList.getIpList()) {
+				Log.info("Begin get Transaction list");
+				transactionIndexList = MinerNetworkClient.getTransactionIndexList(ip);
+				needSyncList = new TransactionIndexList();
+				if(transactionIndexList != null) {
+					Log.info("Begin sync Transaction");
+					for(TransactionIndex transactionIndex:transactionIndexList.getTransactionIndexList()) {
+						if(!EQCBlockChainH2.getInstance().isTransactionExistsInPool(transactionIndex)) {
+							needSyncList.addTransactionIndex(transactionIndex);
+						}
+					}
+				}
+				transactionList = MinerNetworkClient.getTransactionList(needSyncList, ip);
+				if(transactionList != null) {
+					for(byte[] bytes:transactionList.getTransactionList()) {
+						transaction = Transaction.parseRPC(bytes);
+						EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
+					}
+				}
+			}
+			sleeping(Util.BLOCK_INTERVAL/10);
+		} catch (Exception e) {
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		
+	}
+	
+	/* (non-Javadoc)
+	 * @see com.eqchains.service.EQCService#start()
+	 */
+	@Override
+	public synchronized void start() {
+		// TODO Auto-generated method stub
+		super.start();
+		sleeping(Util.BLOCK_INTERVAL/10);
+	}
+
+}

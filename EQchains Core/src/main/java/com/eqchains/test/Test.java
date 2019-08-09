@@ -57,7 +57,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.avro.ipc.NettyTransceiver;
+import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -71,9 +71,6 @@ import org.rocksdb.RocksDBException;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.blockchain.EQCBlockChain;
-import com.eqchains.blockchain.EQCHeader;
-import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.EQChains;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
@@ -84,6 +81,8 @@ import com.eqchains.blockchain.account.Publickey;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
+import com.eqchains.blockchain.hive.EQCHeader;
+import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
@@ -97,13 +96,18 @@ import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.keystore.UserAccount;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
+import com.eqchains.persistence.EQCBlockChain;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainRPC;
+import com.eqchains.persistence.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
+import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
 import com.eqchains.rpc.TailInfo;
+import com.eqchains.rpc.client.MinerNetworkClient;
+import com.eqchains.rpc.client.TransactionNetworkClient;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.Base58;
 import com.eqchains.util.ID;
@@ -141,9 +145,9 @@ public class Test {
 		byte[] sign = Util.signTransaction(transaction.getTxIn().getPassport().getAddressType(), privateKey, transaction,
 				new byte[4]);
 		transaction.setSignature(sign);
-		com.eqchains.blockchain.PublicKey publicKey2 = new com.eqchains.blockchain.PublicKey();
-		publicKey2.setPublicKey(publickey);
-		transaction.setPublickey(publicKey2);
+		com.eqchains.blockchain.transaction.CompressedPublickey publicKey2 = new com.eqchains.blockchain.transaction.CompressedPublickey();
+		publicKey2.setCompressedPublickey(publickey);
+		transaction.setCompressedPublickey(publicKey2);
 		boolean result = Util.verifySignature(transaction.getTxIn().getPassport().getAddressType(), transaction, new byte[4]);
 		if (result) {
 			Log.info("verify passed");
@@ -677,8 +681,8 @@ public class Test {
 ////        		}
 //			}
 //		}
-//		Log.info("averge time: " + (vec.get(vec.size() - 1).getEqcHeader().getTimestamp() - vec.get(0).getEqcHeader().getTimestamp()) / lCount
-//				+ " total time: " + (vec.get(vec.size() - 1).getEqcHeader().getTimestamp() - vec.get(0).getEqcHeader().getTimestamp()) + " count:"
+//		Log.info("averge time: " + (vec.get(vec.length() - 1).getEqcHeader().getTimestamp() - vec.get(0).getEqcHeader().getTimestamp()) / lCount
+//				+ " total time: " + (vec.get(vec.length() - 1).getEqcHeader().getTimestamp() - vec.get(0).getEqcHeader().getTimestamp()) + " count:"
 //				+ lCount);
 //	}
 
@@ -797,7 +801,7 @@ public class Test {
 		for (int i = 0; i < 2; ++i) {
 			EQCHive eqcBlock;
 			try {
-				eqcBlock = EQCBlockChainH2.getInstance().getEQCBlock(new ID(BigInteger.valueOf(i)), true);
+				eqcBlock = EQCBlockChainH2.getInstance().getEQCHive(new ID(BigInteger.valueOf(i)), true);
 				Log.info(eqcBlock.toString());
 			} catch (ClassNotFoundException | SQLException e) {
 				// TODO Auto-generated catch block
@@ -832,9 +836,9 @@ public class Test {
 		Log.info(transactions.toString());
 		EQCHive eqcBlock;
 		try {
-			eqcBlock = Util.gestationSingularityBlock();
+			eqcBlock = Util.recoverySingularityStatus();
 			Log.info(eqcBlock.toString());
-			eqcBlock.setTransactions(transactions);
+//			eqcBlock.setTransactions(transactions);
 			Log.info(eqcBlock.toString());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -867,9 +871,9 @@ public class Test {
 			byte[] privateKey = Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(0).getPrivateKey(), "abc");
 			byte[] publickey = Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(0).getPublicKey(), "abc");
 
-			com.eqchains.blockchain.PublicKey publicKey1 = new com.eqchains.blockchain.PublicKey();
-			publicKey1.setPublicKey(publickey);
-			transaction.setPublickey(publicKey1);
+			com.eqchains.blockchain.transaction.CompressedPublickey publicKey1 = new com.eqchains.blockchain.transaction.CompressedPublickey();
+			publicKey1.setCompressedPublickey(publickey);
+			transaction.setCompressedPublickey(publicKey1);
 			publicKey1.setID(ID.ZERO);
 //		EQCBlockChainH2.getInstance().appendPublicKey(publicKey1, SerialNumber.ZERO);
 
@@ -1329,14 +1333,14 @@ public class Test {
 
 	public static void testDisplayEQCBlock(ID height) {
 		try {
-			Log.info(EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlock(height, false).getRoot().toString());
-		} catch (NoSuchFieldException | RocksDBException | IOException e) {
+			Log.info(EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(height, false).getRoot().toString());
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	public static void testDisplayAllAccount() {
+	public static void testDisplayAllAccount() throws Exception {
 		BigInteger serialNumber;
 		try {
 			serialNumber = EQCBlockChainRocksDB.getInstance().getInstance()
@@ -1386,11 +1390,11 @@ public class Test {
 		Configuration.getInstance().updateIsInitSingularityBlock(false);
 		EQCHive eqcBlock;
 		try {
-			eqcBlock = Util.gestationSingularityBlock();
+			eqcBlock = Util.recoverySingularityStatus();
 			Log.info(eqcBlock.toString());
-			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
-			EQCBlockChainRocksDB.getInstance().getInstance().saveEQCBlock(eqcBlock);
-			eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlock(eqcBlock.getHeight(), false);
+			EQCBlockChainH2.getInstance().saveEQCHive(eqcBlock);
+			EQCBlockChainRocksDB.getInstance().getInstance().saveEQCHive(eqcBlock);
+			eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(eqcBlock.getHeight(), false);
 			Log.info(eqcBlock.toString());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -1433,26 +1437,26 @@ public class Test {
 	}
 
 	public static void testCF() {
-		String data;
-		ColumnFamilyDescriptor columnFamilyDescriptor = new ColumnFamilyDescriptor("abc".getBytes());
-		try {
-
-			ColumnFamilyHandle columnFamilyHandle = EQCBlockChainRocksDB.getInstance().getRocksDB()
-					.createColumnFamily(columnFamilyDescriptor);
-//			data = "a";
+//		String data;
+//		ColumnFamilyDescriptor columnFamilyDescriptor = new ColumnFamilyDescriptor("abc".getBytes());
+//		try {
+//
+//			ColumnFamilyHandle columnFamilyHandle = EQCBlockChainRocksDB.getInstance().getRocksDB()
+//					.createColumnFamily(columnFamilyDescriptor);
+////			data = "a";
+////			EQCBlockChainRocksDB.getInstance().getRocksDB().put(columnFamilyHandle, data.getBytes(), data.getBytes());
+//			data = "b";
 //			EQCBlockChainRocksDB.getInstance().getRocksDB().put(columnFamilyHandle, data.getBytes(), data.getBytes());
-			data = "b";
-			EQCBlockChainRocksDB.getInstance().getRocksDB().put(columnFamilyHandle, data.getBytes(), data.getBytes());
-
-//			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandle, data.getBytes())));
-//			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(data.getBytes())));
-			EQCBlockChainRocksDB.getInstance().getRocksDB().dropColumnFamily(columnFamilyHandle);
-			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandle, "b".getBytes())));
-//			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(data.getBytes())));
-		} catch (RocksDBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//
+////			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandle, data.getBytes())));
+////			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(data.getBytes())));
+//			EQCBlockChainRocksDB.getInstance().getRocksDB().dropColumnFamily(columnFamilyHandle);
+//			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(columnFamilyHandle, "b".getBytes())));
+////			Log.info("" + new String(EQCBlockChainRocksDB.getInstance().getRocksDB().get(data.getBytes())));
+//		} catch (RocksDBException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	public static void testCF2() {
@@ -1518,7 +1522,7 @@ public class Test {
 //		}
 	}
 
-	public static void testTakeSnapshot() {
+	public static void testTakeSnapshot() throws RocksDBException, Exception {
 		Account account = new AssetAccount();
 		Passport passport = new Passport();
 		passport.setID(ID.ZERO);
@@ -1565,25 +1569,25 @@ public class Test {
 
 	public static void testTransaction() {
 		UserAccount userAccount = Keystore.getInstance().getUserAccounts().get(1);
-		UserAccount userAccount1 = Keystore.getInstance().getUserAccounts().get(2);
+		UserAccount userAccount1 = Keystore.getInstance().getUserAccounts().get(3);
 		TransferTransaction transaction = new TransferTransaction();
 		TxIn txIn = new TxIn();
 		txIn.setPassport(new Passport(userAccount.getReadableAddress()));
 		transaction.setTxIn(txIn);
 		TxOut txOut = new TxOut();
 		txOut.setPassport(new Passport(userAccount1.getReadableAddress()));
-		txOut.setValue(50 * Util.ABC);
+		txOut.setValue(500 * Util.ABC);
 		transaction.addTxOut(txOut);
 		try {
-			transaction.setNonce(EQCBlockChainRocksDB.getInstance().getInstance().getAccount(txIn.getPassport().getAddressAI())
+			transaction.setNonce(Util.DB().getAccount(txIn.getPassport().getAddressAI())
 					.getAsset(Asset.EQCOIN).getNonce().getNextID());
 			byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
 			byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
-			com.eqchains.blockchain.PublicKey publicKey2 = new com.eqchains.blockchain.PublicKey();
-			publicKey2.setPublicKey(publickey);
-			transaction.setPublickey(publicKey2);
+			com.eqchains.blockchain.transaction.CompressedPublickey publicKey2 = new com.eqchains.blockchain.transaction.CompressedPublickey();
+			publicKey2.setCompressedPublickey(publickey);
+			transaction.setCompressedPublickey(publicKey2);
 			transaction.cypherTxInValue(TXFEE_RATE.POSTPONE0);
-			Log.info("getMaxBillingSize: " + transaction.getMaxBillingSize());
+			Log.info("getMaxBillingSize: " + transaction.getMaxBillingLength());
 			Log.info("getTxFeeLimit: " + transaction.getTxFeeLimit());
 			Log.info("getQosRate: " + transaction.getQosRate());
 			Log.info("getQos: " + transaction.getQos());
@@ -1599,13 +1603,16 @@ public class Test {
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
 					new Filter(Mode.MINERING));
-			transaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
-			EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
 			publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
 			transaction.getTxIn().getPassport()
 					.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
+			transaction.sign(ecdsa);
+		
 			if (transaction.verify(accountsMerkleTree)) {
 				Log.info("passed");
+//				Transaction transaction2 = Transaction.parseRPC(transaction.getRPCBytes());
+//				Log.info(Util.dumpBytes(transaction.getSignature(), 16));
+				EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
 			} else {
 				Log.info("failed");
 			}
@@ -1633,9 +1640,9 @@ public class Test {
 		}
 
 		OperationTransaction operationTransaction = new OperationTransaction();
-		com.eqchains.blockchain.PublicKey publicKey2 = new com.eqchains.blockchain.PublicKey();
-		publicKey2.setPublicKey(publickey);
-		operationTransaction.setPublickey(publicKey2);
+		com.eqchains.blockchain.transaction.CompressedPublickey publicKey2 = new com.eqchains.blockchain.transaction.CompressedPublickey();
+		publicKey2.setCompressedPublickey(publickey);
+		operationTransaction.setCompressedPublickey(publicKey2);
 		UpdateAddressOperation updateAddressOperation = new UpdateAddressOperation();
 		UserAccount userAccount2 = Keystore.getInstance().getUserAccounts().get(3);
 		updateAddressOperation.setAddress(new Passport(userAccount2.getReadableAddress()));
@@ -1645,14 +1652,14 @@ public class Test {
 			operationTransaction.setNonce(EQCBlockChainRocksDB.getInstance().getInstance()
 					.getAccount(txIn.getPassport().getAddressAI()).getAsset(Asset.EQCOIN).getNonce().getNextID());
 			operationTransaction.cypherTxInValue(TXFEE_RATE.POSTPONE0);
-			Log.info("getMaxBillingSize: " + operationTransaction.getMaxBillingSize());
+			Log.info("getMaxBillingSize: " + operationTransaction.getMaxBillingLength());
 			Log.info("getTxFeeLimit: " + operationTransaction.getTxFeeLimit());
 			Log.info("getQosRate: " + operationTransaction.getQosRate());
 			Log.info("getQos: " + operationTransaction.getQos());
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
 					new Filter(Mode.MINERING));
-			operationTransaction.sign(ecdsa, Util.DB().getAccount(txIn.getPassport().getID()).getSignatureHash());
+			operationTransaction.sign(ecdsa);
 			EQCBlockChainH2.getInstance().saveTransactionInPool(operationTransaction);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -1672,7 +1679,7 @@ public class Test {
 		account.setAsset(asset);
 		byte[] publickey = Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
 		Publickey publicKey2 = new Publickey();
-		publicKey2.setPublickey(publickey);
+		publicKey2.setCompressedPublickey(publickey);
 		publicKey2.setPublickeyCreateHeight(ID.ONE);
 		account.setPublickey(publicKey2);
 
@@ -1800,11 +1807,11 @@ public class Test {
 		try {
 			id = EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight();
 			for (int i = 1; i < id.intValue(); ++i) {
-				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i - 1),
+				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i),
 						new Filter(Mode.MINERING));
-				EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlock(new ID(i), true);
+				EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(new ID(i), true);
 				try {
-					eqcBlock.verify(accountsMerkleTree);
+					eqcBlock.isValid(accountsMerkleTree);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -1987,6 +1994,90 @@ public class Test {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+		}
+	}
+	
+	public static void sendTransaction() {
+		UserAccount userAccount = Keystore.getInstance().getUserAccounts().get(0);
+		UserAccount userAccount1 = Keystore.getInstance().getUserAccounts().get(3);
+		TransferTransaction transaction = new TransferTransaction();
+		TxIn txIn = new TxIn();
+		txIn.setPassport(new Passport(userAccount.getReadableAddress()));
+		try {
+			txIn.getPassport().setID(EQCBlockChainRPC.getInstance().getAccount(txIn.getPassport().getAddressAI()).getID());
+		} catch (Exception e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
+		transaction.setTxIn(txIn);
+		TxOut txOut = new TxOut();
+		txOut.setPassport(new Passport(userAccount1.getReadableAddress()));
+		txOut.setValue(50 * Util.ABC);
+		transaction.addTxOut(txOut);
+		try {
+			transaction.setNonce(EQCBlockChainRPC.getInstance().getTransactionMaxNonce(transaction.getNest()).getNonce().getNextID());
+//			Log.info("Nonce: " + transaction.getNonce());
+			byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
+			byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
+			com.eqchains.blockchain.transaction.CompressedPublickey publicKey2 = new com.eqchains.blockchain.transaction.CompressedPublickey();
+			publicKey2.setCompressedPublickey(publickey);
+			transaction.setCompressedPublickey(publicKey2);
+			transaction.cypherTxInValue(TXFEE_RATE.POSTPONE0);
+//			Log.info("getMaxBillingSize: " + transaction.getMaxBillingLength());
+//			Log.info("getTxFeeLimit: " + transaction.getTxFeeLimit());
+//			Log.info("getQosRate: " + transaction.getQosRate());
+//			Log.info("getQos: " + transaction.getQos());
+
+			Signature ecdsa = null;
+			try {
+				ecdsa = Signature.getInstance("NONEwithECDSA", "SunEC");
+				ecdsa.initSign(Util.getPrivateKey(privateKey, transaction.getTxIn().getPassport().getAddressType()));
+			} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+//			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
+//					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
+//					new Filter(Mode.MINERING));
+//			publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
+//			transaction.getTxIn().getPassport()
+//					.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
+			transaction.sign(ecdsa);
+		
+//			if (transaction.verify(accountsMerkleTree)) {
+//				Log.info("passed");
+//				Transaction transaction2 = Transaction.parseRPC(transaction.getRPCBytes());
+//				if(transaction2.verifySignature()) {
+////					Log.info("Passed");
+//				}
+//				Log.info(Util.dumpBytes(transaction.getSignature(), 16));
+//				EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
+				IPList ipList = MinerNetworkClient.getMinerList(Util.SINGULARITY_IP);//EQCBlockChainH2.getInstance().getMinerList();
+				ipList.addIP(Util.SINGULARITY_IP);
+//				IPList ipList = new IPList();
+//				ipList.addIP(Util.IP);
+				Info info = null;
+				for(String ip:ipList.getIpList()) {
+					try {
+						Log.info("Send transaction with nonce " + transaction.getNonce() + " to " + ip);
+						info = TransactionNetworkClient.sendTransaction(transaction, ip);
+					}
+					catch(Exception e){
+						Log.info(e.getMessage());
+					}
+					if(info == null) {
+						Log.info("Send Failed");
+					}
+					else {
+						Log.info("Send succ");
+					}
+				}
+//			} else {
+//				Log.info("Transaction verify failed");
+//			}
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 	}
 	

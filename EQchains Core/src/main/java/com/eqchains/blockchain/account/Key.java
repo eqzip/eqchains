@@ -77,11 +77,11 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	/**
 	 * @return the Publickey
 	 */
-	public Publickey getPublickey() {
+	public Publickey getCompressedPublickey() {
 		return publickey;
 	}
 	/**
-	 * @param Publickey the Publickey to set
+	 * @param CompressedPublickey the Publickey to set
 	 */
 	public void setPublickey(Publickey publickey) {
 		this.publickey = publickey;

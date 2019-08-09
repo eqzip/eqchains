@@ -94,10 +94,12 @@ public class IPList extends AvroO {
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		ARRAY array = EQCType.parseARRAY(is);
-		ipListSize = array.length;
-		ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(array.elements);
-		for(int i=0; i<ipListSize; ++i) {
-			ipList.add(EQCType.bytesToASCIISting(EQCType.parseBIN(byteArrayInputStream)));
+		if (!array.isNULL()) {
+			ipListSize = array.size;
+			ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(array.elements);
+			for (int i = 0; i < ipListSize; ++i) {
+				ipList.add(EQCType.bytesToASCIISting(EQCType.parseBIN(byteArrayInputStream)));
+			}
 		}
 	}
 

@@ -27,85 +27,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain;
+package com.eqchains.rpc.service;
 
-import java.io.ByteArrayInputStream;
-import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.serialization.EQCInheritable;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.util.ID;
+import org.apache.avro.ipc.Server;
+import com.eqchains.util.Log;
 
 /**
  * @author Xun Wang
- * @date Jun 25, 2019
+ * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class EQCSubchain implements EQCTypable, EQCInheritable {
-	private ID id;
-	private Vector<Transaction> newTransactionList;
-	private long newTransactionListSize;
+public abstract class EQCRPCService {
+	protected Server server;
+	protected final AtomicBoolean isRunning = new AtomicBoolean(false);
+
+	public synchronized void start() {
+		Log.info("Starting " + this.getClass().getSimpleName());
+		if (server != null) {
+			server.close();
+		}
+	}
 	
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#getBytes()
-	 */
-	@Override
-	public byte[] getBytes() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+	public synchronized void stop() {
+		Log.info("Begin stop " + this.getClass().getSimpleName() + "'s NettyServer");
+		close();
+		Log.info(this.getClass().getSimpleName() + "'s NettyServer stopped...");
+	}
+	
+	private void close() {
+		if(server != null) {
+			server.close();
+			server = null;
+			isRunning.set(false);
+		}
+	}
+	
+	public boolean isRunning() {
+		return isRunning.get();
 	}
 
 	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#getBin()
+	 * @see java.lang.Object#finalize()
 	 */
 	@Override
-	public byte[] getBin() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+	protected void finalize() throws Throwable {
+		close();
 	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isSanity()
-	 */
-	@Override
-	public boolean isSanity() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
-	 */
-	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void parseHeader(ByteArrayInputStream is) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void parseBody(ByteArrayInputStream is) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public byte[] getHeaderBytes() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public byte[] getBodyBytes() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
+	
 }

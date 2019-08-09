@@ -45,6 +45,9 @@ import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -58,15 +61,11 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @email 10509759@qq.com
  */
 public class CoinbaseTransaction extends TransferTransaction {
-	private long txFee;
 	public final static int MIN_TXOUT = 1;
 	public final static int MAX_TXOUT = 3;
-//	protected final static byte BODY_VERIFICATION_MIN_COUNT = MIN_TXOUT + 1;
-//	protected final static byte BODY_VERIFICATION_MAX_COUNT = MAX_TXOUT + 1;
 	
 	private void init() {
 		txIn = null;
-		txFee = 0;
 		solo = SOLO;
 	}
 	
@@ -130,58 +129,27 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 */
 	@Override
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
-		long eqcFoundationCoinBaseValue = 0;
-		long eqzipCoinBaseValue = 0;
-		long minerCoinBaseValue = 0;
 		if(!isSanity(addressShape)) {
 			return false;
 		}
-		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
-			if(txOutList.size() != MAX_TXOUT) {
-				return false;
-			}
+		if (accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight())) < 0) {
 			if(!txOutList.get(0).getPassport().getID().equals(ID.ONE)) {
 				return false;
 			}
 			if(!txOutList.get(1).getPassport().getID().equals(ID.TWO)) {
 				return false;
 			}
-			if (accountsMerkleTree.isAccountExists(txOutList.get(2).getPassport(), false)) {
-				if (nonce.getPreviousID().compareTo(
-						accountsMerkleTree.getAccount(txOutList.get(2).getPassport().getID()).getAsset(getAssetID()).getNonce()) != 0) {
-					return false;
-				}
-			} else {
-				if(nonce.compareTo(ID.ONE) != 0) {
-					return false;
-				}
-			}
-			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
-			eqzipCoinBaseValue = txOutList.get(1).getValue();
-			minerCoinBaseValue =  txOutList.get(2).getValue();
-			if(eqcFoundationCoinBaseValue != Util.EQC_FOUNDATION_COINBASE_REWARD + txFee) {
+			if(txOutList.get(0).getValue() != Util.EQC_FOUNDATION_COINBASE_REWARD) {
 				return false;
 			}
-			if(eqzipCoinBaseValue != Util.EQZIP_COINBASE_REWARD) {
+			if(txOutList.get(1).getValue() != Util.EQZIP_COINBASE_REWARD) {
 				return false;
 			}
-			if(minerCoinBaseValue != Util.MINER_COINBASE_REWARD) {
+			if(txOutList.get(2).getValue() != Util.MINER_COINBASE_REWARD) {
 				return false;
 			}
 		} else {
-			if(txOutList.size() != MIN_TXOUT) {
-				return false;
-			}
-			if(!txOutList.get(0).getPassport().getID().equals(ID.ONE)) {
-				return false;
-			}
-			if(nonce.getPreviousID().compareTo(accountsMerkleTree.getAccount(txOutList.get(0).getPassport().getID()).getAsset(getAssetID()).getNonce()) != 0) {
-				return false;
-			}
-			eqcFoundationCoinBaseValue = txOutList.get(0).getValue();
-			if (eqcFoundationCoinBaseValue != txFee) {
-				return false;
-			}
+			throw new IllegalStateException("After MaxCoinbaseHeight haven't any CoinBase reward");
 		}
 		return true;
 	}
@@ -191,29 +159,34 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 */
 	@Override
 	public boolean isTxOutNumberValid() {
-		// TODO Auto-generated method stub
-		return txOutList.size() >= MIN_TXOUT && txOutList.size() <= MAX_TXOUT;
+		return txOutList.size() == MAX_TXOUT;
 	}
 
 	@Override
 	public boolean isSanity(AddressShape addressShape) {
-		if(transactionType == null || txIn != null || nonce == null || txOutList == null) {
+		if(transactionType == null || txIn != null || nonce != null || txOutList == null) {
+			Log.Error("Some member variables is null");
 			return false;
 		}
 		if (transactionType != TransactionType.COINBASE) {
+			Log.Error("Transaction type:" +  transactionType + " isn't COINBASE");
 			return false;
 		}
 		if(!getAssetID().equals(Asset.EQCOIN)) {
+			Log.Error("AssetID:" + getAssetID() + " isn't EQCOIN");
 			return false;
 		}
 		if (!isTxOutNumberValid()) {
+			Log.Error("Total TxOut numbers is invalid");
 			return false;
 		}
 		for(TxOut txOut : txOutList) {
 			if(!txOut.isSanity(addressShape)) {
+				Log.Error("TxOut's sanity test failed");
 				return false;
 			}
 			if(txOut.getPassport().getAddressType() != AddressType.T1 && txOut.getPassport().getAddressType() != AddressType.T2) {
+				Log.Error("TxOut's AddressType is invalid");
 				return false;
 			}
 		}
@@ -237,79 +210,53 @@ public class CoinbaseTransaction extends TransferTransaction {
 				txOut.getPassport().setID(accountsMerkleTree.getAddressID(txOut.getPassport()));
 			}
 		}
-		// Set Nonce
-		if (accountsMerkleTree.getHeight().getNextID().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
-			if (accountsMerkleTree.isAccountExists(txOutList.get(2).getPassport(), true)) {
-				nonce = accountsMerkleTree.getAccount(txOutList.get(2).getPassport()).getAsset(Asset.EQCOIN).getNonce().getNextID();
-			} else {
-				nonce = ID.ONE;
-			}
-		} else {
-			nonce = accountsMerkleTree.getAccount(txOutList.get(0).getPassport().getID()).getAsset(Asset.EQCOIN).getNonce().getNextID();
-		}
 	}
 	
-	public void updateTxFee(long txFee) {
-		txOutList.get(0).addValue(txFee);
-	}
-	
-	public void update(AccountsMerkleTree accountsMerkleTree) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
+	public void update(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		Account account = null;
 		WriteBatch writeBatch = new WriteBatch();
 		// Update current Transaction's TxOut Account
 		for (TxOut txOut : txOutList) {
 			if (txOut.isNew()) {
 				account = new AssetAccount();
+				account.setCreateHeight(accountsMerkleTree.getHeight());
+				account.setVersion(ID.ZERO);
+				account.setVersionUpdateHeight(accountsMerkleTree.getHeight());
 				account.setPassport(txOut.getPassport());
-				account.setLockCreateHeight(accountsMerkleTree.getHeight().getNextID());
+				account.setLockCreateHeight(accountsMerkleTree.getHeight());
 				Asset asset = new CoinAsset();
-				asset.setAssetID(getAssetID());
+				asset.setVersion(ID.ZERO);
+				asset.setVersionUpdateHeight(accountsMerkleTree.getHeight());
+				asset.setAssetID(Asset.EQCOIN);
+				asset.setCreateHeight(accountsMerkleTree.getHeight());
+				asset.deposit(ID.ZERO);
+				asset.setBalanceUpdateHeight(accountsMerkleTree.getHeight());
 				asset.setNonce(ID.ZERO);
+				asset.setNonceUpdateHeight(accountsMerkleTree.getHeight());
 				account.setAsset(asset);
+				Log.info("increaseTotalAccountNumbers");
 				accountsMerkleTree.increaseTotalAccountNumbers();
 			} else {
 				account = accountsMerkleTree.getAccount(txOut.getPassport().getID());
 			}
 			account.getAsset(getAssetID()).deposit(new ID(txOut.getValue()));
-			// Update Nonce
-			if(accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight().getNextID())) < 0) {
-				if(account.getPassport().getID().compareTo(ID.TWO) > 0) {
-					account.getAsset(getAssetID()).increaseNonce();
-				}
-			}
-			else {
-				if(account.getPassport().getID().compareTo(ID.ONE) == 0) {
-					account.getAsset(getAssetID()).increaseNonce();
-				}
-			}
-			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(0), account.getIDEQCBits(), account.getBytes());
-			writeBatch.put(accountsMerkleTree.getFilter().getColumnFamilyHandles().get(1), account.getPassport().getAddressAI(),
-					account.getIDEQCBits());
+			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight());
+			account.setUpdateHeight(accountsMerkleTree.getHeight());
+			writeBatch.put(accountsMerkleTree.getFilter().getTableHandle(TABLE.ACCOUNT), account.getID().getEQCBits(), account.getBytes());
+			writeBatch.put(accountsMerkleTree.getFilter().getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(),
+					account.getID().getEQCBits());
 		}
 		
 		accountsMerkleTree.getFilter().batchUpdate(writeBatch);
 		
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		return
-
-		"{\n" + toInnerJson() + "\n}";
-
-	}
-
-	public String toInnerJson() {
+	protected String toInnerJson() {
 		return
 
 		"\"CoinbaseTransaction\":" + "\n{\n" + TxIn.coinBase() + ",\n"
 		+ "\"TxOutList\":" + "\n{\n" + "\"Size\":" + "\"" + txOutList.size() + "\"" + ",\n"
-		+ "\"List\":" + "\n" + getTxOutString() + "\n},\n" + "\"Nonce\":" + "\"" + nonce + "\"" + "\n}";
+		+ "\"List\":" + "\n" + getTxOutString() + "\n}";
 	}
 
 	/* (non-Javadoc)
@@ -335,57 +282,19 @@ public class CoinbaseTransaction extends TransferTransaction {
 		return size;
 	}
 
-	/**
-	 * @return the txFee
-	 */
-	public long getTxFee() {
-		return txFee;
-	}
-
-	/**
-	 * @param txFee the txFee to set
-	 */
-	public void setTxFee(long txFee) {
-		this.txFee = txFee;
-	}
-
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 	}
 
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
 		byte txOutValidCount = 0;
-		if (addressShape == Passport.AddressShape.ID) {
-			// Parse nonce
-			nonce = new ID(EQCType.parseEQCBits(is));
-			// Parse TxOut
-			while (txOutValidCount < MAX_TXOUT) {
-				TxOut txOut = new TxOut();
-				// Parse TxOut address
-				txOut.getPassport().setID(new ID(EQCType.parseEQCBits(is)));
-				// Parse TxOut value
-				txOut.setValue(EQCType.eqcBitsToLong(EQCType.parseEQCBits(is)));
-				// Add TxOut
-				txOutList.add(txOut);
-				++txOutValidCount;
-			}
-		} else if (addressShape == Passport.AddressShape.READABLE || addressShape == Passport.AddressShape.AI) {
-			// Parse nonce
-			nonce = new ID(EQCType.parseEQCBits(is));
-			// Parse TxOut
-			while (txOutValidCount < MAX_TXOUT) {
-				TxOut txOut = new TxOut(EQCType.parseBIN(is), addressShape);
-				// Add TxOut
-				txOutList.add(txOut);
-				++txOutValidCount;
-			}
+		while (txOutValidCount < MAX_TXOUT && !EQCType.isInputStreamEnd(is)) {
+			txOutList.add(new TxOut(is, addressShape));
 		}
 	}
 	
 	public byte[] getBodyBytes(AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			// Serialization nonce
-			os.write(nonce.getEQCBits());
 			// Serialization TxOut
 			for (TxOut txOut : txOutList) {
 				os.write(txOut.getBytes(addressShape));

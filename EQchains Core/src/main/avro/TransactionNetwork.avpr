@@ -30,8 +30,8 @@
          "response": "O"
    	  },
    	  "getAccount": {
-   	  	 // i means id
-         "request": [{"name": "i", "type": "O"}],
+   	  	 // a means readableAddress
+         "request": [{"name": "a", "type": "O"}],
          "response": "O"
    	  },
    	  "getMaxNonce": {
@@ -40,15 +40,18 @@
          "response": "O"
    	  },
    	  "getBalance": {
+   	  	 // n means nest
          "request": [{"name": "n", "type": "O"}],
          "response": "O"
    	  },
    	  "getSignHash": {
+   	  	 // i means ID
          "request": [{"name": "i", "type": "O"}],
          "response": "O"
    	  },
    	  "getPendingTransactionList": {
-         "request": [{"name": "i", "type": "O"}],
+   	  	 // n means nest
+         "request": [{"name": "n", "type": "O"}],
          "response": "O"
    	  }
  }

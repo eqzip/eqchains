@@ -32,7 +32,7 @@ package com.eqchains.services;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import org.apache.avro.ipc.NettyTransceiver;
+import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.junit.jupiter.api.Test;
 

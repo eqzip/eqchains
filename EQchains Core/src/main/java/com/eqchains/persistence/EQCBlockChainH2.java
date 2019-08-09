@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.persistence.h2;
+package com.eqchains.persistence;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -44,24 +44,31 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Objects;
 import java.util.Vector;
 
-import com.eqchains.blockchain.EQCHive;
-import com.eqchains.blockchain.EQCRoot;
-import com.eqchains.blockchain.EQCSignatures;
+import org.rocksdb.RocksDBException;
+
 import com.eqchains.blockchain.EQChains;
-import com.eqchains.blockchain.EQCBlockChain;
-import com.eqchains.blockchain.EQCHeader;
-import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.hive.EQCHeader;
+import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.hive.EQCRoot;
+import com.eqchains.blockchain.subchain.EQCSignatures;
+import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.rpc.Balance;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.MaxNonce;
 import com.eqchains.rpc.Nest;
+import com.eqchains.rpc.SignHash;
+import com.eqchains.rpc.TailInfo;
 import com.eqchains.rpc.TransactionIndex;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
@@ -69,6 +76,7 @@ import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
+import com.eqchains.util.Util.AddressTool;
 
 /**
  * @author Xun Wang
@@ -100,7 +108,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 	
 	@Override
-	public synchronized void dropTable() throws SQLException {
+	public synchronized boolean dropTable() throws SQLException {
 			statement.execute("DROP TABLE ACCOUNT");
 			statement.execute("DROP TABLE PUBLICKEY");
 			statement.execute("DROP TABLE TRANSACTION");
@@ -111,23 +119,37 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			statement.execute("DROP TABLE TXIN_HEADER_HASH");
 			statement.execute("DROP TABLE ACCOUNT_SNAPSHOT");
 //			statement.execute("DROP TABLE ");
+			return true; // Here need do more job
 	}
 	
 	private synchronized void createTable() throws SQLException {
-			// Create Account table. Each address should be unique and it's serial number should be one by one
+			// Create Account table. Each Account should be unique and it's Passport's ID should be one by one
 			boolean result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT("
-					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
-					+ "id BIGINT,"
-					+ "address BINARY(33),"
-					+ "email VARCHAR(20),"
-					+ "code BINARY,"
-					+ "address_update_height BIGINT,"
-					+ "publickey BINARY,"
-					+ "publickey_update_height BIGINT,"
-					+ "balance BIGINT,"
-					+ "balance_update_height BIGINT,"
-					+ "nonce BIGINT"
+					+ "id BIGINT  PRIMARY KEY," // need add CHECK(id>0)
+					+ "address_ai BINARY(33) NOT NULL UNIQUE,"
+					+ "create_height BIGINT NOT NULL,"
+					+ "hash BINARY(64) NOT NULL,"
+					+ "update_height BIGINT NOT NULL,"
+					+ "bytes BINARY NOT NULL"
 					+ ")");
+			
+			 result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT_MINING("
+					+ "id BIGINT  PRIMARY KEY," // need add CHECK(id>0)
+					+ "address_ai BINARY(33) NOT NULL UNIQUE,"
+					+ "create_height BIGINT NOT NULL,"
+					+ "hash BINARY(64) NOT NULL,"
+					+ "update_height BIGINT NOT NULL,"
+					+ "bytes BINARY NOT NULL"
+					+ ")");
+			 
+			 result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT_VALID("
+						+ "id BIGINT  PRIMARY KEY," // need add CHECK(id>0)
+						+ "address_ai BINARY(33) NOT NULL UNIQUE,"
+						+ "create_height BIGINT NOT NULL,"
+						+ "hash BINARY(64) NOT NULL,"
+						+ "update_height BIGINT NOT NULL,"
+						+ "bytes BINARY NOT NULL"
+						+ ")");
 			
 			// Create Balance table which contain every Account's history balance
 			statement.execute("CREATE TABLE IF NOT EXISTS BALANCE("
@@ -182,6 +204,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			// EQC Transaction Pool table
 			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION_POOL("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
+					+ "asset_id BIGINT,"
 					+ "txin_id BIGINT,"
 					+ "txin_value BIGINT,"
 					+ "nonce BIGINT,"
@@ -206,7 +229,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT_SNAPSHOT("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
 					+ "id BIGINT,"
-					+ "readable_address VARCHAR(51),"
+					+ "address_ai BINARY(33),"
 					+ "account BINARY,"
 				/*	+ "account_hash BIGINT(64),"*/
 					+ "snapshot_height BIGINT"
@@ -215,7 +238,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			// Create Transaction max continues Nonce table
 			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION_MAX_NONCE("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
-					+ "txin_id BIGINT,"
+					+ "id BIGINT,"
 					+ "subchain_id BIGINT,"
 					+ "max_nonce BIGINT"
 					+ ")");
@@ -224,7 +247,9 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			statement.execute("CREATE TABLE IF NOT EXISTS NETWORK ("
 					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
 					+ "ip  VARCHAR,"
-					+ "type INT"
+					+ "type INT,"
+					+ "counter INT,"
+					+ "sync_time BIGINT"
 					+ ")");
 			
 			if(result) {
@@ -568,17 +593,17 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getPublicKey(com.eqzip.eqcoin.util.SerialNumber)
 	 */
 	@Deprecated
-	public synchronized PublicKey getPublicKey(ID serialNumber) {
-		PublicKey publicKey = null;
+	public synchronized CompressedPublickey getPublicKey(ID serialNumber) {
+		CompressedPublickey publicKey = null;
 		try {
 //			 ResultSet resultSet = statement.executeQuery("SELECT * FROM PUBLICKEY WHERE address_sn='" + serialNumber.longValue() + "'");
 			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM PUBLICKEY WHERE address_id=?");
 			preparedStatement.setLong(1, serialNumber.longValue());
 			ResultSet resultSet = preparedStatement.executeQuery();
 			 if(resultSet.next()) {
-				 publicKey = new PublicKey();
-				 publicKey.setPublicKey(resultSet.getBytes("publickey"));
-				 publicKey.setID(new ID(BigInteger.valueOf(resultSet.getLong("id"))));
+				 publicKey = new CompressedPublickey();
+				 publicKey.setCompressedPublickey(resultSet.getBytes("publickey"));
+//				 publicKey.setID(new ID(BigInteger.valueOf(resultSet.getLong("id"))));
 			 }
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -592,12 +617,12 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#isPublicKeyExists(com.eqzip.eqcoin.blockchain.PublicKey)
 	 */
 	@Deprecated
-	public synchronized boolean isPublicKeyExists(PublicKey publicKey) {
+	public synchronized boolean isPublicKeyExists(CompressedPublickey publicKey) {
 		try {
 			ResultSet resultSet;
 			PreparedStatement preparedStatement = connection
 					.prepareStatement("SELECT * FROM ACCOUNT WHERE publickey = ?");
-			preparedStatement.setBytes(1, publicKey.getPublicKey());
+			preparedStatement.setBytes(1, publicKey.getCompressedPublickey());
 			resultSet = preparedStatement.executeQuery();
 			if (resultSet.next()) {
 				return true;
@@ -611,7 +636,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Deprecated
-	public synchronized boolean savePublicKey(PublicKey publicKey, ID height) {
+	public synchronized boolean savePublicKey(CompressedPublickey publicKey, ID height) {
 		int result = 0;
 		try {
 //			result = statement.executeUpdate("INSERT INTO PUBLICKEY (address_sn, publickey, height) VALUES('" 
@@ -619,8 +644,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //					+ ((null == publicKey.getPublicKey())?"":publicKey.getPublicKey()) + "','" // still exists bugs need do more job to find how to insert null but due to network is bad so...
 //					+ height.longValue() + "')");
 			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO PUBLICKEY (address_id, publickey, height) VALUES (?, ?, ?)");
-			preparedStatement.setLong(1, publicKey.getID().longValue());
-			preparedStatement.setBytes(2, publicKey.getPublicKey());
+//			preparedStatement.setLong(1, publicKey.getID().longValue());
+			preparedStatement.setBytes(2, publicKey.getCompressedPublickey());
 			preparedStatement.setLong(3, height.longValue());
 			result = preparedStatement.executeUpdate();
 			Log.info("result: " + result);
@@ -633,10 +658,10 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 	
 	@Deprecated
-	public synchronized boolean deletePublicKey(PublicKey publicKey) {
+	public synchronized boolean deletePublicKey(CompressedPublickey publicKey) {
 		int result = 0;
 		try {
-			result = statement.executeUpdate("DELETE FROM PUBLICKEY WHERE publickey='" + publicKey.getPublicKey() + "'");
+			result = statement.executeUpdate("DELETE FROM PUBLICKEY WHERE publickey='" + publicKey.getCompressedPublickey() + "'");
 			Log.info("result: " + result);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -692,8 +717,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getEQCBlock(com.eqzip.eqcoin.util.SerialNumber, boolean)
 	 */
 	@Override
-	@Deprecated
-	public synchronized EQCHive getEQCBlock(ID height, boolean isSegwit) {
+	public synchronized EQCHive getEQCHive(ID height, boolean isSegwit) {
 		EQCHive eqcBlock = null;
 		File file = new File(Util.BLOCK_PATH + height.longValue() + Util.EQC_SUFFIX);
 		if(file.exists() && file.isFile() && (file.length() > 0)) {
@@ -734,7 +758,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 						Log.info(e.getMessage());
 					}
 					if(eqChains != null) {
-						eqcBlock.setTransactions(eqChains);
+//						eqcBlock.setTransactions(eqChains);
 					}
 					else {
 						throw new ClassCastException("getEQCBlock during parse Transactions error occur wrong format");
@@ -748,7 +772,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 							throw new ClassCastException(
 									"getEQCBlock during parse Signatures error occur wrong format");
 						}
-						eqcBlock.setSignatures(new EQCSignatures(bytes));
+//						eqcBlock.setSignatures(new EQCSignatures(bytes));
 					}
 				}
 			} catch (IOException | NoSuchFieldException e) {
@@ -781,39 +805,31 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * com.eqzip.eqcoin.blockchain.EQCBlockChain#isEQCBlockExists(com.eqzip.eqcoin.
-	 * blockchain.EQCBlock)
-	 */
-	@Deprecated
-	public synchronized boolean isEQCBlockExists(EQCHive eqcBlock) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#saveEQCBlock(com.eqzip.eqcoin.
 	 * blockchain.EQCBlock)
 	 */
 	@Override
-	@Deprecated
-	public synchronized void saveEQCBlock(EQCHive eqcBlock) {
-		File file = new File(Util.BLOCK_PATH + eqcBlock.getHeight().longValue() + Util.EQC_SUFFIX);
+	public synchronized boolean saveEQCHive(EQCHive eqcHive) throws IOException {
+		Objects.requireNonNull(eqcHive);
+		EQCHive eqcHive2 = null;
+		boolean isSucc = false;
+		File file = new File(Util.BLOCK_PATH + eqcHive.getHeight().longValue() + Util.EQC_SUFFIX);
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		try {
-			bos.write(eqcBlock.getBytes());
-			// Save EQCBlock
-			OutputStream os = new FileOutputStream(file);
-			os.write(bos.toByteArray());
-			os.flush();
-			os.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
+		bos.write(eqcHive.getBytes());
+		// Save EQCBlock
+		OutputStream os = new FileOutputStream(file);
+		os.write(bos.toByteArray());
+		os.flush();
+		os.close();
+		eqcHive2 = getEQCHive(eqcHive.getHeight(), false);
+		Objects.requireNonNull(eqcHive2);
+		if(eqcHive.equals(eqcHive2)) {
+			isSucc = true;
 		}
+		else {
+			throw new IllegalStateException("Original data:\n" + Util.dumpBytes(eqcHive.getBytes(), 16) + " doesn't equal to saved data:\n" + Util.dumpBytes(eqcHive2.getBytes(), 16));
+		}
+		return isSucc;
 	}
 
 	/*
@@ -824,9 +840,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * util.SerialNumber)
 	 */
 	@Override
-	@Deprecated
-	public synchronized void deleteEQCBlock(ID height) {
-		// TODO Auto-generated method stub
+	public synchronized boolean deleteEQCHive(ID height) {
+		return false;
 	}
 
 	/*
@@ -1000,8 +1015,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	@Deprecated
-	public synchronized void saveEQCBlockTailHeight(ID height) {
+	public synchronized boolean saveEQCBlockTailHeight(ID height) {
 		int result = 0;
 		try {
 			if (getEQCBlockTailHeight() != null) {
@@ -1019,10 +1033,10 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 		}
+		return false;
 	}
 
 	@Override
-	@Deprecated
 	public synchronized ID getEQCBlockTailHeight() throws SQLException {
 		ID serialNumber = null;
 		ResultSet resultSet = statement.executeQuery("SELECT * FROM SYNCHRONIZATION");
@@ -1033,7 +1047,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	@Deprecated
 	public synchronized ID getTotalAccountNumbers(ID height) {
 		ID serialNumber = null;
 		try {
@@ -1074,7 +1087,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Override
 	@Deprecated
 	public synchronized byte[] getEQCHeaderHash(ID height) {
-		EQCHive eqcBlock = getEQCBlock(height, true);
+		EQCHive eqcBlock = getEQCHive(height, true);
 		return eqcBlock.getEqcHeader().getHash();
 	}
 
@@ -1089,6 +1102,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public synchronized Vector<Transaction> getTransactionListInPool()
 			throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
 		Vector<Transaction> transactions = new Vector<Transaction>();
+		Transaction transaction = null;
 		PreparedStatement preparedStatement = connection
 				.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE qos>='9' OR " + "(qos='8') OR "
 						+ "(qos='4' AND receieved_timestamp<=?) OR " + "(qos='2' AND receieved_timestamp<=?) OR "
@@ -1100,17 +1114,19 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		ResultSet resultSet = preparedStatement.executeQuery();
 		while (resultSet.next()) {
 			byte[] bytes = resultSet.getBytes("rawdata");
-			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-
+//			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+//
+//			// Parse Transaction
+//			Transaction transaction = Transaction.parseTransaction(EQCType.parseBIN(is), Passport.AddressShape.READABLE);
+//			// Parse PublicKey
+//			PublicKey publickey = new PublicKey();
+//			publickey.setPublicKey(EQCType.parseBIN(is));
+//			transaction.setPublickey(publickey);
+//
+//			// Parse Signature
+//			transaction.setSignature(EQCType.parseBIN(is));
 			// Parse Transaction
-			Transaction transaction = Transaction.parseTransaction(EQCType.parseBIN(is), Passport.AddressShape.READABLE);
-			// Parse PublicKey
-			PublicKey publickey = new PublicKey();
-			publickey.setPublicKey(EQCType.parseBIN(is));
-			transaction.setPublickey(publickey);
-
-			// Parse Signature
-			transaction.setSignature(EQCType.parseBIN(is));
+			transaction = Transaction.parseRPC(bytes);
 			transactions.add(transaction);
 		}
 //		Collections.sort(transactions);
@@ -1123,10 +1139,27 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
 		preparedStatement = connection.prepareStatement(
-						"SELECT * FROM TRANSACTION_POOL WHERE txin_id=? AND nonce=? AND qos<?");
+						"SELECT * FROM TRANSACTION_POOL WHERE txin_id=? AND nonce=? AND qos<=?");
 		preparedStatement.setLong(1, transaction.getTxIn().getPassport().getID().longValue());
 		preparedStatement.setLong(2, transaction.getNonce().longValue());
 		preparedStatement.setLong(3, transaction.getQosRate().longValue());
+		resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			isExists = true;
+		}
+		return isExists;
+	}
+	
+	@Override
+	public synchronized boolean isTransactionExistsInPool(TransactionIndex transactionIndex) throws SQLException {
+		boolean isExists = false;
+		PreparedStatement preparedStatement = null;
+		ResultSet resultSet = null;
+		preparedStatement = connection.prepareStatement(
+						"SELECT * FROM TRANSACTION_POOL WHERE txin_id=? AND nonce=? AND proof=?");
+		preparedStatement.setLong(1, transactionIndex.getID().longValue());
+		preparedStatement.setLong(2, transactionIndex.getNonce().longValue());
+		preparedStatement.setBytes(3, transactionIndex.getProof());
 		resultSet = preparedStatement.executeQuery();
 		if (resultSet.next()) {
 			isExists = true;
@@ -1144,18 +1177,19 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		int result = 0;
 		int nResult = 0;
 		PreparedStatement preparedStatement = null;
-		if (isTransactionExistsInPool(transaction)) {
+		if (!isTransactionExistsInPool(transaction)) {
 			preparedStatement = connection.prepareStatement(
-					"INSERT INTO TRANSACTION_POOL (txin_id, nonce, rawdata, signature, proof, qos, receieved_timestamp, record_status, record_height) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
-			preparedStatement.setLong(1, transaction.getTxIn().getPassport().getID().longValue());
-			preparedStatement.setLong(2, transaction.getNonce().longValue());
-			preparedStatement.setBytes(3, transaction.getRPCBytes());
-			preparedStatement.setBytes(4, transaction.getSignature());
-			preparedStatement.setBytes(5, transaction.getProof());
-			preparedStatement.setLong(6, transaction.getQosRate().longValue());
-			preparedStatement.setLong(7, System.currentTimeMillis());
-			preparedStatement.setBoolean(8, false);
+					"INSERT INTO TRANSACTION_POOL (asset_id, txin_id, nonce, rawdata, signature, proof, qos, receieved_timestamp, record_status, record_height) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+			preparedStatement.setLong(1, transaction.getAssetID().longValue());
+			preparedStatement.setLong(2, transaction.getTxIn().getPassport().getID().longValue());
+			preparedStatement.setLong(3, transaction.getNonce().longValue());
+			preparedStatement.setBytes(4, transaction.getRPCBytes());
+			preparedStatement.setBytes(5, transaction.getSignature());
+			preparedStatement.setBytes(6, transaction.getProof());
+			preparedStatement.setLong(7, transaction.getQosRate().longValue());
+			preparedStatement.setLong(8, System.currentTimeMillis());
 			preparedStatement.setBoolean(9, false);
+			preparedStatement.setBoolean(10, false);
 			result = preparedStatement.executeUpdate();
 		} else {
 			preparedStatement = connection.prepareStatement(
@@ -1169,6 +1203,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			preparedStatement.setBoolean(7, false);
 			preparedStatement.setLong(8, transaction.getTxIn().getPassport().getID().longValue());
 			preparedStatement.setLong(9, transaction.getNonce().longValue());
+			result = preparedStatement.executeUpdate();
 		}
 		Log.info("result: " + result);
 		return result == ONE_ROW;
@@ -1275,17 +1310,17 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return numbers;
 	}
 
-	@Deprecated
-	public synchronized boolean addAllTransactions(EQCHive eqcBlock) throws SQLException {
-		int isSuccessful = 0;
-		Vector<Transaction> transactions = eqcBlock.getTransactions().getNewTransactionList();
-		for(int i=0; i<transactions.size(); ++i) {
-			if(addTransaction(transactions.get(i), eqcBlock.getHeight(), i)) {
-				++isSuccessful;
-			}
-		}
-		return isSuccessful == transactions.size();
-	}
+//	@Deprecated
+//	public synchronized boolean addAllTransactions(EQCHive eqcBlock) throws SQLException {
+//		int isSuccessful = 0;
+//		Vector<Transaction> transactions = eqcBlock.getTransactions().getNewTransactionList();
+//		for(int i=0; i<transactions.size(); ++i) {
+//			if(addTransaction(transactions.get(i), eqcBlock.getHeight(), i)) {
+//				++isSuccessful;
+//			}
+//		}
+//		return isSuccessful == transactions.size();
+//	}
 
 	@Deprecated
 	public synchronized boolean isSignatureExists(byte[] signature) {
@@ -1308,18 +1343,18 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Deprecated
 	public synchronized boolean addAllAddress(EQCHive eqcBlock) {
 		boolean isSuccess = false;
-		for(Passport passport : eqcBlock.getTransactions().getNewPassportList()) {
-			isSuccess = appendAddress(passport, eqcBlock.getHeight());
-		}
+//		for(Passport passport : eqcBlock.getTransactions().getNewPassportList()) {
+//			isSuccess = appendAddress(passport, eqcBlock.getHeight());
+//		}
 		return isSuccess;
 	}
 
 	@Deprecated
 	public synchronized boolean addAllPublicKeys(EQCHive eqcBlock) {
 		boolean isSuccess = false;
-		for(PublicKey publicKey : eqcBlock.getTransactions().getNewPublicKeyList()) {
-			isSuccess = savePublicKey(publicKey, eqcBlock.getHeight());
-		}
+//		for(CompressedPublickey publicKey : eqcBlock.getTransactions().getNewCompressedPublickeyList()) {
+//			isSuccess = savePublicKey(publicKey, eqcBlock.getHeight());
+//		}
 		return isSuccess;
 	}
 
@@ -1345,9 +1380,9 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Deprecated
 	public synchronized boolean addAllSignatures(EQCHive eqcBlock) {
 		boolean isSuccess = false;
-		for(int i=0; i<eqcBlock.getSignatures().getSignatureList().size(); ++i) {
-			isSuccess = appendSignature(eqcBlock.getHeight(), i, eqcBlock.getTransactions().getNewTransactionList().get(i+1).getTxIn().getPassport().getID(), eqcBlock.getSignatures().getSignatureList().get(i));
-		}
+//		for(int i=0; i<eqcBlock.getSignatures().getSignatureList().size(); ++i) {
+//			isSuccess = appendSignature(eqcBlock.getHeight(), i, eqcBlock.getTransactions().getNewTransactionList().get(i+1).getTxIn().getPassport().getID(), eqcBlock.getSignatures().getSignatureList().get(i));
+//		}
 		return isSuccess;
 	}
 
@@ -1418,15 +1453,14 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public synchronized boolean deleteTransactionsInPool(EQCHive eqcBlock) throws SQLException {
+	public synchronized boolean deleteTransactionsInPool(EQCHive eqcBlock) throws ClassNotFoundException, RocksDBException, Exception {
 		int isSuccessful = 0;
-		Vector<Transaction> transactions = eqcBlock.getTransactions().getNewTransactionList();
-		for(int i=1; i<transactions.size(); ++i) {
-			if(deleteTransactionInPool(transactions.get(i))) {
+		for(Transaction transaction:eqcBlock.getEQcoinSubchain().getNewTransactionList()) {
+			if(deleteTransactionInPool(transaction)) {
 				++isSuccessful;
 			}
 		}
-		return isSuccessful == transactions.size()-1;
+		return isSuccessful == eqcBlock.getEQcoinSubchain().getNewTransactionList().size();
 	}
 
 	@Override
@@ -1443,9 +1477,45 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return boolResult;
 	}
 
+	
+	boolean result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT("
+			+ "id BIGINT  PRIMARY KEY," // need add CHECK(id>0)
+			+ "address_ai BINARY(33) NOT NULL UNIQUE,"
+			+ "create_height BIGINT NOT NULL,"
+			+ "hash BINARY(64) NOT NULL,"
+			+ "update_height BIGINT NOT NULL,"
+			+ "bytes BINARY NOT NULL"
+			+ ")");
+	
 	@Override
-	public void saveAccount(Account account) {
-		// TODO Auto-generated method stub
+	public boolean saveAccount(Account account) throws SQLException {
+		int result = 0;
+		PreparedStatement preparedStatement = null;
+			if (getAccount(account.getID()) != null) {
+					preparedStatement = connection.prepareStatement("UPDATE ACCOUNT SET id = ?, address_ai = ?,  create_height = ?, hash = ?, update_height = ?, bytes = ? WHERE id = ?");
+					preparedStatement.setLong(1, account.getID().longValue());
+					preparedStatement.setBytes(2, account.getPassport().getAddressAI());
+					preparedStatement.setLong(3, account.getCreateHeight().longValue());
+					preparedStatement.setBytes(4, account.isHashing()?account.getHash():Util.NULL_HASH);
+					preparedStatement.setLong(5, account.getUpdateHeight().longValue());
+					preparedStatement.setBytes(6, account.getBytes());
+					preparedStatement.setLong(7, account.getID().longValue());
+					result = preparedStatement.executeUpdate();
+//					Log.info("UPDATE: " + result);
+			}
+			else {
+				preparedStatement = connection.prepareStatement("INSERT INTO ACCOUNT (id, address_ai, create_height, hash, update_height, bytes) VALUES (?, ?, ?, ?, ?, ?)");
+				preparedStatement.setLong(1, account.getID().longValue());
+				preparedStatement.setBytes(2, account.getPassport().getAddressAI());
+				preparedStatement.setLong(3, account.getCreateHeight().longValue());
+				preparedStatement.setBytes(4, account.isHashing()?account.getHash():Util.NULL_HASH);
+				preparedStatement.setLong(5, account.getUpdateHeight().longValue());
+				preparedStatement.setBytes(6, account.getBytes());
+				preparedStatement.setLong(7, account.getID().longValue());
+				result = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + result);
+			}
+		return result == ONE_ROW;
 	}
 
 	@Override
@@ -1455,8 +1525,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public void deleteAccount(ID serialNumber) {
-		// TODO Auto-generated method stub
+	public boolean deleteAccount(ID serialNumber) {
+		return false;
 	}
 
 	@Override
@@ -1471,8 +1541,15 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public synchronized Account getAccountSnapshot(ID accountID, ID height) throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
+	public synchronized Account getAccountSnapshot(ID accountID, ID height)
+			throws ClassNotFoundException, RocksDBException, Exception {
+		EQCType.assertNotBigger(height, Util.DB().getEQCBlockTailHeight());
 		Account account = null;
+//		Account tailAccount = Util.DB().getAccount(accountID);
+//		if(tailAccount.getUpdateHeight().compareTo(height) <= 0) {
+//			account = tailAccount;
+//		}
+//		else {
 			PreparedStatement preparedStatement = connection.prepareStatement(
 					"SELECT * FROM ACCOUNT_SNAPSHOT WHERE id=? AND snapshot_height <=? ORDER BY snapshot_height DESC LIMIT 1");
 			preparedStatement.setLong(1, accountID.longValue());
@@ -1480,16 +1557,40 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			ResultSet resultSet = preparedStatement.executeQuery();
 			if (resultSet.next()) {
 				account = Account.parseAccount(resultSet.getBytes("account"));
-			} else {
-				preparedStatement = connection.prepareStatement(
-						"SELECT * FROM ACCOUNT_SNAPSHOT WHERE id=? AND snapshot_height>? ORDER BY snapshot_height ASC LIMIT 1");
-				preparedStatement.setLong(1, accountID.longValue());
-				preparedStatement.setLong(2, height.longValue());
-				resultSet = preparedStatement.executeQuery();
-				if(resultSet.next()) {
-					account = Account.parseAccount(resultSet.getBytes("account"));
-				}
-			}
+			} 
+//		}
+		
+		if(account == null) {
+			throw new NullPointerException("No. " + accountID + " relevant Account is NULL");
+		}
+		
+		return account;
+	}
+	
+	@Override
+	public synchronized Account getAccountSnapshot(byte[] addressAI, ID height)
+			throws ClassNotFoundException, RocksDBException, Exception {
+		EQCType.assertNotBigger(height, Util.DB().getEQCBlockTailHeight());
+		Account account = null;
+		Account tailAccount = Util.DB().getAccount(addressAI);
+		if(tailAccount.getUpdateHeight().compareTo(height) <= 0) {
+			account = tailAccount;
+		}
+		else {
+			PreparedStatement preparedStatement = connection.prepareStatement(
+					"SELECT * FROM ACCOUNT_SNAPSHOT WHERE address_ai=? AND snapshot_height <=? ORDER BY snapshot_height DESC LIMIT 1");
+			preparedStatement.setBytes(1, addressAI);
+			preparedStatement.setLong(2, height.longValue());
+			ResultSet resultSet = preparedStatement.executeQuery();
+			if (resultSet.next()) {
+				account = Account.parseAccount(resultSet.getBytes("account"));
+			} 
+		}
+		
+//		if(account == null) {
+//			throw new NullPointerException(AddressTool.AIToAddress(addressAI) + " relevant Account is NULL");
+//		}
+		
 		return account;
 	}
 	
@@ -1511,21 +1612,22 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		int result = 0;
 		PreparedStatement preparedStatement = null;
 			if (isAccountSnapshotExists(account.getID(), height)) {
-					preparedStatement = connection.prepareStatement("UPDATE ACCOUNT_SNAPSHOT SET account = ?, snapshot_height = ? where id = ?");
-					preparedStatement.setBytes(1, account.getBytes());
-					preparedStatement.setLong(2, height.longValue());
-					preparedStatement.setLong(3, account.getID().longValue());
+					preparedStatement = connection.prepareStatement("UPDATE ACCOUNT_SNAPSHOT SET address_ai = ?, account = ?, snapshot_height = ? where id = ?");
+					preparedStatement.setBytes(1, account.getPassport().getAddressAI());
+					preparedStatement.setBytes(2, account.getBytes());
+					preparedStatement.setLong(3, height.longValue());
+					preparedStatement.setLong(4, account.getID().longValue());
 					result = preparedStatement.executeUpdate();
-//					Log.info("UPDATE: " + result);
+//					Log.info("UPDATE Account: " + account.getID() +  "'s Snapshot at height: " + account.getUpdateHeight() + " Result：" + result);
 			}
 			else {
-				preparedStatement = connection.prepareStatement("INSERT INTO ACCOUNT_SNAPSHOT (id, readable_address, account, snapshot_height) VALUES (?, ?, ?, ?)");
+				preparedStatement = connection.prepareStatement("INSERT INTO ACCOUNT_SNAPSHOT (id, address_ai, account, snapshot_height) VALUES (?, ?, ?, ?)");
 				preparedStatement.setLong(1, account.getID().longValue());
-				preparedStatement.setString(2, account.getPassport().getReadableAddress());
+				preparedStatement.setBytes(2, account.getPassport().getAddressAI());
 				preparedStatement.setBytes(3, account.getBytes());
 				preparedStatement.setLong(4, height.longValue());
 				result = preparedStatement.executeUpdate();
-//				Log.info("INSERT: " + result);
+//				Log.info("INSERT Account ID: " + account.getID() +  "'s Snapshot at height: " + account.getUpdateHeight() + " Result：" + result);
 			}
 		return result == ONE_ROW;
 	}
@@ -1549,6 +1651,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		close();
 	}
 
+	@Deprecated
 	public ID getTransactionMaxNonce(Transaction transaction) throws SQLException {
 		ID nonce = null;
 			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_MAX_NONCE WHERE id=?");
@@ -1560,6 +1663,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return nonce;
 	}
 
+	@Deprecated
 	public boolean saveTransactionMaxNonce(Transaction transaction) throws SQLException {
 		int result = 0;
 			PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_MAX_NONCE (id, max_nonce) VALUES (?, ?)");
@@ -1576,14 +1680,56 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public MaxNonce getTransactionMaxNonce(Nest nest) throws SQLException {
-		MaxNonce maxNonce = new MaxNonce();
-		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_MAX_NONCE WHERE txin_id=? AND subchain_id=?");
-		preparedStatement.setLong(1, nest.getID().longValue());
-		preparedStatement.setLong(2, nest.getAssetID().longValue());
-		ResultSet resultSet = preparedStatement.executeQuery();
-		if(resultSet.next()) {
-			maxNonce.setNonce(ID.valueOf(resultSet.getLong("max_nonce")));
+	public synchronized MaxNonce getTransactionMaxNonce(Nest nest) throws ClassNotFoundException, RocksDBException, Exception {
+		MaxNonce maxNonce = null;
+//		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_MAX_NONCE WHERE id=? AND subchain_id=?");
+//		preparedStatement.setLong(1, nest.getID().longValue());
+//		preparedStatement.setLong(2, nest.getAssetID().longValue());
+//		ResultSet resultSet = preparedStatement.executeQuery();
+//		if(resultSet.next()) {
+//			maxNonce = new MaxNonce();
+//			maxNonce.setNonce(ID.valueOf(resultSet.getLong("max_nonce")));
+//		}
+//		if(maxNonce == null) {
+//			maxNonce = new MaxNonce();
+//			maxNonce.setNonce(Util.DB().getAccount(nest.getID()).getAsset(nest.getAssetID()).getNonce());
+//		}
+		ID currentNonce = Util.DB().getAccount(nest.getID()).getAsset(nest.getAssetID()).getNonce();
+		maxNonce = new MaxNonce(currentNonce);
+		Vector<Transaction> transactions = getPendingTransactionListInPool(nest);
+		if(!transactions.isEmpty()) {
+			Comparator<Transaction> reverseComparator = Collections.reverseOrder();
+			Collections.sort(transactions, reverseComparator);
+			Vector<ID> unique = new Vector<>();
+			for(Transaction transaction:transactions) {
+				if(!unique.contains(transaction.getNonce())) {
+					unique.add(transaction.getNonce());
+				}
+				else {
+					Log.info("Current transaction's nonce is duplicate just discard it");
+					EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
+				}
+				if(transaction.getNonce().compareTo(currentNonce) <= 0) {
+					Log.info("Current transaction's nonce is invalid just discard it");
+					EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
+				}
+			}
+			transactions = getPendingTransactionListInPool(nest);
+			if(!transactions.isEmpty()) {
+				Collections.sort(transactions);
+				if(transactions.firstElement().getNonce().equals(currentNonce.getNextID())) {
+					int i = 0;
+					for (; i < (transactions.size() - 1); ++i) {
+//						if (i < (transactions.size() - 2)) {
+							if (!transactions.get(i).getNonce().getNextID()
+									.equals(transactions.get(i + 1).getNonce())) {
+								break;
+							}
+//						}
+					}
+					maxNonce = new MaxNonce(transactions.get(i).getNonce());
+				}
+			}
 		}
 		return maxNonce;
 	}
@@ -1602,12 +1748,13 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return isSucc;
 	}
 	
+	@Deprecated
 	@Override
 	public boolean saveTransactionMaxNonce(Nest nest, MaxNonce maxNonce) throws SQLException {
 		int result = 0;
 		PreparedStatement preparedStatement = null;
 			if (isTransactionMaxNonceExists(nest)) {
-					preparedStatement = connection.prepareStatement("UPDATE TRANSACTION_MAX_NONCE SET max_nonce = ?, subchain_id = ? WHERE txin_id = ?");
+					preparedStatement = connection.prepareStatement("UPDATE TRANSACTION_MAX_NONCE SET max_nonce = ?, subchain_id = ? WHERE id = ?");
 					preparedStatement.setLong(1, maxNonce.getNonce().longValue());
 					preparedStatement.setLong(2, nest.getAssetID().longValue());
 					preparedStatement.setLong(3, nest.getID().longValue());
@@ -1615,10 +1762,10 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //					Log.info("UPDATE: " + result);
 			}
 			else {
-				preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_MAX_NONCE (id, max_nonce, subchain_id) VALUES (?, ?)");
+				preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_MAX_NONCE (id, max_nonce, subchain_id) VALUES (?, ?, ?)");
 				preparedStatement.setLong(1, nest.getID().longValue());
 				preparedStatement.setLong(2, maxNonce.getNonce().longValue());
-				preparedStatement.setLong(2, nest.getAssetID().longValue());
+				preparedStatement.setLong(3, nest.getAssetID().longValue());
 				result = preparedStatement.executeUpdate();
 //				Log.info("INSERT: " + result);
 			}
@@ -1629,7 +1776,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public boolean deleteTransactionMaxNonce(Nest nest) throws SQLException {
 		int result = 0;
 		PreparedStatement preparedStatement;
-			preparedStatement = connection.prepareStatement("DELETE FROM TRANSACTION_MAX_NONCE WHERE txin_id=? AND subchain_id=?");
+			preparedStatement = connection.prepareStatement("DELETE FROM TRANSACTION_MAX_NONCE WHERE id=? AND subchain_id=?");
 			preparedStatement.setLong(1, nest.getID().longValue());
 			preparedStatement.setLong(2, nest.getAssetID().longValue());
 			result = preparedStatement.executeUpdate();
@@ -1681,16 +1828,19 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		int result = 0;
 		PreparedStatement preparedStatement = null;
 			if (isIPExists(ip, NODETYPE.NONE)) {
-					preparedStatement = connection.prepareStatement("UPDATE NETWORK SET type = ? where ip = ?");
+					preparedStatement = connection.prepareStatement("UPDATE NETWORK SET type = ?, counter = ? where ip = ?");
 					preparedStatement.setInt(1, NODETYPE.MINER.ordinal());
-					preparedStatement.setString(2, ip);
+					preparedStatement.setInt(2, 0);
+					preparedStatement.setString(3, ip);
 					result = preparedStatement.executeUpdate();
 //					Log.info("UPDATE: " + result);
 			}
 			else {
-				preparedStatement = connection.prepareStatement("INSERT INTO NETWORK (ip, type) VALUES (?, ?)");
+				preparedStatement = connection.prepareStatement("INSERT INTO NETWORK (ip, type, counter, sync_time) VALUES (?, ?, ?, ?)");
 				preparedStatement.setString(1, ip);
 				preparedStatement.setInt(2, NODETYPE.MINER.ordinal());
+				preparedStatement.setInt(3, 0);
+				preparedStatement.setLong(4, 0);
 				result = preparedStatement.executeUpdate();
 //				Log.info("INSERT: " + result);
 			}
@@ -1761,27 +1911,33 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public Vector<byte[]> getPendingTransactionListInPool(ID id) throws SQLException, Exception {
-		Vector<byte[]> transactionList = new Vector<>();
-		PreparedStatement preparedStatement = connection.prepareStatement("SELECT rawdata FROM TRANSACTION_POOL WHERE txin_id=?");
-		preparedStatement.setLong(1, id.longValue());
+	public Vector<Transaction> getPendingTransactionListInPool(Nest nest) throws SQLException, Exception {
+		Vector<Transaction> transactionList = new Vector<>();
+		Transaction transaction = null;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT rawdata FROM TRANSACTION_POOL WHERE txin_id=? AND asset_id=?");
+		preparedStatement.setLong(1, nest.getID().longValue());
+		preparedStatement.setLong(2, nest.getAssetID().longValue());
 		ResultSet resultSet = preparedStatement.executeQuery();
 		while (resultSet.next()) {
-			transactionList.add(EQCType.bytesToBIN(resultSet.getBytes("rawdata")));
+			transaction = Transaction.parseRPC(resultSet.getBytes("rawdata"));
+			transaction.getTxIn().getPassport().setID(nest.getID());
+			transactionList.add(transaction);
 		}
-		
-		return transactionList.size()>0?transactionList:null;
+		return transactionList;
 	}
 
 	@Override
-	public TransactionIndexList getTransactionIndexListInPool() throws SQLException, Exception {
+	public TransactionIndexList getTransactionIndexListInPool(long previousSyncTime, long currentSyncTime) throws SQLException, Exception {
 		TransactionIndexList transactionIndexList = new TransactionIndexList();
 		TransactionIndex transactionIndex = null;
-		PreparedStatement preparedStatement = connection.prepareStatement("SELECT txin_id, nonce, proof FROM TRANSACTION_POOL");
+		transactionIndexList.setSyncTime(currentSyncTime);
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT txin_id, nonce, proof FROM TRANSACTION_POOL WHERE receieved_timestamp>=? AND receieved_timestamp<?");
+		preparedStatement.setLong(1, previousSyncTime);
+		preparedStatement.setLong(2, currentSyncTime);
 		ResultSet resultSet = preparedStatement.executeQuery();
 		while (resultSet.next()) {
 			transactionIndex = new TransactionIndex();
-			transactionIndex.setId(ID.valueOf(resultSet.getLong("txin_id")));
+			transactionIndex.setID(ID.valueOf(resultSet.getLong("txin_id")));
 			transactionIndex.setNonce(ID.valueOf(resultSet.getLong("nonce")));
 			transactionIndex.setProof(resultSet.getBytes("proof"));
 			transactionIndexList.addTransactionIndex(transactionIndex);
@@ -1802,7 +1958,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	private Transaction getTransactionInPool(TransactionIndex transactionIndex) throws SQLException, Exception {
 		Transaction transaction = null;
 		PreparedStatement preparedStatement = connection.prepareStatement("SELECT rawdata FROM TRANSACTION_POOL WHERE txin_id=? AND nonce=? AND proof=?");
-		preparedStatement.setLong(1, transactionIndex.getId().longValue());
+		preparedStatement.setLong(1, transactionIndex.getID().longValue());
 		preparedStatement.setLong(2, transactionIndex.getNonce().longValue());
 		preparedStatement.setBytes(3, transactionIndex.getProof());
 		ResultSet resultSet = preparedStatement.executeQuery();
@@ -1811,7 +1967,95 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		}
 		return transaction;
 	}
-	
+
+	@Override
+	public boolean saveMinerSyncTime(String ip, long syncTime) throws SQLException, Exception {
+		int result = 0;
+		PreparedStatement preparedStatement = null;
+			if (isIPExists(ip, NODETYPE.NONE)) {
+					preparedStatement = connection.prepareStatement("UPDATE NETWORK SET type = ?, sync_time = ? where ip = ?");
+					preparedStatement.setInt(1, NODETYPE.MINER.ordinal());
+					preparedStatement.setLong(2, syncTime);
+					preparedStatement.setString(3, ip);
+					result = preparedStatement.executeUpdate();
+//					Log.info("UPDATE: " + result);
+			}
+			else {
+				preparedStatement = connection.prepareStatement("INSERT INTO NETWORK (ip, type, sync_time) VALUES (?, ?, ?)");
+				preparedStatement.setString(1, ip);
+				preparedStatement.setInt(2, NODETYPE.MINER.ordinal());
+				preparedStatement.setLong(3, syncTime);
+				result = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + result);
+			}
+		return result == ONE_ROW;
+	}
+
+	@Override
+	public long getMinerSyncTime(String ip) throws SQLException, Exception {
+		long sync_time = 0;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM NETWORK WHERE ip=?");
+		preparedStatement.setString(1, ip);
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while (resultSet.next()) {
+			sync_time = resultSet.getLong("sync_time");
+		}
+		return sync_time;
+	}
+
+	@Override
+	public SignHash getSignHash(ID id) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean saveIPCounter(String ip, int counter) throws SQLException, Exception {
+		int result = 0;
+		PreparedStatement preparedStatement = null;
+			if (isIPExists(ip, NODETYPE.NONE)) {
+					preparedStatement = connection.prepareStatement("UPDATE NETWORK SET type = ?, counter = ? where ip = ?");
+					preparedStatement.setInt(1, NODETYPE.MINER.ordinal());
+					preparedStatement.setInt(2, counter);
+					preparedStatement.setString(3, ip);
+					result = preparedStatement.executeUpdate();
+//					Log.info("UPDATE: " + result);
+			}
+			else {
+				preparedStatement = connection.prepareStatement("INSERT INTO NETWORK (ip, type, counter) VALUES (?, ?, ?)");
+				preparedStatement.setString(1, ip);
+				preparedStatement.setInt(2, NODETYPE.MINER.ordinal());
+				preparedStatement.setInt(3, counter);
+				result = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + result);
+			}
+		return result == ONE_ROW;
+	}
+
+	@Override
+	public int getIPCounter(String ip) throws SQLException, Exception {
+		int counter = 0;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM NETWORK WHERE ip=?");
+		preparedStatement.setString(1, ip);
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while (resultSet.next()) {
+			counter = resultSet.getInt("counter");
+		}
+		return counter;
+	}
+
+	@Override
+	public void deleteAccountFromTo(ID fromID, ID toID) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void deleteEQCHiveFromTo(ID fromHeight, ID toHeight) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
 //	public boolean savePossibleNode(String ip, NODETYPE nodeType) throws SQLException, Exception {
 //		int result = 0;
 //		PreparedStatement preparedStatement = null;

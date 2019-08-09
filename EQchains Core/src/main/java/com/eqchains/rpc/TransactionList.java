@@ -11,7 +11,6 @@ import com.eqchains.serialization.EQCType.ARRAY;
 
 public class TransactionList extends AvroO {
 	private Vector<byte[]> transactionList;
-	private long transactonListSize;
 	
 	public TransactionList() {
 		transactionList = new Vector<>();
@@ -25,9 +24,6 @@ public class TransactionList extends AvroO {
 	@Override
 	public boolean isSanity() {
 		if(transactionList == null) {
-			return false;
-		}
-		if(transactonListSize != transactionList.size()) {
 			return false;
 		}
 		return true;
@@ -49,7 +45,7 @@ public class TransactionList extends AvroO {
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		ARRAY array = EQCType.parseARRAY(is);
 		ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
-		for(int i=0; i<array.length; ++i) {
+		for(int i=0; i<array.size; ++i) {
 			transactionList.add(EQCType.parseBIN(iStream));
 		}
 	}
@@ -78,6 +74,13 @@ public class TransactionList extends AvroO {
 
 	public void addAll(Vector<byte[]> transactionList) {
 		this.transactionList.addAll(transactionList);
+	}
+
+	/**
+	 * @return the transactionList
+	 */
+	public Vector<byte[]> getTransactionList() {
+		return transactionList;
 	}
 	
 }

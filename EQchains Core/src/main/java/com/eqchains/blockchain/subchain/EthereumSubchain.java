@@ -27,55 +27,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.rpc.client;
-
-import com.eqchains.rpc.Code;
-import com.eqchains.rpc.Cookie;
-import com.eqchains.rpc.Info;
-import com.eqchains.util.Util;
+package com.eqchains.blockchain.subchain;
 
 /**
  * @author Xun Wang
- * @date Jun 29, 2019
+ * @date July 31, 2019
  * @email 10509759@qq.com
  */
-public abstract class EQCClient {
-	protected static Cookie cookie;
-	protected Info info;
-	static {
-		cookie = new Cookie();
-		cookie.setIp(Util.IP);
-		cookie.setVersion(Util.PROTOCOL_VERSION);
+public class EthereumSubchain extends EQCSubchain {
+	public EthereumSubchain(byte[] bytes, boolean isSegwit) throws Exception {
+		super(bytes, isSegwit);
 	}
-	public EQCClient() {
-		info = new Info();
-		info.setCode(Code.OK);
-		info.setCookie(cookie);
-	}
-	
-	/**
-	 * @return the cookie
-	 */
-	public Cookie getCookie() {
-		return cookie;
-	}
-	/**
-	 * @param cookie the cookie to set
-	 */
-	public void setCookie(Cookie cookie) {
-		this.cookie = cookie;
-	}
-	/**
-	 * @return the info
-	 */
-	public Info getInfo() {
-		return info;
-	}
-	/**
-	 * @param info the info to set
-	 */
-	public void setInfo(Info info) {
-		this.info = info;
-	}
-	
 }

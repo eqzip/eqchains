@@ -106,7 +106,7 @@ public class UpdateTxFeeRateOperation extends Operation {
 	 * @see com.eqzip.eqcoin.blockchain.OperationTransaction.Operation#execute()
 	 */
 	@Override
-	public boolean execute(Object ...objects) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
+	public boolean execute(Object ...objects) throws Exception {
 		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
 		EQcoinSubchainAccount account = (EQcoinSubchainAccount) accountsMerkleTree.getAccount(Asset.EQCOIN);
 		account.setTxFeeRate(txFeeRate);

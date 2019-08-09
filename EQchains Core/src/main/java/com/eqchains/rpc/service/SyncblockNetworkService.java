@@ -35,16 +35,16 @@ import java.nio.ByteBuffer;
 import java.util.Date;
 
 import org.apache.avro.AvroRemoteException;
-import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
+import org.apache.avro.ipc.netty.NettyServer;
 import org.apache.avro.ipc.specific.SpecificResponder;
 import org.apache.avro.util.Utf8;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
+import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
@@ -61,7 +61,7 @@ import com.eqchains.util.Util;
  * @date Jan 24, 2019
  * @email 10509759@qq.com
  */
-public class SyncblockNetworkService extends NetworkService {
+public class SyncblockNetworkService extends EQCRPCService {
 	private static SyncblockNetworkService instance;
 
 	private SyncblockNetworkService() {

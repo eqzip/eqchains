@@ -35,12 +35,13 @@ import org.apache.avro.AvroRemoteException;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.blockchain.hive.EQCHeader;
+import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.TailInfo;
 import com.eqchains.service.PossibleNodeService;
@@ -111,7 +112,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 			europa.setHeight(Util.DB().getEQCBlockTailHeight());
 			eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
 			europa.setCheckPointHeight(eQcoinSubchainAccount.getCheckPointHeight());
-			europa.setBlockTailProof(Util.DB().getEQCBlock(europa.getHeight(), true).getEqcHeader().getProof());
+			europa.setBlockTailProof(Util.DB().getEQCHive(europa.getHeight(), true).getEqcHeader().getProof());
 			io = europa.getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -126,7 +127,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 		O block = null;
 		EQCHive eqcHive = null;
 		try {
-			eqcHive = Util.DB().getEQCBlock(new ID(height), false);
+			eqcHive = Util.DB().getEQCHive(new ID(height), false);
 			if(eqcHive != null) {
 				block = eqcHive.getO();
 			}
@@ -135,6 +136,38 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 			Log.Error(e.getMessage());
 		}
 		return block;
+	}
+
+	@Override
+	public O getEQCHeaderHash(O height) {
+		O eqcHeaderHash = null;
+		byte[] eqcHeaderHash1 = null;
+		try {
+			eqcHeaderHash1 = Util.DB().getEQCHeaderHash(new ID(height));
+			if(eqcHeaderHash1 != null) {
+				eqcHeaderHash = new O(ByteBuffer.wrap(eqcHeaderHash1));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return eqcHeaderHash;
+	}
+
+	@Override
+	public O getEQCHeader(O height) {
+		O eqcHeader = null;
+		EQCHeader eqcHeader1 = null;
+		try {
+			eqcHeader1 = Util.DB().getEQCHive(new ID(height), true).getEqcHeader();
+			if(eqcHeader1 != null) {
+				eqcHeader = eqcHeader1.getO();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return eqcHeader;
 	}
 	
 }

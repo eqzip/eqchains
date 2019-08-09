@@ -44,8 +44,6 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
-import com.eqchains.blockchain.EQCHive;
-import com.eqchains.blockchain.PublicKey;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
@@ -53,12 +51,14 @@ import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.AssetSubchainHeader;
 import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.crypto.MerkleTree;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB.TABLE;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -78,48 +78,46 @@ import com.eqchains.util.Util;
 public class AccountsMerkleTree {
 	public final static int MAX_ACCOUNTS_PER_TREE = 1024;
 	private Vector<byte[]> accountsMerkleTreeRootList;
-	private static ID height;
+	/**
+	 * Current EQCHive's height which is the base for the new EQCHive
+	 */
+	private ID height;
 	private byte[] accountsMerkleTreeRoot;
-	private static ID totalAccountNumbers;
+	private ID totalAccountNumbers;
+	private ID previousTotalAccountNumbers;
 	private Filter filter;
-	// stub
-	private static Vector<MerkleTree> accountsMerkleTree;
+	private Vector<MerkleTree> accountsMerkleTree;
 
 	public AccountsMerkleTree(ID height, Filter filter) throws Exception {
 		super();
+		AssetSubchainAccount assetSubchainAccount = null;
 		
-//		if(height.subtract(val))
 		filter.setAccountsMerkleTree(this);
 		this.height = height;
-		// When generate SingularityBlock the zero height EQCBlock doesn't exist
-		// so here need special operation
-		if(height.equals(ID.ZERO)) {
-			if(Configuration.getInstance().isInitSingularityBlock()) {
-				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
-				totalAccountNumbers = assetSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers();
+		// When recoverySingularityStatus the No.0 EQCHive doesn't exist so here need special operation
+		if (height.equals(ID.ZERO)) {
+			try {
+				assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
 			}
-			else {
+			catch (Exception e) {
+				Log.info("Height is zero and Account No.1 doesn't exists: " + e.getMessage());
+			}
+			if (assetSubchainAccount != null) {
+				totalAccountNumbers = Util.DB().getTotalAccountNumbers(height);
+			} else {
 				totalAccountNumbers = ID.ZERO;
 			}
+		} else {
+			totalAccountNumbers = Util.DB().getTotalAccountNumbers(height.getPreviousID());
 		}
-		else {
-			totalAccountNumbers = Util.DB().getTotalAccountNumbers(height);
-		}
+		previousTotalAccountNumbers = totalAccountNumbers;
 		this.filter = filter;
-		if(height.compareTo(EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight()) < 0) {
-			// Load all current AssetSubchainAccount's relevant Account into Filter which have exists snapshot in AccountSnapshot table otherwise the status is the same as in the current Account table
-			for(long i=1; i<=totalAccountNumbers.longValue(); ++i) {
-				Account account = EQCBlockChainH2.getInstance().getAccountSnapshot(new ID(i), height);
-				if(account != null) {
-//					Log.info(account.toString());
-					filter.saveAccount(account);
-				}
-			}
-		}
 		accountsMerkleTreeRootList = new Vector<>();
 	}
 	
 	/**
+	 * Check if Account exists according to Passport's AddressAI.
+	 * <p>
 	 * When check TxIn Account doesn't need searching in filter just set isFiltering to false
 	 * Check if TxIn Account exists in EQC blockchain's Accounts table
 	 * and it's create height less than current AccountsMerkleTree's
@@ -142,18 +140,28 @@ public class AccountsMerkleTree {
 		}
 		else {
 			Account account = Util.DB().getAccount(address.getAddressAI());
-			if(account != null && account.getLockCreateHeight().compareTo(height) <= 0) {
+			if(account != null && account.getLockCreateHeight().compareTo(height) < 0 && account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
 				isExists = true;
 			}
 		}
 		return  isExists;
 	}
 	
-	public synchronized Account getAccount(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public synchronized boolean isAccountExists(Passport passport) throws Exception {
+		boolean isExists = false;
+			Account account = Util.DB().getAccount(passport.getID());
+			if(account != null && account.getLockCreateHeight().compareTo(height) < 0 && account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
+				isExists = true;
+			}
+		return  isExists;
+	}
+	
+	public synchronized Account getAccount(ID id) throws Exception {
+		EQCType.assertNotBigger(id, previousTotalAccountNumbers);
 		return filter.getAccount(id, true);
 	}
 	
-	public synchronized Account getAccount(Passport address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public synchronized Account getAccount(Passport address) throws Exception {
 		return filter.getAccount(address, true);
 	}
 	
@@ -170,6 +178,7 @@ public class AccountsMerkleTree {
 	
 	public synchronized void increaseTotalAccountNumbers() {
 		totalAccountNumbers = totalAccountNumbers.add(BigInteger.ONE);
+		Log.info("increaseTotalAccountNumbers: " + totalAccountNumbers);
 	}
 	
 	/**
@@ -180,6 +189,8 @@ public class AccountsMerkleTree {
 	}
 	
 	/**
+	 * Get current EQCHive's height
+	 * 
 	 * @return the height
 	 */
 	public synchronized ID getHeight() {
@@ -187,6 +198,8 @@ public class AccountsMerkleTree {
 	}
 
 	/**
+	 * Set current EQCHive's height
+	 * 
 	 * @param height the height to set
 	 */
 	public synchronized void setHeight(ID height) {
@@ -194,6 +207,7 @@ public class AccountsMerkleTree {
 	}
 
 	public void buildAccountsMerkleTree() throws Exception {
+		Log.info("Begin buildAccountsMerkleTree");
 		Account account = null;
 		Vector<byte[]> accountsHash = new Vector<>();
 		long remainder = totalAccountNumbers.longValue();
@@ -249,8 +263,8 @@ public class AccountsMerkleTree {
 		return bytes;
 	}
 
-	public void merge() throws Exception {
-		filter.merge();
+	public void merge(EQCHive eqcHive) throws Exception {
+		filter.merge(eqcHive);
 	}
 	
 	public void clear() throws RocksDBException {
@@ -261,44 +275,46 @@ public class AccountsMerkleTree {
 		return filter.getAddressID(address);
 	}
 
-	public Passport getAddress(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public Passport getAddress(ID id) throws Exception {
 		return filter.getAddress(id);
 	}
 
-	public PublicKey getPublicKey(ID id) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public CompressedPublickey getPublicKey(ID id) throws Exception {
 		return filter.getPublicKey(id);
 	}
 
-	public void savePublicKey(PublicKey publicKey, ID height) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	@Deprecated
+	public void savePublicKey(CompressedPublickey publicKey, ID height) throws Exception {
 		filter.savePublicKey(publicKey, height);
 	}
 
-	public boolean isPublicKeyExists(PublicKey publicKey) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public boolean isPublicKeyExists(CompressedPublickey publicKey) throws Exception {
 		return filter.isPublicKeyExists(publicKey);
 	}
 
-	public void deletePublicKey(PublicKey publicKey) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	@Deprecated
+	public void deletePublicKey(CompressedPublickey publicKey) throws Exception {
 		filter.deletePublicKey(publicKey);
 	}
 
-	public byte[] getEQCHeaderHash(ID height) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
-		return EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(height);
+	public byte[] getEQCHeaderHash(ID height) throws Exception {
+		return Util.DB().getEQCHeaderHash(height);
 	}
 	
-	public byte[] getEQCHeaderBuddyHash(ID height) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
 		byte[] hash = null;
-		EQCType.assertNotHigher(height, this.height);
+		EQCType.assertNotBigger(height, this.height);
 		if(height.compareTo(this.height) < 0) {
-			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(height);
+			hash = Util.DB().getEQCHeaderHash(height);
 		}
 		else {
-			hash = EQCBlockChainRocksDB.getInstance().getEQCHeaderHash(height.getPreviousID());
+			hash = Util.DB().getEQCHeaderHash(height.getPreviousID());
 		}
 		return hash;
 	}
 	
 	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws Exception {
-		return Util.DB().getEQCBlock(height, true);
+		return Util.DB().getEQCHive(height, true);
 	}
 
 //	/**
@@ -358,7 +374,7 @@ public class AccountsMerkleTree {
 			return false;
 		}
 		
-		public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+		public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
 			for(AssetStatistics assetStatistics : assetStatisticsList) {
 				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) accountsMerkleTree.getAccount(assetStatistics.assetID);
 				AssetSubchainHeader assetSubchainHeader = assetSubchainAccount.getAssetSubchainHeader();
@@ -367,7 +383,7 @@ public class AccountsMerkleTree {
 					return false;
 				}
  				if(assetSubchainHeader.getTotalSupply().compareTo(assetStatistics.totalSupply) != 0) {
-					Log.Error("totalSupply is invalid.");
+					Log.Error("totalSupply is invalid. Expect: " + assetSubchainHeader.getTotalSupply() + " actual: " + assetStatistics.totalSupply);
 					return false;
 				}
 				if(assetSubchainHeader.getTotalTransactionNumbers().compareTo(assetStatistics.totalTransactionNumbers) != 0) {
@@ -410,7 +426,7 @@ public class AccountsMerkleTree {
 		}
 	}
 	
-	public Statistics getStatistics() throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public Statistics getStatistics() throws Exception {
 		Account account;
 		Statistics statistics = new Statistics();
 		for(int i=1; i<=totalAccountNumbers.longValue(); ++i) {
@@ -433,6 +449,42 @@ public class AccountsMerkleTree {
 	 */
 	public Filter getFilter() {
 		return filter;
+	}
+	
+	/**
+	 * Retrieve the Account from specific height which maybe is current tail or history height 
+	 * 
+	 * @param addressAI
+	 * @return
+	 * @throws ClassNotFoundException
+	 * @throws RocksDBException
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	public Account getAccount(byte[] addressAI)
+			throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+		Account account = Util.DB().getAccount(addressAI);
+		ID tail = Util.DB().getEQCBlockTailHeight();
+		if (height.equals(tail) || height.equals(tail.getNextID())) {
+			if (account != null && account.getLockCreateHeight().compareTo(height) <= 0
+					&& account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
+				account = Util.DB().getAccount(addressAI);
+			}
+		}
+		else if(height.compareTo(tail) <= 0) {
+			account = EQCBlockChainH2.getInstance().getAccountSnapshot(addressAI, height.getPreviousID());
+		}
+		else {
+			throw new IllegalStateException("Wrong height " + height + " tail height " + Util.DB().getEQCBlockTailHeight());
+		}
+		return account;
+	}
+
+	/**
+	 * @return the previousTotalAccountNumbers
+	 */
+	public ID getPreviousTotalAccountNumbers() {
+		return previousTotalAccountNumbers;
 	}
 	
 }

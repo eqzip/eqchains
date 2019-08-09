@@ -31,20 +31,24 @@ package com.eqchains.rpc.client;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 
-import org.apache.avro.ipc.NettyTransceiver;
+import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.TransactionNetwork;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.rpc.Balance;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
 import com.eqchains.rpc.MaxNonce;
+import com.eqchains.rpc.Nest;
 import com.eqchains.rpc.SignHash;
 import com.eqchains.rpc.TransactionList;
+import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -54,7 +58,7 @@ import com.eqchains.util.Util;
  * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class TransactionNetworkClient extends EQCClient {
+public class TransactionNetworkClient extends EQCRPCClient {
 	
 	public static Info ping(Cookie cookie, String ip) throws Exception {
 		Info info = null;
@@ -68,10 +72,12 @@ public class TransactionNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return info;
 	}
@@ -88,150 +94,166 @@ public class TransactionNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return ipList;
 	}
 
-	public Info sendTransaction(O transactionRPC, String ip) throws Exception {
+	public static Info sendTransaction(Transaction transaction, String ip) throws Exception {
 		Info info = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			info = new Info(client.sendTransaction(transactionRPC));
+			info = new Info(client.sendTransaction(transaction.getO()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return info;
 	}
 
-	public ID getID(O readableAddress, String ip) throws Exception {
+	public static ID getID(byte[] addressAI, String ip) throws Exception {
 		ID id = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			id = new ID(client.getID(readableAddress));
+			id = new ID(client.getID(new O(ByteBuffer.wrap(addressAI))));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return id;
 	}
 
-	public Account getAccount(O id, String ip) throws Exception {
+	public static Account getAccount(byte[] addressAI, String ip) throws Exception {
 		Account account = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			account = Account.parseAccount(client.getAccount(id));
+			account = Account.parseAccount(client.getAccount(new O(ByteBuffer.wrap(addressAI))));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return account;
 	}
 
-	public MaxNonce getMaxNonce(O id, String ip) throws Exception {
+	public static MaxNonce getMaxNonce(Nest nest, String ip) throws Exception {
 		MaxNonce maxNonce = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			maxNonce = new MaxNonce(client.getMaxNonce(id));
+			maxNonce = new MaxNonce(client.getMaxNonce(nest.getO()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return maxNonce;
 	}
 
-	public Balance getBalance(O id, String ip) throws Exception {
+	public static Balance getBalance(Nest nest, String ip) throws Exception {
 		Balance balance = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			balance = new Balance(client.getBalance(id));
+			balance = new Balance(client.getBalance(nest.getO()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return balance;
 	}
 
-	public SignHash getSignHash(O id, String ip) throws Exception {
+	public static SignHash getSignHash(ID id, String ip) throws Exception {
 		SignHash signHash = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			signHash = new SignHash(client.getSignHash(id));
+			signHash = new SignHash(client.getSignHash(id.getO()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return signHash;
 	}
 
-	public TransactionList getPendingTransactionList(O id, String ip) throws Exception {
+	public static TransactionList getPendingTransactionList(ID id, String ip) throws Exception {
 		TransactionList transactionList = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			transactionList = new TransactionList(client.getPendingTransactionList(id));
+			transactionList = new TransactionList(client.getPendingTransactionList(id.getO()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return transactionList;
 	}

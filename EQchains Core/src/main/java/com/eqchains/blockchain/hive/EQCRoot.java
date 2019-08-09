@@ -27,14 +27,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain;
+package com.eqchains.blockchain.hive;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import com.eqchains.blockchain.account.Passport.AddressShape;
@@ -47,70 +44,49 @@ import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Sep 28, 2018
+ * @date Nov 12, 2018
  * @email 10509759@qq.com
  */
-public class TransactionsHeader implements EQCTypable {
-	private BigInteger version;
-	// Bin type 16 bytes use EQCCHA_MULTIPLE(final byte[] bytes, 1, true) generate
-	// it.
-	private byte[] signaturesHash = null;
-	private final static int signaturesHashLen = 16;
-	/*
-	 * VERIFICATION_COUNT equal to the number of member variables of the class to be
-	 * verified.
-	 * 
-	 * Due to signaturesHash is optional(When only have CoinBase transaction the signaturesHash is null).
-	 * Which is BIN7 type
+public class EQCRoot implements EQCTypable {
+	private ID version;
+	/**
+	 * Save the root of Accounts Merkel Tree.
 	 */
-	private final static byte VERIFICATION_COUNT = 2;
+	private byte[] accountsMerkelTreeRoot;
+	/**
+	 * Save the root of EQCSubchain' Merkel Tree. Including
+	 * the root of TransactionList, SignatureList, PublickeyList
+	 * and PassportList's Merkel Tree.
+	 */
+	private byte[] subchainsMerkelTreeRoot;
 
-	public TransactionsHeader() {
-		super();
-		version = BigInteger.ZERO;
+	public EQCRoot() {
+		version = ID.ZERO;
 	}
 
-	public TransactionsHeader(byte[] bytes) throws NoSuchFieldException, IOException {
+	public EQCRoot(byte[] bytes) throws NoSuchFieldException, IOException {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
+		// Parse Version
+		version = new ID(EQCType.parseEQCBits(is));
 
-		// Parse version
-		if ((data = EQCType.parseEQCBits(is)) != null) {
-			version = EQCType.eqcBitsToBigInteger(data);
-		}
-		
-		// Parse signaturesHash
-		data = null;
-		if ((data = EQCType.parseBIN(is)) != null && !EQCType.isBINX(data)) {
-			signaturesHash = data;
-		}
+		// Parse Accounts hash
+		accountsMerkelTreeRoot = EQCType.parseBIN(is);
+
+		// Parse TransactionsMerkelTreeRoot hash
+		subchainsMerkelTreeRoot = EQCType.parseBIN(is);
 	}
 
-	public static boolean isValid(byte[] bytes) throws NoSuchFieldException, IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
-		byte validCount = 0;
-
-		// Parse version
-		if (((data = EQCType.parseEQCBits(is)) != null) && !EQCType.isNULL(data)) {
-			++validCount;
-		}
-
-		// Parse signaturesHash(optional can be null if haven't any Transaction except CoinBase this field will be null)
-		data = null;
-		if (((data = EQCType.parseBIN(is)) != null)) {
-			++validCount;
-		}
-
-		return (validCount == VERIFICATION_COUNT) && EQCType.isInputStreamEnd(is);
+	public byte[] getHash() {
+		return Util.EQCCHA_MULTIPLE_DUAL(getBytes(), Util.HUNDREDPULS, true, false);
 	}
 
 	@Override
 	public byte[] getBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(EQCType.bigIntegerToEQCBits(version));
-			os.write(EQCType.bytesToBIN(signaturesHash));
+			os.write(version.getEQCBits());
+			os.write(EQCType.bytesToBIN(accountsMerkelTreeRoot));
+			os.write(EQCType.bytesToBIN(subchainsMerkelTreeRoot));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -119,68 +95,82 @@ public class TransactionsHeader implements EQCTypable {
 		return os.toByteArray();
 	}
 
+	@Override
+	public byte[] getBin() {
+		return EQCType.bytesToBIN(getBytes());
+	}
+
 	/**
 	 * @return the version
 	 */
-	public BigInteger getVersion() {
+	public ID getVersion() {
 		return version;
 	}
 
 	/**
 	 * @param version the version to set
 	 */
-	public void setVersion(BigInteger version) {
+	public void setVersion(ID version) {
 		this.version = version;
 	}
 
 	/**
-	 * @return the signaturesHash
+	 * @return the accountsMerkelTreeRoot
 	 */
-	public byte[] getSignaturesHash() {
-		return signaturesHash;
+	public byte[] getAccountsMerkelTreeRoot() {
+		return accountsMerkelTreeRoot;
 	}
 
 	/**
-	 * @param signaturesHash the signaturesHash to set
+	 * @return the subchainsMerkelTreeRoot
 	 */
-	public void setSignaturesHash(byte[] signaturesHash) {
-		this.signaturesHash = signaturesHash;
+	public byte[] getSubchainsMerkelTreeRoot() {
+		return subchainsMerkelTreeRoot;
 	}
 
-	@Override
-	public byte[] getBin() {
-		return EQCType.bytesToBIN(getBytes());
+	/**
+	 * @param subchainsMerkelTreeRoot the subchainsMerkelTreeRoot to set
+	 */
+	public void setSubchainsMerkelTreeRoot(byte[] subchainsMerkelTreeRoot) {
+		this.subchainsMerkelTreeRoot = subchainsMerkelTreeRoot;
 	}
 
-	/* (non-Javadoc)
+	/**
+	 * @param accountsMerkelTreeRoot the accountsMerkelTreeRoot to set
+	 */
+	public void setAccountsMerkelTreeRoot(byte[] accountsMerkelTreeRoot) {
+		this.accountsMerkelTreeRoot = accountsMerkelTreeRoot;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		return 
-		"{\n" +
-		toInnerJson() +
-		"\n}";
+		return "{\n" + toInnerJson() + "\n}";
 	}
 
 	public String toInnerJson() {
-		return 
-				"\"TransactionsHeader\":" + 
-				"{\n" +
-					"\"version\":" + "\"" + Long.toHexString(version.longValue()) + "\"" + ",\n" +
-					"\"signaturesHash\":" + "\"" + Util.getHexString(signaturesHash)  + "\"" + "\n" +
-				"}";
+		return "\"Root\":" + "\n{\n" + "\"Version\":" + "\"" + version + "\"" + ",\n" 
+				+ "\"AccountsMerkelTreeRoot\":" + "\""
+				+ Util.dumpBytes(accountsMerkelTreeRoot, 16) + "\"" + ",\n" + "\"TransactionsMerkelTreeRoot\":" + "\""
+				+ Util.dumpBytes(subchainsMerkelTreeRoot, 16) + "\"" + "\n" + "}";
 	}
-	
-	public int getSize() {
-		return getBytes().length;
-	}
-
 
 	@Override
 	public boolean isSanity() {
-		// TODO Auto-generated method stub
-		return false;
+		if (version == null || accountsMerkelTreeRoot == null || subchainsMerkelTreeRoot == null) {
+			return false;
+		}
+//		if (totalSupply.compareTo(Util.MIN_EQC) < 0 || totalSupply.compareTo(Util.MAX_EQC) > 0) {
+//			return false;
+//		}
+		if (accountsMerkelTreeRoot.length != Util.HASH_LEN || subchainsMerkelTreeRoot.length != Util.HASH_LEN) {
+			return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -188,5 +178,5 @@ public class TransactionsHeader implements EQCTypable {
 		// TODO Auto-generated method stub
 		return false;
 	}
-
+	
 }

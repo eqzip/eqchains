@@ -32,12 +32,13 @@ package com.eqchains.rpc.client;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import org.apache.avro.ipc.NettyTransceiver;
+import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.blockchain.EQCHive;
+import com.eqchains.blockchain.hive.EQCHeader;
+import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
@@ -51,7 +52,7 @@ import com.eqchains.util.Util;
  * @date Jun 28, 2019
  * @email 10509759@qq.com
  */
-public class SyncblockNetworkClient extends EQCClient {
+public class SyncblockNetworkClient extends EQCRPCClient {
 	
 	public static Info ping(Cookie cookie, String ip) throws Exception {
 		Info info = null;
@@ -65,10 +66,12 @@ public class SyncblockNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return info;
 	}
@@ -85,10 +88,12 @@ public class SyncblockNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return ipList;
 	}
@@ -105,10 +110,12 @@ public class SyncblockNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return ipList;
 	}
@@ -125,10 +132,12 @@ public class SyncblockNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return tailInfo;
 	}
@@ -145,12 +154,58 @@ public class SyncblockNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return eqcHive;
+	}
+	
+	public static byte[] getEQCHeaderHash(ID height, String ip) throws Exception {
+		byte[] eqcHeaderHash = null;
+		NettyTransceiver nettyTransceiver = null;
+		SyncblockNetwork client = null;
+		try {
+			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
+			eqcHeaderHash = client.getEQCHeaderHash(height.getO()).o.array();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
+			if(nettyTransceiver != null) {
+				nettyTransceiver.close();
+			}
+		}
+		return eqcHeaderHash;
+	}
+	
+	public static EQCHeader getEQCHeader(ID height, String ip) throws Exception {
+		EQCHeader eqcHeader = null;
+		NettyTransceiver nettyTransceiver = null;
+		SyncblockNetwork client = null;
+		try {
+			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
+			eqcHeader = new EQCHeader(client.getEQCHeader(height.getO()));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
+			if(nettyTransceiver != null) {
+				nettyTransceiver.close();
+			}
+		}
+		return eqcHeader;
 	}
 	
 	public static long ping(String remoteIP) {

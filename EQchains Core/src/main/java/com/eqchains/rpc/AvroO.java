@@ -53,9 +53,6 @@ public abstract class AvroO implements EQCTypable, EQCInheritable {
 	
 	protected void parse(O o) throws Exception {
 		byte[] bytes = o.getO().array();
-		if(EQCType.isNULL(bytes)) {
-			return;
-		}
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseBody(is);
 		EQCType.assertNoRedundantData(is);

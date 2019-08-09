@@ -13,8 +13,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<compiler-plugin.version>3.8.1</compiler-plugin.version>
-		<avro.version>1.8.2</avro.version>
+		<compiler-plugin.version>3.8.0</compiler-plugin.version>
+		<avro.version>1.9.0</avro.version>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 	</properties>
@@ -32,7 +32,7 @@
 		<dependency>
 			<groupId>org.rocksdb</groupId>
 			<artifactId>rocksdbjni</artifactId>
-			<version>5.18.3</version>
+			<version>6.2.2</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-nop -->
 		<dependency>
@@ -45,14 +45,14 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-api</artifactId>
 			<version>5.5.0</version>
-<!-- 			<scope>test</scope> -->
+			<!-- <scope>test</scope> -->
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.junit.platform/junit-platform-launcher -->
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-launcher</artifactId>
 			<version>1.5.0</version>
-<!-- 			<scope>test</scope> -->
+			<!-- <scope>test</scope> -->
 		</dependency>
 		<dependency>
 			<groupId>org.apache.avro</groupId>
@@ -61,7 +61,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.avro</groupId>
-			<artifactId>avro-ipc</artifactId>
+			<artifactId>avro-ipc-netty</artifactId>
 			<version>${avro.version}</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
@@ -81,14 +81,47 @@
 			<artifactId>commons-net</artifactId>
 			<version>3.6</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-assembly-plugin -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.apache.maven.plugins</groupId> -->
+<!-- 			<artifactId>maven-assembly-plugin</artifactId> -->
+<!-- 			<version>3.1.1</version> -->
+<!-- 		</dependency> -->
 	</dependencies>
 
 	<build>
 		<plugins>
+<!-- 			<plugin> -->
+<!-- 				<artifactId>maven-assembly-plugin</artifactId> -->
+<!-- 				<configuration> -->
+<!-- 					<appendAssemblyId>false</appendAssemblyId> -->
+<!-- 					<descriptorRefs> -->
+<!-- 						<descriptorRef>jar-with-dependencies</descriptorRef> -->
+<!-- 					</descriptorRefs> -->
+<!-- 					<archive> -->
+<!-- 						<manifest> -->
+<!-- 							<mainClass>com.eqchains.Singularity</mainClass> -->
+<!-- 						</manifest> -->
+<!-- 					</archive> -->
+<!-- 				</configuration> -->
+<!-- 				<executions> -->
+<!-- 					<execution> -->
+<!-- 						<id>make-assembly</id> -->
+<!-- 						<phase>package</phase> -->
+<!-- 						<goals> -->
+<!-- 							<goal>assembly</goal> -->
+<!-- 						</goals> -->
+<!-- 					</execution> -->
+<!-- 				</executions> -->
+<!-- 			</plugin> -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${compiler-plugin.version}</version>
+				<configuration>
+					<source>${maven.compiler.source}</source>
+					<target>${maven.compiler.source}</target>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.avro</groupId>
@@ -113,7 +146,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.12.4</version>
+				<version>3.0.0-M3</version>
 				<configuration>
 					<skipTests>true</skipTests>
 				</configuration>
@@ -121,7 +154,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.1.1</version>
+				<version>3.2.1</version>
 				<configuration>
 					<createDependencyReducedPom>false</createDependencyReducedPom>
 				</configuration>
@@ -175,7 +208,7 @@
 											avro-maven-plugin
 										</artifactId>
 										<versionRange>
-											[1.8.2,)
+											[1.9.0,)
 										</versionRange>
 										<goals>
 											<goal>idl-protocol</goal>

@@ -126,11 +126,11 @@ public class OperationTransaction extends TransferTransaction {
 	 * @see com.eqzip.eqcoin.blockchain.Transaction#getMaxBillingSize()
 	 */
 	@Override
-	public int getMaxBillingSize() {
+	public int getMaxBillingLength() {
 		int size = 0;
 
 		// TransferTransaction size
-		size += super.getMaxBillingSize();
+		size += super.getMaxBillingLength();
 
 		// Operations size
 		size += operation.getBin(AddressShape.AI).length;
@@ -162,7 +162,7 @@ public class OperationTransaction extends TransferTransaction {
 	 * AccountsMerkleTree)
 	 */
 	@Override
-	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		// TODO Auto-generated method stub
 		return super.verify(accountsMerkleTree);
 	}
@@ -239,7 +239,7 @@ public class OperationTransaction extends TransferTransaction {
 		return true;
 	}
 	
-	public String toInnerJson() {
+	protected String toInnerJson() {
 		return
 		"\"OperationTransaction\":" + "\n{\n" + txIn.toInnerJson() + ",\n"
 				+ operation.toInnerJson() + ",\n"
@@ -247,7 +247,7 @@ public class OperationTransaction extends TransferTransaction {
 				+ "\"List\":" + "\n" + getTxOutString() + "\n},\n"
 				+ "\"Nonce\":" + "\"" + nonce + "\"" + ",\n"
 				+ "\"Signature\":" + ((signature == null) ? null : "\"" + Util.getHexString(signature) + "\"") + ",\n" + "\"Publickey\":" 
-				+ ((publickey.getPublicKey() == null) ? null : "\"" + Util.getHexString(publickey.getPublicKey()) + "\"")+ "\n" + "}";
+				+ ((compressedPublickey.getCompressedPublickey() == null) ? null : "\"" + Util.getHexString(compressedPublickey.getCompressedPublickey()) + "\"")+ "\n" + "}";
 	}
 	
 	@Override

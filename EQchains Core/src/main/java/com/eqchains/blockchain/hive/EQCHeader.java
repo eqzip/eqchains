@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain;
+package com.eqchains.blockchain.hive;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -41,9 +41,10 @@ import javax.print.attribute.standard.RequestingUserName;
 
 import org.rocksdb.RocksDBException;
 
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -72,8 +73,8 @@ public class EQCHeader implements EQCTypable {
 	private final static int MAX_NONCE_LEN = 4;
 	private final static int TARGET_LEN = 4;
 	
-	public EQCHeader(ByteBuffer byteBuffer) throws NoSuchFieldException {
-		parseEQCHeader(byteBuffer.array());
+	public EQCHeader(O o) throws NoSuchFieldException {
+		parseEQCHeader(o.getO().array());
 	}
 	
 	/**
@@ -81,7 +82,6 @@ public class EQCHeader implements EQCTypable {
 	 * @throws NoSuchFieldException 
 	 */
 	public EQCHeader(byte[] bytes) throws NoSuchFieldException {
-		super();
 		parseEQCHeader(bytes);
 	}
 
@@ -91,7 +91,6 @@ public class EQCHeader implements EQCTypable {
 		target = new byte[TARGET_LEN];
 		rootHash = new byte[Util.HASH_LEN];
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		byte[] data = null;
 		try {
 			// Parse PreHash
 			is.read(preHash);
@@ -314,7 +313,7 @@ public class EQCHeader implements EQCTypable {
 	}
 
 	public boolean isDifficultyValid(AccountsMerkleTree accountsMerkleTree) throws RocksDBException, Exception {
-		if (!Arrays.equals(target, Util.cypherTarget(accountsMerkleTree.getHeight().getNextID()))) {
+		if (!Arrays.equals(target, Util.cypherTarget(accountsMerkleTree.getHeight()))) {
 			return false;
 		}
 		// getHash()
@@ -335,7 +334,7 @@ public class EQCHeader implements EQCTypable {
 			Log.info("Sanity test failed.");
 			return false;
 		}
-		if(!Arrays.equals(preHash, Util.DB().getEQCHeaderHash(accountsMerkleTree.getHeight()))) {
+		if(!Arrays.equals(preHash, Util.DB().getEQCHeaderHash(accountsMerkleTree.getHeight().getPreviousID()))) {
 			Log.Error("PreHash is invalid.");
 			return false;
 		}
@@ -343,11 +342,11 @@ public class EQCHeader implements EQCTypable {
 			Log.Error("RootHash is invalid.");
 			return false;
 		}
-		if(height.getPreviousID().compareTo(Util.DB().getEQCBlock(accountsMerkleTree.getHeight(), true).getEqcHeader().getHeight()) != 0) {
+		if(height.getPreviousID().compareTo(Util.DB().getEQCHive(accountsMerkleTree.getHeight().getPreviousID(), true).getEqcHeader().getHeight()) != 0) {
 			Log.Error("Height should be the previous EQCBlock's next Height.");
 			return false;
 		}
-		if(timestamp.compareTo(Util.DB().getEQCBlock(accountsMerkleTree.getHeight(), true).getEqcHeader().getTimestamp()) <= 0) {
+		if(timestamp.compareTo(Util.DB().getEQCHive(accountsMerkleTree.getHeight().getPreviousID(), true).getEqcHeader().getTimestamp()) <= 0) {
 			Log.Error("Timestamp should bigger than previous EQCBlock's timestamp.");
 			return false;
 		}
@@ -391,6 +390,10 @@ public class EQCHeader implements EQCTypable {
 			bytes[4] = timestamp.getEQCBits()[3];
 		}
 		return bytes;
+	}
+	
+	public O getO() {
+		return new O(ByteBuffer.wrap(this.getBytes()));
 	}
 	
 }

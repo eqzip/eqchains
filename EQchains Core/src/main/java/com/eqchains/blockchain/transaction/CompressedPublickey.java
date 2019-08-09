@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain;
+package com.eqchains.blockchain.transaction;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -57,38 +57,37 @@ import com.eqchains.util.Util.AddressTool;
  * @date Sep 28, 2018
  * @email 10509759@qq.com
  */
-public class PublicKey implements EQCTypable {
-	/** 
-	 * Current PublicKey's relevant address' ID.
-	 */
-	private ID id = null;
+public class CompressedPublickey implements EQCTypable {
 	/**
-	 * The No. Address relevant public key which is Bin type.
+	 * The No. Address relevant public key which is BINX type.
 	 */
-	private byte[] publicKey = null;
+	private byte[] compressedPublickey = null;
 	private boolean isNew;
 
-	public PublicKey() {
+	/**
+	 * Publickey relevant ID used to verify Publickey
+	 */
+	private ID id;
+	
+	public CompressedPublickey() {
 		super();
 		isNew = false;
 	}
 
-	public PublicKey(byte[] bytes) throws NoSuchFieldException, IOException {
+	public CompressedPublickey(byte[] bytes) throws NoSuchFieldException, IOException {
 		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parsePublickey(is);
 		EQCType.assertNoRedundantData(is);
 	}
 	
-	public PublicKey(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+	public CompressedPublickey(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		parsePublickey(is);
 	}
 	
 	private void parsePublickey(ByteArrayInputStream is) throws NoSuchFieldException, IllegalStateException, IOException {
-		// Parse PublicKey's serial number
-		id = new ID(EQCType.parseEQCBits(is));
 		// Parse publicKey
-		publicKey = EQCType.parseBIN(is);
+		compressedPublickey = EQCType.parseBIN(is);
 	}
 
 	/**
@@ -100,9 +99,7 @@ public class PublicKey implements EQCTypable {
 	public byte[] getBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(id.getEQCBits());
-			Log.info("publicKey raw data len: " + publicKey.length);
-			os.write(EQCType.bytesToBIN(publicKey));
+			os.write(compressedPublickey);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -112,42 +109,23 @@ public class PublicKey implements EQCTypable {
 	}
 
 	public int getBillingSize() {
-		int size = 0;
-		size += Util.BASIC_SERIAL_NUMBER_LEN;
-		if(publicKey == null) {
-			throw new NullPointerException("Publickey shouldn't be null.");
-		}
-		size += EQCType.bytesToBIN(publicKey).length;
-		size += EQCType.getEQCTypeOverhead(size);
+		int size = 1; // One byte for BINX
+		size += compressedPublickey.length;
 	    return size;
 	}
-	
+
 	/**
-	 * @return the publickeyID
+	 * @return the compressedPublickey
 	 */
-	public ID getID() {
-		return id;
+	public byte[] getCompressedPublickey() {
+		return compressedPublickey;
 	}
 
 	/**
-	 * @param publickeyID the publickeyID to set
+	 * @param compressedPublickey the compressedPublickey to set
 	 */
-	public void setID(ID id) {
-		this.id = id;
-	}
-
-	/**
-	 * @return the publicKey
-	 */
-	public byte[] getPublicKey() {
-		return publicKey;
-	}
-
-	/**
-	 * @param publicKey the publicKey to set
-	 */
-	public void setPublicKey(byte[] publicKey) {
-		this.publicKey = publicKey;
+	public void setCompressedPublickey(byte[] compressedPublickey) {
+		this.compressedPublickey = compressedPublickey;
 	}
 
 	/**
@@ -178,7 +156,10 @@ public class PublicKey implements EQCTypable {
 	
 	@Override
 	public boolean isSanity() {
-		if(id == null || publicKey == null) {
+		if (compressedPublickey == null) {
+			return false;
+		}
+		if(compressedPublickey.length != Util.P256_PUBLICKEY_LEN && compressedPublickey.length != Util.P521_PUBLICKEY_LEN) {
 			return false;
 		}
 		return true;
@@ -191,7 +172,7 @@ public class PublicKey implements EQCTypable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + Arrays.hashCode(publicKey);
+		result = prime * result + Arrays.hashCode(compressedPublickey);
 		return result;
 	}
 
@@ -206,8 +187,8 @@ public class PublicKey implements EQCTypable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		PublicKey other = (PublicKey) obj;
-		if (!Arrays.equals(publicKey, other.publicKey))
+		CompressedPublickey other = (CompressedPublickey) obj;
+		if (!Arrays.equals(compressedPublickey, other.compressedPublickey))
 			return false;
 		return true;
 	}
@@ -223,21 +204,21 @@ public class PublicKey implements EQCTypable {
 	}
 
 	public String toInnerJson() {
-		return "\"Publickey\":" + "{\n" + "\"ID\":" + "\"" + ((id == null) ? null : id) + "\"" + ",\n"
-				+ "\"Publickey\":" + "\"" + Util.dumpBytes(publicKey, 16) + "\""
+		return "\"Publickey\":" + "{\n"
+				+ "\"Publickey\":" + "\"" + Util.dumpBytes(compressedPublickey, 16) + "\""
 				+ "\n" + "}";
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
-		Account account = accountsMerkleTree.getAccount(id);
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+		Account account = accountsMerkleTree.getAccount(AddressTool.publickeyToAI(compressedPublickey));
 		if(!account.isPublickeyExists()) {
-			if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), publicKey)) {
+			if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), compressedPublickey)) {
 				return false;
 			}
 		}
 		else {
-			if(!Arrays.equals(account.getPublickey().getPublickey(), publicKey)) {
+			if(!Arrays.equals(account.getPublickey().getCompressedPublickey(), compressedPublickey)) {
 				return false;
 			}
 		}
@@ -245,7 +226,21 @@ public class PublicKey implements EQCTypable {
 	}
 	
 	public boolean isNULL() {
-		return publicKey == null;
+		return compressedPublickey == null;
 	}
 
+	/**
+	 * @return the id
+	 */
+	public ID getID() {
+		return id;
+	}
+
+	/**
+	 * @param id the id to set
+	 */
+	public void setID(ID id) {
+		this.id = id;
+	}
+	
 }

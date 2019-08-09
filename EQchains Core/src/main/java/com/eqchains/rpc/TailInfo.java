@@ -179,5 +179,14 @@ public class TailInfo extends AvroO implements Comparable<TailInfo> {
 	public void setIp(String ip) {
 		this.ip = ip;
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "TailInfo [height=" + height + ", checkPointHeight=" + checkPointHeight + ", blockTailProof="
+				+ Arrays.toString(blockTailProof) + ", ip=" + ip + "]";
+	}
 	
 }

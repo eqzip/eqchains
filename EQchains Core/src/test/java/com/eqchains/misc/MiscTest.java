@@ -34,9 +34,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.CompressionType;
+import org.rocksdb.DBOptions;
+import org.rocksdb.MutableColumnFamilyOptions;
+import org.rocksdb.Options;
+import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
@@ -46,13 +57,16 @@ import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
-import com.eqchains.blockchain.EQCHive;
+import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.keystore.UserAccount;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
+import com.eqchains.util.Util.AddressTool;
 
 
 /**
@@ -90,7 +104,7 @@ public class MiscTest {
 	   }
 	   
 	   @Test
-	   void snapshot() {
+	   void snapshot() throws RocksDBException, Exception {
 		   Account account;
 		try {
 			account = EQCBlockChainH2.getInstance().getAccountSnapshot(ID.TWO.getNextID(), ID.ONE);
@@ -111,7 +125,7 @@ public class MiscTest {
 					accountsMerkleTree.buildAccountsMerkleTree();
 					accountsMerkleTree.generateRoot();
 					Log.info(Util.dumpBytes(accountsMerkleTree.getRoot(), 16));
-					EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+					EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCHive(new ID(i), true);
 					accountsMerkleTree.clear();
 					Log.info("Begin verify No. " + i);
 					assertArrayEquals(accountsMerkleTree.getRoot(), eqcBlock.getRoot().getAccountsMerkelTreeRoot());
@@ -128,9 +142,11 @@ public class MiscTest {
 		   ID id;
 		try {
 			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
-			 for(int i=22; i<=id.intValue(); ++i) {
+			Log.info("" + id);
+			 for(int i=1; i<=id.intValue(); ++i) {
 			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINERING));
-			   EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCBlock(new ID(i), true);
+			   EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCHive(new ID(i), false);
+//			   Log.info(eqcBlock.toString());
 				assertTrue(eqcBlock.isValid(accountsMerkleTree));
 				accountsMerkleTree.clear();
 				 Log.info("i: " + i + " passed");
@@ -139,5 +155,65 @@ public class MiscTest {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+	   }
+	   
+	   @Test
+	   void verifyPublickey2Address() {
+		   UserAccount userAccount = Keystore.getInstance().getUserAccounts().get(0);
+		   byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
+		   Log.info("" + publickey.length);
+		   String readableAddress = AddressTool.generateAddress(publickey, AddressTool.getAddressType(publickey));
+		   assertEquals(readableAddress, userAccount.getReadableAddress());
+	   }
+	   
+	   @Test
+	   void rocksDBCompress() {
+				try {
+					byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE);
+					long begin = System.currentTimeMillis();
+					Log.info("" + begin);
+					for (int i = 0; i < 100000; ++i) {
+						EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT, ID.valueOf(i).getEQCBits(), bytes);
+					}
+					long end = System.currentTimeMillis();
+					Log.info("Total put time: " + (end - begin) + " ms");
+					begin = System.currentTimeMillis();
+//						Log.info("" + Util.dumpBytes(rocksDB.get(columnFamilyHandles.get(1), SerialNumber.ZERO.getEQCBits()), 16));
+					Log.info("" + begin);
+					for (int i = 0; i < 100000; ++i) {
+						EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, ID.valueOf(i).getEQCBits());
+					}
+					end = System.currentTimeMillis();
+					Log.info("Total get time: " + (end - begin) + " ms");
+				} catch (RocksDBException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	   }
+	   
+	   @Test
+	   void h2Test() {
+				try {
+					byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE);
+					long begin = System.currentTimeMillis();
+					Log.info("" + begin);
+					for (int i = 0; i < 100000; ++i) {
+						Account account = Util.DB().getAccount(ID.ONE);
+						EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.ZERO);
+					}
+					long end = System.currentTimeMillis();
+					Log.info("Total put time: " + (end - begin) + " ms");
+					begin = System.currentTimeMillis();
+//						Log.info("" + Util.dumpBytes(rocksDB.get(columnFamilyHandles.get(1), SerialNumber.ZERO.getEQCBits()), 16));
+					Log.info("" + begin);
+					for (int i = 0; i < 100000; ++i) {
+						EQCBlockChainH2.getInstance().getAccountSnapshot(ID.ONE, ID.ZERO);
+					}
+					end = System.currentTimeMillis();
+					Log.info("Total get time: " + (end - begin) + " ms");
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 	   }
 }

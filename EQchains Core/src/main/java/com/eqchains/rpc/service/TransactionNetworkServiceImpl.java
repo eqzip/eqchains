@@ -37,8 +37,9 @@ import org.apache.avro.AvroRemoteException;
 import com.eqchains.avro.O;
 import com.eqchains.avro.TransactionNetwork;
 import com.eqchains.blockchain.account.Account;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.blockchain.transaction.Transaction;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Balance;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
@@ -142,11 +143,11 @@ public class TransactionNetworkServiceImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getAccount(com.eqchains.avro.IO)
 	 */
 	@Override
-	public O getAccount(O id) {
+	public O getAccount(O a) {
 		O io = null;
 		Account account = null;
 		try {
-			account = Util.DB().getAccount(new ID(id));
+			account = Util.DB().getAccount(a.o.array());
 			if(account != null) {
 				io = account.getO();
 			}
@@ -217,14 +218,16 @@ public class TransactionNetworkServiceImpl implements TransactionNetwork {
 	 * @see com.eqchains.avro.TransactionNetwork#getTransactionList(com.eqchains.avro.IO)
 	 */
 	@Override
-	public O getPendingTransactionList(O id) {
+	public O getPendingTransactionList(O nest) {
 		O io = null;
 		TransactionList transactionList = new TransactionList();
-		Vector<byte[]> vector = null;
+		Vector<Transaction> transactions = null;
 		try {
-			vector = EQCBlockChainH2.getInstance().getPendingTransactionListInPool(new ID(io));
-			if(vector != null) {
-				transactionList.addAll(vector);
+			transactions = EQCBlockChainH2.getInstance().getPendingTransactionListInPool(new Nest(nest));
+			if(!transactions.isEmpty()) {
+				for(Transaction transaction:transactions) {
+					transactionList.addTransaction(transaction);
+				}
 				io = transactionList.getO();
 			}
 		} catch (Exception e) {

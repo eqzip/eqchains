@@ -31,16 +31,22 @@ package com.eqchains;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.eqchains.blockchain.EQCHive;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.configuration.Configuration;
+import com.eqchains.keystore.Keystore;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.NewBlock;
+import com.eqchains.rpc.TailInfo;
 import com.eqchains.rpc.client.MinerNetworkClient;
+import com.eqchains.rpc.client.SyncblockNetworkClient;
 import com.eqchains.rpc.service.MinerNetworkService;
 import com.eqchains.rpc.service.SyncblockNetworkService;
 import com.eqchains.rpc.service.TransactionNetworkService;
@@ -56,6 +62,8 @@ import com.eqchains.test.Test;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
+import com.eqchains.util.Util.AddressTool;
+import com.eqchains.util.Util.MODE;
 
 /**
  * @author Xun Wang
@@ -134,10 +142,39 @@ public class Singularity {
 //		Log.info("" + (int)'-');
 //		System.out.println("Begin testKeystore");
 		try {
+//			Configuration.getInstance().updateIsInitSingularityBlock(false);
+			Util.IP = args[0];
 			Util.init();
-			Log.info("" + Util.DB().getEQCBlockTailHeight());
+			for(int i=0; i<100; ++i)
+			Util.saveEQCBlockTailHeight(ID.valueOf(i));
+//			Log.info("" + TABLE.DEFAULT.ordinal());
+//			Log.info("" + Util.cypherTotalSupply(ID.THREE));
+//			Log.info(SyncblockNetworkClient.getBlock(ID.valueOf(74), Util.SINGULARITY_IP).toString());
+//			SyncBlockService.getInstance().setMode(MODE.FULL);
+//			Util.DB().saveEQCBlockTailHeight(ID.ZERO);
+//			ID id = Util.DB().getEQCBlockTailHeight();
+//			SyncBlockService.getInstance().start();
+//			TailInfo tailInfo =  SyncblockNetworkClient.getBlockTail("192.168.0.101");
+//			for(int i=0; i<100000; ++i) {
+//				Thread.sleep(1000);
+//				Test.sendTransaction();
+//			}
+//			AddressTool.verifyAddressCRC32C(Util.SINGULARITY_A);
+//			Test.testTransaction();
+//			MinerService.getInstance().start();
+//			EQCHive eqcHive = Util.DB().getEQCBlock(ID.valueOf(0), false);
+//			Log.info(Util.DB().getEQCBlock(ID.valueOf(0), false).toString());
+//			EQCBlockChainH2.getInstance().getTransactionListInPool();
+//			Log.info("Tail: " + Util.DB().getEQCBlockTailHeight());
+//			Util.recoverySingularityStatus();
+//			EQCBlockChainRocksDB.getInstance().dumpEQCBlock();
+//			Util.recoveryAccountsStatusTo(ID.valueOf(23));
+//			EQCBlockChainRocksDB.getInstance().dumpAccount();
+//			Util.DB().saveEQCBlockTailHeight(ID.valueOf(23));
+//			Util.regenerateAccountStatus();
+//			MinerService.getInstance().start();
+//			Log.info("" + Util.DB().getEQCBlockTailHeight());
 //			Util.recoveryAccounts(Util.DB().getEQCBlockTailHeight());
-//			Util.generateAccounts();
 //			Util.DB().saveEQCBlockTailHeight(ID.valueOf(106));
 //			AtomicReference<State> state = new AtomicReference<>();
 //			state.set(State.MINER);
@@ -148,8 +185,11 @@ public class Singularity {
 //			else {
 //				Log.info("2");
 //			}
-			SyncBlockService.getInstance().start();
-			SyncBlockService.getInstance().offerState(new EQCServiceState(State.SERVER));
+//			EQCBlockChainRocksDB.getInstance().dumpAccount();
+//			Test.testKeystore();
+//			SyncBlockService.getInstance().start();
+//			SyncBlockService.getInstance().offerState(new EQCServiceState(State.SERVER));
+//			Test.sendTransaction();
 //			PossibleNodeService.getInstance().start();
 //			MinerNetworkService.getInstance().start();
 //			BroadcastNewBlockService.getInstance().start();
@@ -175,7 +215,7 @@ public class Singularity {
 //			BroadcastNewBlockService.getInstance().offerNewBlockState(newBlockState);
 //			MinerNetworkClient.ping(Util.IP);
 //			for (int i = 72; i > 71; --i) {
-//				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(i - 1),
+//				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(i),
 //						new Filter(Mode.VALID));
 //				if (EQCBlockChainRocksDB.getInstance().getEQCBlock(ID.valueOf(i), false).isValid(accountsMerkleTree)) {
 //					Log.info("Passed: " + i);

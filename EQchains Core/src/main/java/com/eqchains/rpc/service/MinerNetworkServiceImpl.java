@@ -32,10 +32,10 @@ package com.eqchains.rpc.service;
 import org.apache.avro.AvroRemoteException;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.EQCHive;
+import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.avro.MinerNetwork;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.Info;
@@ -151,11 +151,12 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 	 * @see com.eqchains.avro.MinerNetwork#getTransactionIndexList()
 	 */
 	@Override
-	public O getTransactionIndexList() {
+	public O getTransactionIndexList(O synctime) {
 		O io = null;
+		long syncTime = Util.bytesToLong(synctime.getO().array());
 		TransactionIndexList transactionIndexList = null;
 		try {
-			transactionIndexList = EQCBlockChainH2.getInstance().getTransactionIndexListInPool();
+			transactionIndexList = EQCBlockChainH2.getInstance().getTransactionIndexListInPool(syncTime, System.currentTimeMillis());
 			io = transactionIndexList.getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

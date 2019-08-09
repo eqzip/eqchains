@@ -31,12 +31,15 @@ package com.eqchains.rpc.client;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import org.apache.avro.ipc.NettyTransceiver;
+import java.nio.ByteBuffer;
+
+import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import com.eqchains.avro.O;
+import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.avro.MinerNetwork;
-import com.eqchains.blockchain.EQCHive;
+import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
@@ -51,7 +54,7 @@ import com.eqchains.util.Util;
  * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public class MinerNetworkClient extends EQCClient {
+public class MinerNetworkClient extends EQCRPCClient {
 	
 	public static Info ping(Cookie cookie, String ip) throws Exception {
 		Info info = null;
@@ -65,10 +68,12 @@ public class MinerNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return info;
 	}
@@ -85,10 +90,12 @@ public class MinerNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return ipList;
 	}
@@ -105,10 +112,12 @@ public class MinerNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return ipList;
 	}
@@ -125,10 +134,12 @@ public class MinerNetworkClient extends EQCClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return info;
 	}
@@ -140,35 +151,41 @@ public class MinerNetworkClient extends EQCClient {
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
-			transactionIndexList = new TransactionIndexList(client.getTransactionIndexList());
+			O syncTime = new O(ByteBuffer.wrap(Util.longToBytes(EQCBlockChainH2.getInstance().getMinerSyncTime(ip))));
+			transactionIndexList = new TransactionIndexList(client.getTransactionIndexList(syncTime));
+			EQCBlockChainH2.getInstance().saveMinerSyncTime(ip, transactionIndexList.getSyncTime());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return transactionIndexList;
 	}
 
-	public static TransactionList getTransactionList(O transactionList, String ip) throws Exception {
+	public static TransactionList getTransactionList(TransactionIndexList transactionList, String ip) throws Exception {
 		TransactionList transactionList2 = null;
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
-			transactionList2 = new TransactionList(client.getTransactionList(transactionList));
+			transactionList2 = new TransactionList(client.getTransactionList(transactionList.getO()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
+			throw e;
+		}
+		finally {
 			if(nettyTransceiver != null) {
 				nettyTransceiver.close();
 			}
-			throw e;
 		}
 		return transactionList2;
 	}
@@ -183,6 +200,7 @@ public class MinerNetworkClient extends EQCClient {
     		client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
     		client.ping(cookie.getO());
     		time = System.currentTimeMillis() - time;
+    		Log.info("Get ping response from " + remoteIP + " used " + time + "ms");
     	}
     	catch (Exception e) {
     		Log.Error(e.getMessage());
@@ -201,6 +219,7 @@ public class MinerNetworkClient extends EQCClient {
 		long time = 0;
 		long maxTime = 0;
 		for(String ip:ipList.getIpList()) {
+			Log.info("Try to get the fastest server current ip: " + ip);
 			time = ping(ip);
 			if(time > maxTime) {
 				fastestServer = ip;

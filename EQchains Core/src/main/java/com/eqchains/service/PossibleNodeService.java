@@ -35,8 +35,8 @@ import java.util.concurrent.PriorityBlockingQueue;
 
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
 import com.eqchains.keystore.Keystore;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.rpc.client.SyncblockNetworkClient;
@@ -100,6 +100,7 @@ public final class PossibleNodeService extends EQCService {
 				}
 				else {
 					Log.info("Received Miner Node: " + possibleNode.getIp() + " but can't access");
+					Util.updateDisconnectIPStatus(possibleNode.getIp());
 //					if(!blackList.contains(possibleNode.getIp())) {
 //						blackList.addIP(possibleNode.getIp());
 //					}

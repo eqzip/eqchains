@@ -35,8 +35,8 @@ import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.configuration.Configuration;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
-import com.eqchains.persistence.rocksdb.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.util.Util;
 
 /**

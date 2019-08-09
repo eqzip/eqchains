@@ -31,6 +31,16 @@
    	 	 // h means height
          "request": [{"name": "h", "type": "O"}],
          "response": "O"
+   	},
+   	 "getEQCHeader": {
+   	 	 // h means height
+         "request": [{"name": "h", "type": "O"}],
+         "response": "O"
+   	},
+   	 "getEQCHeaderHash": {
+   	 	 // h means height
+         "request": [{"name": "h", "type": "O"}],
+         "response": "O"
    	}
  }
 }

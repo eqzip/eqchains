@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -47,7 +48,7 @@ import java.util.Vector;
 
 import org.rocksdb.RocksDBException;
 
-import com.eqchains.blockchain.PublicKey;
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
@@ -57,7 +58,7 @@ import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore.ECCTYPE;
-import com.eqchains.persistence.h2.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.rpc.MaxNonce;
 import com.eqchains.rpc.Nest;
 import com.eqchains.serialization.EQCAddressShapeInheritable;
@@ -88,12 +89,12 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	 */
 	protected ID nonce;
 	protected TxIn txIn;
-	protected PublicKey publickey;
+	protected CompressedPublickey compressedPublickey;
 	protected byte[] signature;
 	public final static ID SOLO = ID.ZERO;
 
 	public enum TransactionType {
-		COINBASE, TRANSFER, OPERATION, ASSETSUBCHAIN, MISCSMARTCONTRACT, INVALID;
+		COINBASE, TRANSFER, OPERATION, ASSETSUBCHAIN, ETHEREUMSUBCHAIN, INVALID;
 		public static TransactionType get(int ordinal) {
 			TransactionType transactionType = null;
 			switch (ordinal) {
@@ -110,7 +111,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 				transactionType = TransactionType.ASSETSUBCHAIN;
 				break;
 			case 4:
-				transactionType = TransactionType.MISCSMARTCONTRACT;
+				transactionType = TransactionType.ETHEREUMSUBCHAIN;
 				break;
 			default:
 				transactionType = TransactionType.INVALID;
@@ -128,7 +129,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		ID assetID = null;
 		if (transactionType == TransactionType.COINBASE || transactionType == TransactionType.TRANSFER
 				|| transactionType == TransactionType.OPERATION
-				|| transactionType == TransactionType.MISCSMARTCONTRACT) {
+				|| transactionType == TransactionType.ETHEREUMSUBCHAIN) {
 			assetID = Asset.EQCOIN;
 		} else if (transactionType == TransactionType.ASSETSUBCHAIN) {
 			assetID = getSubchainID();
@@ -176,6 +177,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 
 	public Transaction(TransactionType transactionType) {
 		this.transactionType = transactionType;
+		compressedPublickey = new CompressedPublickey();
 	}
 
 	public Transaction(byte[] bytes, Passport.AddressShape addressShape)
@@ -219,17 +221,17 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	/**
-	 * @return the publickey
+	 * @return the CompressedPublickey
 	 */
-	public PublicKey getPublickey() {
-		return publickey;
+	public CompressedPublickey getCompressedPublickey() {
+		return compressedPublickey;
 	}
 
 	/**
-	 * @param publickey the publickey to set
+	 * @param CompressedPublickey the CompressedPublickey to set
 	 */
-	public void setPublickey(PublicKey publickey) {
-		this.publickey = publickey;
+	public void setCompressedPublickey(CompressedPublickey compressedPublickey) {
+		this.compressedPublickey = compressedPublickey;
 	}
 
 	/**
@@ -260,13 +262,13 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 				}
 			}
 		}
-		if (nResult != 0) {
-			if (nResult < 0) {
-				nResult = 1;
-			} else {
-				nResult = -1;
-			}
-		}
+//		if (nResult != 0) {
+//			if (nResult < 0) {
+//				nResult = 1;
+//			} else {
+//				nResult = -1;
+//			}
+//		}
 		return nResult;
 	}
 
@@ -298,7 +300,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	public boolean isNoncePositive() {
-		return nonce.signum() >= 0;
+		return nonce.compareTo(ID.ZERO) > 0;
 	}
 
 	public boolean isAllValueValid() {
@@ -323,14 +325,14 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	public long getMaxTxFeeLimit() {
-		return (getMaxBillingSize() * TXFEE_RATE.POSTPONE0.getRate() * Util.TXFEE_RATE);
+		return (getMaxBillingLength() * TXFEE_RATE.POSTPONE0.getRate() * Util.TXFEE_RATE);
 	}
 
 	public long getDefaultTxFeeLimit() {
-		return (getMaxBillingSize() * Util.TXFEE_RATE);
+		return (getMaxBillingLength() * Util.TXFEE_RATE);
 	}
 
-	public int getMaxBillingSize() {
+	public int getMaxBillingLength() {
 		return 0;
 	}
 
@@ -352,7 +354,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	public long cypherTxFeeLimit(TXFEE_RATE txfee_rate) {
-		return (getMaxBillingSize() * txfee_rate.getRate() * Util.TXFEE_RATE);
+		return (getMaxBillingLength() * txfee_rate.getRate() * Util.TXFEE_RATE);
 	}
 
 	public void cypherTxInValue(TXFEE_RATE txfee_rate) {
@@ -367,7 +369,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if (getTxFeeLimit() > getMaxTxFeeLimit()) {
 			rate = TXFEE_RATE.POSTPONEVIP.getRate();
 		} else {
-			rate = (int) (getTxFeeLimit() / (getMaxBillingSize() * Util.TXFEE_RATE));
+			rate = (int) (getTxFeeLimit() / (getMaxBillingLength() * Util.TXFEE_RATE));
 		}
 		return TXFEE_RATE.get(rate);
 	}
@@ -377,16 +379,22 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if (getTxFeeLimit() > getMaxTxFeeLimit()) {
 			rate = TXFEE_RATE.POSTPONEVIP.getRate() + getTxFeeLimit() - getMaxTxFeeLimit();
 		} else {
-			rate = (int) (getTxFeeLimit() / (getMaxBillingSize() * Util.TXFEE_RATE));
+			rate = (int) (getTxFeeLimit() / (getMaxBillingLength() * Util.TXFEE_RATE));
 		}
 		return new ID(rate);
 	}
 
-	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException,
-			RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		boolean isValid = false;
-		if (publickey.isValid(accountsMerkleTree)) {
-			isValid = verifySignature(accountsMerkleTree.getEQCHeaderHash(txIn.getPassport().getID()));
+		if (compressedPublickey.isValid(accountsMerkleTree)) {
+			// isValid =
+			// verifySignature(Util.DB().getAccount(txIn.getPassport().getAddressAI()).getSignatureHash());
+//			if (accountsMerkleTree.getHeight().compareTo(ID.ZERO) > 0) {
+//				isValid = verifySignature();
+//			} else {
+//				isValid = verifySignature();
+//			}
+			isValid = verifySignature();
 		}
 		return isValid;
 	}
@@ -432,6 +440,9 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	public static Transaction parseTransaction(byte[] bytes, Passport.AddressShape addressShape) {
+		if(bytes == null) {
+			return null;
+		}
 		Transaction transaction = null;
 		TransactionType transactionType = parseTransactionType(bytes);
 
@@ -443,6 +454,9 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			} else if (transactionType == TransactionType.OPERATION) {
 				transaction = new OperationTransaction(bytes, addressShape);
 			}
+			else {
+				throw new IllegalStateException("Bad transaction format " + transactionType);
+			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -451,13 +465,18 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return transaction;
 	}
 
-	public boolean verifySignature(byte[] signature_hash) {
+	public boolean verifySignature() throws ClassNotFoundException, RocksDBException, SQLException, Exception {
 		boolean isTransactionValid = false;
 		Signature signature = null;
-
+		Account account = null;
 		// Verify Signature
 		try {
-			signature = Signature.getInstance("SHA1withECDSA", "SunEC");
+			account = Util.DB().getAccount(txIn.getPassport().getAddressAI());
+			if(account == null) {
+				Log.Error("Invalid TxIn " + txIn.getPassport().getReadableAddress() + "'s ID doesn't exists");
+				return false;
+			}
+			signature = Signature.getInstance("NONEwithECDSA", "SunEC");
 			ECCTYPE eccType = null;
 			if (txIn.getPassport().getAddressType() == AddressType.T1) {
 				eccType = ECCTYPE.P256;
@@ -466,16 +485,11 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			}
 			EQCPublicKey eqPublicKey = new EQCPublicKey(eccType);
 			// Create EQPublicKey according to java Publickey
-			eqPublicKey.setECPoint(publickey.getPublicKey());
-//			Log.info(Util.dumpBytesBigEndianBinary(eqPublicKey.getEncoded()));
-			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			os.write(txIn.getPassport().getIDEQCBits());
-			os.write(Util.SINGULARITY);
-			os.write(signature_hash);
-			os.write(getBytes(AddressShape.READABLE));
-			signature.update(Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.HUNDREDPULS, true, false));
+			eqPublicKey.setECPoint(compressedPublickey.getCompressedPublickey());
+			signature.initVerify(eqPublicKey);
+			signature.update(cypherM(account));
 			isTransactionValid = signature.verify(this.signature);
-		} catch (NoSuchAlgorithmException | NoSuchProviderException | SignatureException | IOException e) {
+		} catch (NoSuchAlgorithmException | NoSuchProviderException | SignatureException | IOException | InvalidKeyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
@@ -483,24 +497,43 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return isTransactionValid;
 	}
 
-	public byte[] sign(Signature ecdsa, byte[] signature_hash) {
+	public byte[] sign(Signature ecdsa) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
 		try {
-			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			os.write(txIn.getPassport().getIDEQCBits());
-			os.write(Util.SINGULARITY);
-			os.write(signature_hash);
-			os.write(getBytes(AddressShape.READABLE));
-			os.write(Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.HUNDREDPULS, true, false));
-			ecdsa.update(os.toByteArray());
+			Account account = Util.DB().getAccount(txIn.getPassport().getAddressAI());
+			ecdsa.update(cypherM(account));
 			signature = ecdsa.sign();
 		} catch (SignatureException | IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 		}
 		return signature;
 	}
 
+	public byte[] cypherM(Account account) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		os.write(getBytes(AddressShape.READABLE));
+		os.write(Util.SINGULARITY);
+		os.write(account.getSignatureHash());
+		byte[] raw = os.toByteArray();
+		ID random;
+		if(account.getLockCreateHeight().compareTo(ID.ZERO) > 0) {
+			random = new ID(new BigInteger(1, Util.EQCCHA_MULTIPLE_DUAL(raw, Util.ONE, true, false)).mod(account.getLockCreateHeight()));
+		}
+		else {
+			random = ID.ZERO;
+		}
+		os = new ByteArrayOutputStream();
+		os.write(raw);
+		os.write(Util.SINGULARITY);
+		os.write(Util.DB().getEQCHeaderHash(random));
+		os.write(Util.SINGULARITY);
+		os.write(account.getPassport().getID().getEQCBits());
+		os.write(Util.SINGULARITY);
+		os.write(nonce.getEQCBits());
+		
+		return Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.HUNDREDPULS, true, false);
+	}
+	
 	public boolean isAllAddressIDValid(AccountsMerkleTree accountsMerkleTree) {
 		if (txIn.getPassport().getID().compareTo(accountsMerkleTree.getTotalAccountNumbers()) > 0) {
 			return false;
@@ -508,9 +541,8 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return true;
 	}
 
-	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, byte[] signature) throws IllegalStateException,
-			NoSuchFieldException, RocksDBException, IOException, ClassNotFoundException, SQLException {
-		// Fill in TxIn's ReadableAddress
+	public void prepareVerify(AccountsMerkleTree accountsMerkleTree) throws Exception {
+		// Fill in TxIn's ReadableAddress excpet Coinbase Transaction
 		if (transactionType != TransactionType.COINBASE) {
 			Account account = accountsMerkleTree.getAccount(txIn.getPassport().getID());
 			txIn.getPassport().setReadableAddress(account.getPassport().getReadableAddress());
@@ -518,16 +550,16 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			if (!account.isPublickeyExists()) {
 				throw new IllegalStateException(account.toString() + "'s Publickey shouldn't be empty.");
 			} else {
-				publickey.setID(txIn.getPassport().getID());
-				publickey.setPublicKey(accountsMerkleTree.getPublicKey(txIn.getPassport().getID()).getPublicKey());
+				compressedPublickey.setID(txIn.getPassport().getID());
+				compressedPublickey.setCompressedPublickey(accountsMerkleTree.getPublicKey(txIn.getPassport().getID()).getCompressedPublickey());
+				if(account.getPublickey().getPublickeyCreateHeight().compareTo(accountsMerkleTree.getHeight()) == 0) {
+					compressedPublickey.setNew(true);
+				}
 			}
 		}
-		// Fill in Signature
-		this.signature = signature;
 	}
 
-	public boolean isNonceCorrect(AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException,
-			IllegalStateException, RocksDBException, IOException, ClassNotFoundException, SQLException {
+	public boolean isNonceCorrect(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		// Check if Nonce's value is correct
 		if (!nonce.isNextID(
 				accountsMerkleTree.getAccount(txIn.getPassport().getID()).getAsset(getAssetID()).getNonce())) {
@@ -594,8 +626,8 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public void update(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		// Update current Transaction's relevant Account's AccountsMerkleTree's data
 		// Update current Transaction's TxIn Publickey if need
-		if (publickey.isNew()) {
-			accountsMerkleTree.savePublicKey(publickey, accountsMerkleTree.getHeight().getNextID());
+		if (compressedPublickey.isNew()) {
+			accountsMerkleTree.savePublicKey(compressedPublickey, accountsMerkleTree.getHeight());
 		}
 
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce&Balance
@@ -604,6 +636,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
 		account.getAsset(getAssetID()).getBalance().subtract(new ID(getBillingValue()));
+		account.setUpdateHeight(accountsMerkleTree.getHeight());
 		accountsMerkleTree.saveAccount(account);
 	}
 
@@ -646,7 +679,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		// TODO Auto-generated method stub
 		return 0;
 	}
-
+	
 	public byte[] getBytes(AddressShape addressShape) {
 		return null;
 	}
@@ -718,9 +751,9 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		// Parse Transaction
 		Transaction transaction = Transaction.parseTransaction(EQCType.parseBIN(is), Passport.AddressShape.READABLE);
 		// Parse PublicKey
-		PublicKey publickey = new PublicKey();
-		publickey.setPublicKey(EQCType.parseBIN(is));
-		transaction.setPublickey(publickey);
+		CompressedPublickey compressedPublickey = new CompressedPublickey();
+		compressedPublickey.setCompressedPublickey(EQCType.parseBIN(is));
+		transaction.setCompressedPublickey(compressedPublickey);
 
 		// Parse Signature
 		transaction.setSignature(EQCType.parseBIN(is));
@@ -731,7 +764,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		Account account = null;
 		ID maxNonce = null;
 		// Check if Publickey isn't null
-		if(publickey == null || publickey.isNULL()) {
+		if(compressedPublickey == null || compressedPublickey.isNULL()) {
 			return false;
 		}
 		// Check if Account exists
@@ -769,7 +802,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			}
 		}
 		// Check if signature is valid
-		if(!verifySignature(account.getSignatureHash())) {
+		if(!verifySignature()) {
 			return false;
 		}
 		EQCBlockChainH2.getInstance().saveTransactionInPool(this);
@@ -789,6 +822,33 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		nest.setID(txIn.getPassport().getID());
 		nest.setAssetID(getAssetID());
 		return nest;
+	}
+	
+	@Deprecated
+	public MaxNonce getMaxNonce() {
+		MaxNonce maxNonce = new MaxNonce(nonce);
+		return maxNonce;
+	}
+	
+	public O getO() {
+		return new O(ByteBuffer.wrap(getRPCBytes()));
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return
+
+		"{\n" + toInnerJson() + "\n}";
+
+	}
+	
+	protected String toInnerJson() {
+		return null;
 	}
 	
 }

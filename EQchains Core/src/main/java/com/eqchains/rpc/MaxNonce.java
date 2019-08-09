@@ -45,7 +45,8 @@ import com.eqchains.util.ID;
 public class MaxNonce extends AvroO {
 	private ID nonce;
 	
-	public MaxNonce() {
+	public MaxNonce(ID nonce) {
+		this.nonce = nonce;
 	}
 	
 	public MaxNonce(O io) throws Exception {
@@ -108,7 +109,7 @@ public class MaxNonce extends AvroO {
 	public byte[] getBodyBytes() throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(nonce.getEQCBits());
-		return null;
+		return os.toByteArray();
 	}
 
 	/**

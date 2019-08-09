@@ -105,7 +105,7 @@ public class UpdateAddressOperation extends Operation {
 	 * @see com.eqzip.eqcoin.blockchain.OperationTransaction.Operation#execute()
 	 */
 	@Override
-	public boolean execute(Object ...objects) throws RocksDBException, NoSuchFieldException, IllegalStateException, IOException, ClassNotFoundException, SQLException {
+	public boolean execute(Object ...objects) throws Exception {
 		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
 		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
 		Account account = accountsMerkleTree.getAccount(operationTransaction.getTxIn().getPassport().getID());
@@ -114,7 +114,7 @@ public class UpdateAddressOperation extends Operation {
 		}
 		address.setID(account.getID());
 		account.setPassport(address);
-		account.setLockCreateHeight(accountsMerkleTree.getHeight().getNextID());
+		account.setLockCreateHeight(accountsMerkleTree.getHeight());
 		accountsMerkleTree.saveAccount(account);
 		return true;
 	}

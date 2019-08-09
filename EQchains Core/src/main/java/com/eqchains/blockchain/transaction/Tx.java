@@ -181,9 +181,9 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 		if(passport == null) {
 			return false;
 		}
-		if(value < Util.MIN_EQC) {
-			return false;
-		}
+//		if(value < Util.MIN_EQC) {
+//			return false;
+//		}
 		if(!passport.isSanity(addressShape)) {
 			return false;
 		}
@@ -211,7 +211,7 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		// Parse Address
 		if(addressShape == Passport.AddressShape.READABLE) {
-			passport = new Passport(EQCType.parseBIN(is));
+			passport = new Passport(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
 		}
 		else if(addressShape == Passport.AddressShape.ID) {
 			passport = new Passport();
@@ -220,7 +220,6 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 		
 		// Parse Value
 		value = EQCType.eqcBitsToLong(EQCType.parseEQCBits(is));
-		
 	}
 
 	@Override

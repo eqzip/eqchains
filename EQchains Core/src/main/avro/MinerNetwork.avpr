@@ -29,7 +29,8 @@
          "response": "O"
      },
      "getTransactionIndexList": {
-         "request": [],
+     	 // s means sync time
+         "request": [{"name": "s", "type": "O"}],
          "response": "O"
      },
      "getTransactionList": {

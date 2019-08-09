@@ -50,16 +50,17 @@ import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
 /**
+ * Use this class save compressed publickey in Account
+ * 
  * @author Xun Wang
  * @date Dec 14, 2018
  * @email 10509759@qq.com
  */
 public class Publickey implements EQCHashTypable, EQCHashInheritable {
-	private byte[] publickey;
+	private byte[] compressedPublickey;
 	private ID publickeyCreateHeight;
 	
 	public Publickey() {
-		// TODO Auto-generated constructor stub
 	}
 	
 	public Publickey(byte[] bytes) throws NoSuchFieldException, IOException {
@@ -76,16 +77,16 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	}
 	
 	/**
-	 * @return the publickey
+	 * @return the compressedPublickey
 	 */
-	public byte[] getPublickey() {
-		return publickey;
+	public byte[] getCompressedPublickey() {
+		return compressedPublickey;
 	}
 	/**
-	 * @param publickey the publickey to set
+	 * @param compressedPublickey the compressedPublickey to set
 	 */
-	public void setPublickey(byte[] publickey) {
-		this.publickey = publickey;
+	public void setCompressedPublickey(byte[] compressedPublickey) {
+		this.compressedPublickey = compressedPublickey;
 	}
 	/**
 	 * @return the publickeyCreateHeight
@@ -131,7 +132,7 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	public String toInnerJson() {
-		return "\"Publickey\":" + "{\n" + "\"Publickey\":" + ((publickey == null)?null:"\"" + Util.dumpBytes(publickey, 16) + "\"") + ",\n"
+		return "\"Publickey\":" + "{\n" + "\"Publickey\":" + ((compressedPublickey == null)?null:"\"" + Util.dumpBytes(compressedPublickey, 16) + "\"") + ",\n"
 				+ "\"PublickeyCreateHeight\":" + "\"" + publickeyCreateHeight + "\""
 				+ "\n" + "}";
 	}
@@ -158,7 +159,7 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + Arrays.hashCode(publickey);
+		result = prime * result + Arrays.hashCode(compressedPublickey);
 		result = prime * result + ((publickeyCreateHeight == null) ? 0 : publickeyCreateHeight.hashCode());
 		return result;
 	}
@@ -175,7 +176,7 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 		if (getClass() != obj.getClass())
 			return false;
 		Publickey other = (Publickey) obj;
-		if (!Arrays.equals(publickey, other.publickey))
+		if (!Arrays.equals(compressedPublickey, other.compressedPublickey))
 			return false;
 		if (publickeyCreateHeight == null) {
 			if (other.publickeyCreateHeight != null)
@@ -197,7 +198,7 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 		}
 		else {
 		// Parse publickey
-		publickey = data;
+		compressedPublickey = data;
 		// Parse publickeyCreateHeight
 		publickeyCreateHeight = new ID(EQCType.parseEQCBits(is));
 		}
@@ -218,7 +219,7 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	public byte[] getBodyBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(EQCType.bytesToBIN(publickey));
+			os.write(EQCType.bytesToBIN(compressedPublickey));
 			os.write(publickeyCreateHeight.getEQCBits());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -229,7 +230,7 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	public boolean isNULL() {
-		return publickey == null && publickeyCreateHeight == null;
+		return compressedPublickey == null && publickeyCreateHeight == null;
 	}
 
 	@Override
@@ -242,7 +243,7 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(EQCType.bytesToBIN(publickey));
+			os.write(EQCType.bytesToBIN(compressedPublickey));
 			os.write(publickeyCreateHeight.getEQCBits());
 			soleUpdate.update(os, publickeyCreateHeight);
 		} catch (IOException e) {

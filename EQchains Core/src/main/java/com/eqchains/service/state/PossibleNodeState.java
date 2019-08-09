@@ -29,7 +29,7 @@
  */
 package com.eqchains.service.state;
 
-import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 
 /**
  * @author Xun Wang

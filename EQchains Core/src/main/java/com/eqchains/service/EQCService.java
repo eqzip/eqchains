@@ -29,6 +29,7 @@
  */
 package com.eqchains.service;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -51,10 +52,24 @@ public abstract class EQCService implements Runnable {
 	protected AtomicBoolean isPausing;
 	protected AtomicBoolean isSleeping;
 	protected AtomicBoolean isWaiting;
+	protected AtomicBoolean isStopped = new AtomicBoolean(true);
 	protected AtomicReference<State> state;
 	protected final String name = this.getClass().getSimpleName() + " ";
-
+	
 	public synchronized void start() {
+		synchronized (isStopped) {
+			if(!isStopped.get()) {
+				try {
+					Log.info(name + "waiting for previous thread stop");
+					isStopped.wait();
+					Log.info(name + "previous thread stopped");
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.info(name + e.getMessage());
+				}
+			}
+		}
 		boolean isNeedStart = false;
 		if (worker == null) {
 			isNeedStart = true;
@@ -63,6 +78,7 @@ public abstract class EQCService implements Runnable {
 			isPausing = new AtomicBoolean(false);
 			isSleeping = new AtomicBoolean(false);
 			isWaiting = new AtomicBoolean(false);
+			isStopped = new AtomicBoolean(true);
 			state = new AtomicReference<>();
 		} else {
 			if (!worker.isAlive()) {
@@ -72,7 +88,18 @@ public abstract class EQCService implements Runnable {
 		if (isNeedStart) {
 			worker = new Thread(this);
 			worker.setPriority(Thread.NORM_PRIORITY);
+			worker.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+				public void uncaughtException(Thread t, Throwable e) {
+					Log.Error(name + "Uncaught Exception occur: " + e.getMessage());
+					isStopped.set(true);
+					Log.info(name + "beginning stop " + name);
+					stop();
+					Log.info(name + "beginning start " + name);
+					start();
+				}
+			});
 			isRunning.set(true);
+			isStopped.set(false);
 			state.set(State.RUNNING);
 			worker.start();
 		}
@@ -86,6 +113,7 @@ public abstract class EQCService implements Runnable {
 	}
 
 	public synchronized void stop() {
+		Log.info(name + "begining stop");
 		isRunning.set(false);
 		worker = null;
 		pendingMessage.clear();
@@ -96,29 +124,26 @@ public abstract class EQCService implements Runnable {
 			resumePause();
 		}
 		offerState(new EQCServiceState(State.STOP));
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
-		}
-		Log.info(name + " begining stop");
-	}
-	
-	public void pause() {
-		Log.info(name + " begining pause");
-		isPausing.set(true);
 	}
 
-	public void onPause() {
-		if (isPausing.get()) {
-			synchronized (isPausing) {
+	public void pause() {
+		synchronized (isPausing) {
+			Log.info(name + "begining pause");
+			isPausing.set(true);
+		}
+	}
+
+	public void onPause(String ...phase) {
+		synchronized (isPausing) {
+			if (isPausing.get()) {
 				try {
-					Log.info(name + " is pausing now");
+					if(phase != null) {
+						Log.info(name + " paused at " + phase[0]);
+					}
+					Log.info(name + "is pausing now");
 					isPausing.wait();
 					isPausing.set(false);
-					Log.info(name + " end of pause");
+					Log.info(name + "end of pause");
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -130,80 +155,47 @@ public abstract class EQCService implements Runnable {
 
 	public void resumePause() {
 		synchronized (isPausing) {
-			Log.info(name + " resume pause");
+			Log.info(name + "resume pause");
 			isPausing.notify();
 		}
 	}
 
 	public void waiting() {
-		isWaiting.set(true);
-		EQCServiceState state = new EQCServiceState();
-		state.setState(State.WAIT);
-		state.setTime(System.currentTimeMillis());
-		offerState(state);
-	}
-
-	public void onWaiting() {
-		if (isWaiting.get()) {
-			synchronized (isWaiting) {
-				try {
-					isWaiting.wait();
-					isWaiting.set(false);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					Log.Error(e.getMessage());
-				}
-			}
+		synchronized (isWaiting) {
+			Log.info(name + "begin waiting");
+			isWaiting.set(true);
+			offerState(new EQCServiceState(State.WAIT));
 		}
 	}
 
 	public void resumeWaiting() {
 		synchronized (isWaiting) {
+			Log.info(name + "resumeWaiting");
 			isWaiting.notify();
 		}
 	}
 
-	public synchronized void sleeping() {
-		isSleeping.set(true);
-		EQCServiceState state = new EQCServiceState();
-		state.setState(State.SLEEP);
-		state.setTime(System.currentTimeMillis());
-		offerState(state);
-	}
-
-	public void onSleeping(long time) {
-		if (isSleeping.get()) {
-			synchronized (isSleeping) {
-				try {
-					if (time == 0) {
-						isSleeping.wait();
-					} else {
-						isSleeping.wait(time);
-					}
-					isSleeping.set(false);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					Log.Error(e.getMessage());
-				}
-			}
+	public void sleeping(long sleepTime) {
+		synchronized (isSleeping) {
+			isSleeping.set(true);
+			offerState(new SleepState(sleepTime));
 		}
 	}
 
 	public void resumeSleeping() {
 		synchronized (isSleeping) {
+			Log.info(name + "resumeSleeping");
 			isSleeping.notify();
 		}
 	}
 
 	@Override
 	public void run() {
-		Log.info(name + "is running now...");
+		Log.info(name + "worker thread is running now...");
 		EQCServiceState state = null;
 		while (isRunning.get()) {
 			try {
-//				Log.info(name + "Waiting for new message...");
+				Log.info(name + "Waiting for new message...");
 				state = pendingMessage.take();
 				Log.info(name + "take new message: " + state);
 				this.state.set(State.TAKE);
@@ -216,7 +208,6 @@ public abstract class EQCService implements Runnable {
 			}
 			switch (state.getState()) {
 			case SLEEP:
-				this.state.set(State.SLEEP);
 //				Log.info(name + "Begin onSleep");
 				onSleep(state);
 //				Log.info(name + "End onSleep");
@@ -239,30 +230,61 @@ public abstract class EQCService implements Runnable {
 				break;
 			}
 		}
-		Log.info(name + " stopped");
+		Log.info(name + "worker thread stopped...");
+		synchronized (isStopped) {
+			isStopped.set(true);
+			isStopped.notify();
+		}
 	}
 
 	private void onSleep(EQCServiceState state) {
-		SleepState sleepState = (SleepState) state;
-		Log.info(name + "onSleep time: " + sleepState.getSleepTime());
-		isSleeping.set(true);
-		onSleeping(sleepState.getSleepTime());
-		if(isRunning.get()) {
-			onSleep(sleepState);
+		synchronized (isSleeping) {
+			this.state.set(State.SLEEP);
+			SleepState sleepState = (SleepState) state;
+			Log.info(name + "onSleep time: " + sleepState.getSleepTime());
+			if (isSleeping.get()) {
+				try {
+					if (sleepState.getSleepTime() == 0) {
+						isSleeping.wait();
+					} else {
+						isSleeping.wait(sleepState.getSleepTime());
+					}
+					isSleeping.set(false);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(e.getMessage());
+				}
+			}
+
+			if (isRunning.get()) {
+				onSleep(sleepState);
+			}
 		}
 	}
-	
+
 	protected void onSleep(SleepState state) {
 		
 	}
 
 	protected void onWaiting(EQCServiceState state) {
-		Log.info(name + "onWaiting");
-		onWaiting();
+		synchronized (isWaiting) {
+			if (isWaiting.get()) {
+				Log.info(name + "onWaiting");
+				try {
+					isWaiting.wait();
+					isWaiting.set(false);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(name + e.getMessage());
+				}
+			}
+		}
 	}
 
 	protected void onStop(EQCServiceState state) {
-
+		Log.info(name + "Received stop message need stop now");
 	}
 
 	protected void onDefault(EQCServiceState state) {
@@ -270,9 +292,9 @@ public abstract class EQCService implements Runnable {
 	}
 
 	public void offerState(EQCServiceState state) {
-		if (isRunning.get()) {
+//		if (isRunning.get()) {
 			pendingMessage.offer(state);
-		}
+//		}
 	}
 
 	/**

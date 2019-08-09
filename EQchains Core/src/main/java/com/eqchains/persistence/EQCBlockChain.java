@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain;
+package com.eqchains.persistence;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -38,9 +38,12 @@ import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.transaction.Transaction;
-import com.eqchains.persistence.h2.EQCBlockChainH2.NODETYPE;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Nest;
+import com.eqchains.rpc.SignHash;
+import com.eqchains.rpc.TransactionIndex;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
 import com.eqchains.rpc.Balance;
@@ -56,58 +59,79 @@ import com.eqchains.util.ID;
 public interface EQCBlockChain {
 	
 	// Account relevant interface for H2, avro(optional).
-	public void saveAccount(Account account) throws Exception;
+	public boolean saveAccount(Account account) throws Exception;
 	
+	/**
+	 * Get Account according to it's ID.
+	 * <p>
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
 	public Account getAccount(ID id) throws Exception;
 	
 	public Account getAccount(byte[] addressAI) throws Exception;
 	
-	public void deleteAccount(ID id) throws Exception;
+	public boolean deleteAccount(ID id) throws Exception;
+	
+	@Deprecated
+	public void deleteAccountFromTo(ID fromID, ID toID) throws Exception;
 	
 	// Block relevant interface for for avro, H2(optional).
-	public void saveEQCBlock(EQCHive eqcBlock) throws Exception;
+	public boolean saveEQCHive(EQCHive eqcHive) throws Exception;
 	
-	public EQCHive getEQCBlock(ID height, boolean isSegwit) throws Exception;
+	public EQCHive getEQCHive(ID height, boolean isSegwit) throws Exception;
 	
-	public void deleteEQCBlock(ID height) throws Exception;
+	public boolean deleteEQCHive(ID height) throws Exception;
+	
+	@Deprecated
+	public void deleteEQCHiveFromTo(ID fromHeight, ID toHeight) throws Exception;
 	
 	// TransactionPool relevant interface for H2, avro.
 	public boolean isTransactionExistsInPool(Transaction transaction) throws SQLException;
+	
+	public boolean isTransactionExistsInPool(TransactionIndex transactionIndex) throws SQLException;
 	
 	public boolean saveTransactionInPool(Transaction transaction) throws SQLException;
 	
 	public boolean deleteTransactionInPool(Transaction transaction) throws SQLException;
 	
-	public boolean deleteTransactionsInPool(EQCHive eqcBlock) throws SQLException;
+	public boolean deleteTransactionsInPool(EQCHive eqcHive) throws SQLException, ClassNotFoundException, RocksDBException, Exception;
 	
 	public Vector<Transaction> getTransactionListInPool() throws SQLException, Exception;
 	
-	public Vector<byte[]> getPendingTransactionListInPool(ID id) throws SQLException, Exception;
+	public Vector<Transaction> getPendingTransactionListInPool(Nest nest) throws SQLException, Exception;
 	
+	@Deprecated
 	public boolean isTransactionMaxNonceExists(Nest nest) throws SQLException;
 	
+	@Deprecated
 	public boolean saveTransactionMaxNonce(Nest nest, MaxNonce maxNonce) throws SQLException;
 	
-	public MaxNonce getTransactionMaxNonce(Nest nest) throws SQLException;
+	public MaxNonce getTransactionMaxNonce(Nest nest) throws SQLException, Exception;
 	
+	@Deprecated
 	public boolean deleteTransactionMaxNonce(Nest nest) throws SQLException;
 	
 	public Balance getBalance(Nest nest) throws SQLException, Exception;
 	
-	public TransactionIndexList getTransactionIndexListInPool() throws SQLException, Exception;
+	public TransactionIndexList getTransactionIndexListInPool(long previousSyncTime, long currentSyncTime) throws SQLException, Exception;
 	
 	public TransactionList getTransactionListInPool(TransactionIndexList transactionIndexList) throws SQLException, Exception;
 	
 	// For sign and verify Transaction need use relevant TxIn's EQC block header's hash via this function to get it from xxx.EQC.
 	public byte[] getEQCHeaderHash(ID height) throws Exception;
 	
+	@Deprecated
 	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception;
 	
 	public ID getEQCBlockTailHeight() throws Exception;
 	
-	public void saveEQCBlockTailHeight(ID height) throws Exception;
+	public boolean saveEQCBlockTailHeight(ID height) throws Exception;
 	
 	public ID getTotalAccountNumbers(ID height) throws Exception;
+	
+	public SignHash getSignHash(ID id) throws Exception;
 	
 	// MinerNetwork and FullNodeNetwork relevant interface for H2, avro.
 	public boolean isIPExists(String ip, NODETYPE nodeType) throws SQLException;
@@ -117,6 +141,14 @@ public interface EQCBlockChain {
 	public boolean saveMiner(String ip) throws SQLException, Exception;
 	
 	public boolean deleteMiner(String ip) throws SQLException, Exception;
+	
+	public boolean saveMinerSyncTime(String ip, long syncTime) throws SQLException, Exception;
+	
+	public long getMinerSyncTime(String ip) throws SQLException, Exception;
+	
+	public boolean saveIPCounter(String ip, int counter) throws SQLException, Exception;
+	
+	public int getIPCounter(String ip) throws SQLException, Exception;
 	
 	public IPList getMinerList() throws SQLException, Exception;
 	
@@ -132,10 +164,12 @@ public interface EQCBlockChain {
 	public boolean close() throws SQLException, Exception;
 	
 	// Clear the relevant database table
-	public void dropTable() throws Exception, SQLException;
+	public boolean dropTable() throws Exception, SQLException;
 	
 	// Take Account's snapshot
 	public Account getAccountSnapshot(ID accountID, ID height) throws SQLException, Exception;
+	
+	public Account getAccountSnapshot(byte[] addressAI, ID height) throws SQLException, Exception;
 	
 	public boolean saveAccountSnapshot(Account account, ID height) throws SQLException, Exception;
 	

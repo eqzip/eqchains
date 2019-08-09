@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain;
+package com.eqchains.blockchain.subchain;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -66,23 +66,30 @@ public class EQCSignatures implements EQCTypable {
 	}
 
 	public EQCSignatures(byte[] bytes) throws NoSuchFieldException, IOException {
-		parseSignatures(bytes);
+		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		parseSignatures(is);
+		EQCType.assertNoRedundantData(is);
+	}
+	
+	public EQCSignatures(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+		parseSignatures(is);
 	}
 	
 	public EQCSignatures(ByteBuffer byteBuffer) throws NoSuchFieldException, IOException {
-		parseSignatures(byteBuffer.array());
+		ByteArrayInputStream is = new ByteArrayInputStream(byteBuffer.array());
+		parseSignatures(is);
+		EQCType.assertNoRedundantData(is);
 	}
 	
-	private void parseSignatures(byte[] bytes) throws NoSuchFieldException, IOException{
+	private void parseSignatures(ByteArrayInputStream is) throws NoSuchFieldException, IOException{
 		signatureList = new Vector<byte[]>();
-		ARRAY array = EQCType.parseARRAY(bytes);
+		ARRAY array = EQCType.parseARRAY(is);
 		if(!array.isNULL()) {
-			signatureListSize = array.length;
-			ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+			signatureListSize = array.size;
+			ByteArrayInputStream is1 = new ByteArrayInputStream(array.elements);
 			for(int i=0; i<signatureListSize; ++i) {
-				signatureList.addElement(EQCType.parseBIN(is));
+				signatureList.addElement(EQCType.parseBIN(is1));
 			}
-			EQCType.assertNoRedundantData(is);
 		}
 	}
 
@@ -139,8 +146,11 @@ public class EQCSignatures implements EQCTypable {
 	 */
 	@Override
 	public byte[] getBin() {
-		// TODO Auto-generated method stub
-		return EQCType.bytesArrayToARRAY(signatureList);
+		Vector<byte[]> bytes = new Vector<>();
+		for(byte[] signature:signatureList) {
+			bytes.add(EQCType.bytesToBIN(signature));
+		}
+		return EQCType.bytesArrayToARRAY(bytes);
 	}
 	
 	public ByteBuffer getByteBuffer() {

@@ -29,6 +29,8 @@
  */
 package com.eqchains.service.state;
 
+import java.sql.Date;
+
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
 
 /**
@@ -39,9 +41,6 @@ import com.eqchains.blockchain.transaction.operation.Operation.OP;
 public class EQCServiceState implements Comparable<EQCServiceState> {
 	protected State state;
 	protected long time;
-	
-	public EQCServiceState() {
-	}
 	
 	public EQCServiceState(State state) {
 		this.state = state;
@@ -97,7 +96,7 @@ public class EQCServiceState implements Comparable<EQCServiceState> {
 	 */
 	@Override
 	public String toString() {
-		return state.name();
+		return state.name() + " occur at: " + new Date(time).toGMTString();
 	}
 	
 }

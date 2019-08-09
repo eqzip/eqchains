@@ -34,8 +34,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 import org.apache.avro.AvroRemoteException;
-import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
+import org.apache.avro.ipc.netty.NettyServer;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
 import com.eqchains.avro.O;
@@ -50,7 +50,7 @@ import com.eqchains.util.Util;
  * @date Jan 24, 2019
  * @email 10509759@qq.com
  */
-public class TransactionNetworkService extends NetworkService {
+public class TransactionNetworkService extends EQCRPCService {
 	private static TransactionNetworkService instance;
 	
 	private TransactionNetworkService() {

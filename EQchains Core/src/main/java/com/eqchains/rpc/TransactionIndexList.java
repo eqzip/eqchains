@@ -30,12 +30,14 @@
 package com.eqchains.rpc;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Vector;
 
 import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
@@ -45,6 +47,7 @@ import com.eqchains.serialization.EQCType.ARRAY;
 public class TransactionIndexList extends AvroO {
 	private Vector<TransactionIndex> transactionIndexList;
 	private long transactionIndexListSize;
+	private long syncTime;
 	
 	public TransactionIndexList() {
 		transactionIndexList = new Vector<>();
@@ -60,7 +63,7 @@ public class TransactionIndexList extends AvroO {
 	 */
 	@Override
 	public boolean isSanity() {
-		if(transactionIndexList == null) {
+		if(transactionIndexList == null || syncTime < 0) {
 			return false;
 		}
 		if(transactionIndexList.size() != transactionIndexListSize) {
@@ -93,11 +96,12 @@ public class TransactionIndexList extends AvroO {
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		ARRAY array = EQCType.parseARRAY(is);
-		transactionIndexListSize = array.length;
+		transactionIndexListSize = array.size;
 		ByteArrayInputStream is1 = new ByteArrayInputStream(array.elements);
-		for(int i=0; i<array.length; ++i) {
+		for(int i=0; i<array.size; ++i) {
 			transactionIndexList.add(new TransactionIndex(is1));
 		}
+		syncTime = Util.bytesToLong(EQCType.parseEQCBits(is));
 	}
 
 	/* (non-Javadoc)
@@ -114,6 +118,7 @@ public class TransactionIndexList extends AvroO {
 	 */
 	@Override
 	public byte[] getBodyBytes() throws Exception {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		Vector<byte[]> bytes = null;
 		if (transactionIndexList.size() > 0) {
 			bytes = new Vector<>();
@@ -121,7 +126,9 @@ public class TransactionIndexList extends AvroO {
 				bytes.add(transactionIndex.getBytes());
 			}
 		}
-		return EQCType.bytesArrayToARRAY(bytes);
+		os.write(EQCType.bytesArrayToARRAY(bytes));
+		os.write(EQCType.longToEQCBits(syncTime));
+		return os.toByteArray();
 	}
 
 	public void addTransactionIndex(TransactionIndex transactionIndex) {
@@ -140,6 +147,20 @@ public class TransactionIndexList extends AvroO {
 	 */
 	public void setTransactionIndexList(Vector<TransactionIndex> transactionIndexList) {
 		this.transactionIndexList = transactionIndexList;
+	}
+
+	/**
+	 * @return the syncTime
+	 */
+	public long getSyncTime() {
+		return syncTime;
+	}
+
+	/**
+	 * @param syncTime the syncTime to set
+	 */
+	public void setSyncTime(long syncTime) {
+		this.syncTime = syncTime;
 	}
 	
 }

@@ -508,7 +508,7 @@ public class EQCType {
 			if (iLen != data.length) {
 				throw new NoSuchFieldException("parseARRAY Get BIN data's len error occur record len != real len.");
 			}
-			array.length = eqcBitsToLong(elementLen);
+			array.size = eqcBitsToLong(elementLen);
 			array.elements = data;
 		} else if (isARRAY(type)) {
 			// Get element's length
@@ -529,7 +529,7 @@ public class EQCType {
 				throw new NoSuchFieldException("parseARRAY Get BIN data's len error occur record len != real len.");
 			}
 			bytes = data;
-			array.length = eqcBitsToLong(elementLen);
+			array.size = eqcBitsToLong(elementLen);
 			array.elements = data;
 		}
 		return array;
@@ -570,7 +570,9 @@ public class EQCType {
 		int iLen = 0;
 		try {
 			// Parse type
+			is.mark(0);
 			type = is.read();
+			is.reset();
 			boolisNULL = isNULL(type);
 //			if (isBIN7(type)) {
 //				// Check if current data is null
@@ -594,14 +596,14 @@ public class EQCType {
 		 * Vector&Array's size in java is integer type. But in EQCType Array's size type
 		 * is unsigned integer So here use long to present unsigned integer.
 		 */
-		public long length;
+		public long size;
 		public byte[] elements;
 
 		public ARRAY() {
 		}
 
 		public boolean isNULL() {
-			return ((length == 0) && (elements == null));
+			return ((size == 0) && (elements == null));
 		}
 
 	}
@@ -738,13 +740,15 @@ public class EQCType {
 	}
 	
 	public static void assertNoRedundantData(ByteArrayInputStream is) throws IllegalStateException {
+		assertNotNull((Object)is);
 		if(!isInputStreamEnd(is)) {
 			throw new IllegalStateException("Exists redundant data in current Object.");
 		}
 	}
 	
 	public static void assertNotNull(ByteArrayInputStream is) throws IllegalStateException {
-		if(isInputStreamEnd(is)) {
+		assertNotNull((Object)is);
+		if(isNULL(is)) {
 			throw new IllegalStateException("The Object shouldn't be null.");
 		}
 	}
@@ -762,18 +766,21 @@ public class EQCType {
 	}
 	
 	public static void assertNotZero(ID id) throws IllegalStateException {
+		assertNotNull(id);
 		if(id.compareTo(ID.ZERO) == 0) {
 			throw new IllegalStateException("The ID shouldn't be zero.");
 		}
 	}
 	
 	public static void assertNotNegative(ID id) throws IllegalStateException {
+		assertNotNull(id);
 		if(id.compareTo(ID.ZERO) < 0) {
 			throw new IllegalStateException("The ID shouldn't be negative.");
 		}
 	}
 	
 	public static void assertNotNegative(BigInteger bigInteger) throws IllegalStateException {
+		assertNotNull(bigInteger);
 		if(bigInteger.compareTo(BigInteger.ZERO) < 0) {
 			throw new IllegalStateException("The BigInteger shouldn't be negative.");
 		}
@@ -797,9 +804,17 @@ public class EQCType {
 		}
 	}
 
-	public static void assertNotHigher(ID amount0, ID amount1) throws IllegalStateException {
+	public static void assertNotBigger(ID amount0, ID amount1) throws IllegalStateException {
+		assertNotNull(amount0);
+		assertNotNull(amount1);
 		if(amount0.compareTo(amount1) > 0) {
-			throw new IllegalStateException("Amount0 shouldn't bigger than Amount1.");
+			throw new IllegalStateException(amount0 + " shouldn't bigger than " + amount1);
+		}
+	}
+	
+	public static void assertEqual(long value, long value1) throws IllegalStateException {
+		if(value != value1) {
+			throw new IllegalStateException("The value " + value + " and " + value1 + " should equal.");
 		}
 	}
 	
