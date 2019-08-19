@@ -328,4 +328,71 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 		}
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return
+
+		"{\n" + toInnerJson() + "\n}";
+
+	}
+	
+	public String toInnerJson() {
+		return
+				"\"EQCSubchain\":{\n" + subchainHeader.toInnerJson() + ",\n" +
+				"\"NewTransactionList\":" + 
+				"\n{\n" +
+				"\"Size\":\"" + newTransactionList.size() + "\",\n" +
+				"\"List\":" + 
+					_getNewTransactionList() + "\n},\n" +
+						"\"NewSignatureList\":" + 
+						"\n{\n" +
+						"\"Size\":\"" + newSignatureList.size() + "\",\n" +
+						"\"List\":" + 
+							_getNewSignatureList() + "\n}\n" +
+				 "\n}\n}";
+	}
+	
+	protected String _getNewTransactionList() {
+		String tx = null;
+		if (newTransactionList != null && newTransactionList.size() > 0) {
+			tx = "\n[\n";
+			if (newTransactionList.size() > 1) {
+				for (int i = 0; i < newTransactionList.size() - 1; ++i) {
+					tx += newTransactionList.get(i) + ",\n";
+				}
+			}
+			tx += newTransactionList.get(newTransactionList.size() - 1);
+			tx += "\n]";
+		} else {
+			tx = "[]";
+		}
+		return tx;
+	}
+	
+	protected String _getNewSignatureList() {
+		String tx = null;
+		if (newSignatureList != null && newSignatureList.size() > 0) {
+			tx = "\n[\n";
+			if (newSignatureList.size() > 1) {
+				for (int i = 0; i < newSignatureList.size() - 1; ++i) {
+					tx += getSignatureJson(newSignatureList.get(i)) + ",\n";
+				}
+			}
+			tx += getSignatureJson(newSignatureList.get(newSignatureList.size() - 1));
+			tx += "\n]";
+		} else {
+			tx = "[]";
+		}
+		return tx;
+	}
+	
+	protected String getSignatureJson(byte[] signature) {
+		return "{\n\"Signature\":\"" + Util.dumpBytes(signature, 16) + "\"\n}";
+	}
+	
 }

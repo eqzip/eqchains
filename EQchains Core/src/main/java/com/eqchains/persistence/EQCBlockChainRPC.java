@@ -35,6 +35,7 @@ import java.util.Vector;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
@@ -284,7 +285,7 @@ public class EQCBlockChainRPC implements EQCBlockChain {
 	 * @see com.eqchains.blockchain.EQCBlockChain#getEQCHeaderBuddyHash(com.eqchains.util.ID)
 	 */
 	@Override
-	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
+	public byte[] getEQCHeaderBuddyHash(ID height, ID currentHeight) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -499,6 +500,42 @@ public class EQCBlockChainRPC implements EQCBlockChain {
 
 	@Override
 	public boolean isTransactionExistsInPool(TransactionIndex transactionIndex) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean saveAccount(Account account, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Account getAccount(ID id, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean clear(Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Account getAccount(byte[] addressAI, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean merge(Mode mode) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}

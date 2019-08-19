@@ -154,8 +154,8 @@ public class EQCRoot implements EQCTypable {
 
 	public String toInnerJson() {
 		return "\"Root\":" + "\n{\n" + "\"Version\":" + "\"" + version + "\"" + ",\n" 
-				+ "\"AccountsMerkelTreeRoot\":" + "\""
-				+ Util.dumpBytes(accountsMerkelTreeRoot, 16) + "\"" + ",\n" + "\"TransactionsMerkelTreeRoot\":" + "\""
+				+ "\"EQCAccountsMerkelTreeRoot\":" + "\""
+				+ Util.dumpBytes(accountsMerkelTreeRoot, 16) + "\"" + ",\n" + "\"EQCSubchainsMerkelTreeRoot\":" + "\""
 				+ Util.dumpBytes(subchainsMerkelTreeRoot, 16) + "\"" + "\n" + "}";
 	}
 

@@ -63,6 +63,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -112,6 +113,7 @@ import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.EQCBlockChain;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
@@ -230,11 +232,11 @@ public final class Util {
 
 	public final static String AVRO_PATH = PATH + File.separator + "AVRO";
 
-	public final static String BLOCK_PATH = PATH + File.separator + "BLOCK/";
-
-	public final static String EQC_SUFFIX = ".eqc";
+	public final static String EQC_SUFFIX = ".EQC";
 	
 	public final static String DB_PATH = PATH + File.separator + "DB";
+	
+	public final static String HIVE_PATH = DB_PATH + File.separator + "HIVE/";
 	
 	public final static String H2_PATH = DB_PATH + File.separator + "H2";
 	
@@ -297,7 +299,7 @@ public final class Util {
 	
 	public static final BigInteger EUROPA = BigInteger.valueOf(1008);
 	
-	public static final byte[] NULL_HASH = new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16).toByteArray();
+	public static final byte[] NULL_HASH = Arrays.copyOfRange(new BigInteger("C333A8150751C675CDE1312860731E54818F95EDC1563839501CE5F486DE1C79EA6675EECA26833E41341B5B5D1E72800CBBB13AE6AA289D11ACB4D4413B1B2D", 16).toByteArray(), 1, 65);
 	
 	public static final byte[] SINGULARITY = ".".getBytes();
 	
@@ -417,10 +419,10 @@ public final class Util {
 		createDir(PATH);
 //		createDir(AVRO_PATH);
 		createDir(DB_PATH);
+		createDir(HIVE_PATH);
 		createDir(H2_PATH);
 		createDir(ROCKSDB_PATH);
 //		Test.testKeystore(); // Test stub
-//		createDir(BLOCK_PATH);
 //		File file = new File(ROCKSDB_PATH + File.separator + "LOCK");
 //		if(file.exists()) {
 //			if(file.delete()) {
@@ -440,8 +442,8 @@ public final class Util {
 			EQCHive eqcBlock = recoverySingularityStatus();
 //			EQCBlockChainH2.getInstance().saveEQCBlock(eqcBlock);
 //			Log.info("1");
-			EQCBlockChainRocksDB.getInstance().saveEQCHive(eqcBlock);
-			EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(ID.ZERO);
+			DB().saveEQCHive(eqcBlock);
+			DB().saveEQCBlockTailHeight(ID.ZERO);
 //			Address address = eqcBlock.getTransactions().getAddressList().get(0);
 //			if(!EQCBlockChainH2.getInstance().isAddressExists(address)) {
 //				EQCBlockChainH2.getInstance().appendAddress(address, SerialNumber.ZERO);
@@ -450,7 +452,7 @@ public final class Util {
 																		// SerialNumber.ZERO, 0);
 //			EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(new ID(BigInteger.ZERO));
 //			Log.info("2");
-			EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(ID.ZERO);
+//			EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(ID.ZERO);
 //			Log.info("3");
 			Configuration.getInstance().updateIsInitSingularityBlock(true);
 //			Log.info("4");
@@ -462,7 +464,7 @@ public final class Util {
 		info = new Info();
 		info.setCode(Code.OK);
 		info.setCookie(cookie);
-//		syncMinerList();
+//		syncMinerList(); // For light node need design a way to sync miner list
 	}
 
 //	private static void init(final OS os) {
@@ -2449,7 +2451,7 @@ public final class Util {
 //		eqcBlock.setIndex(index);
 		eqcHive.setRoot(root);
 		
-		accountsMerkleTree.merge(eqcHive);
+		accountsMerkleTree.merge();
 		accountsMerkleTree.takeSnapshot();
 		accountsMerkleTree.clear();
 		Log.info(eqcHive.toString());
@@ -2527,13 +2529,13 @@ public final class Util {
 		return publicKey;
 	}
 
-	public static String getAddress(ID serialNumber, EQCHive eqcBlock) throws ClassNotFoundException, SQLException {
+	public static String getAddress(ID id, EQCHive eqcBlock) throws ClassNotFoundException, SQLException, NoSuchFieldException, IllegalStateException, IOException {
 		Passport passport = null;
-		passport = EQCBlockChainH2.getInstance().getAddress(serialNumber);
+		passport = EQCBlockChainH2.getInstance().getAccount(id).getPassport();
 		if (passport == null) {
 			Vector<Passport> passportList = eqcBlock.getEQcoinSubchain().getNewPassportList();
 			for (Passport passport2 : passportList) {
-				if (passport2.equals(serialNumber)) {
+				if (passport2.equals(id)) {
 					passport = passport2;
 					break;
 				}
@@ -2623,10 +2625,10 @@ public final class Util {
 	}
 
 	@Deprecated
-	public static long getBalance(String address) throws ClassNotFoundException, SQLException {
+	public static long getBalance(String address) throws ClassNotFoundException, SQLException, NoSuchFieldException, IllegalStateException, IOException {
 		Passport strAddress = new Passport();
 		strAddress.setReadableAddress(address);
-		strAddress.setID(EQCBlockChainH2.getInstance().getAddressID(strAddress));
+		strAddress.setID(EQCBlockChainH2.getInstance().getAccount(strAddress.getAddressAI()).getID());
 		return EQCBlockChainH2.getInstance().getBalance(strAddress);
 	}
 
@@ -2735,7 +2737,7 @@ public final class Util {
 		return boolIsNetworkAvailable;
 	}
 	
-	public static byte[] getBlockHeaderHash(Transaction transaction) throws ClassNotFoundException, SQLException {
+	public static byte[] getBlockHeaderHash(Transaction transaction) throws Exception {
 		return EQCBlockChainH2.getInstance().getEQCHeaderHash(
 				EQCBlockChainH2.getInstance().getTxInHeight(transaction.getTxIn().getPassport()));
 	}
@@ -2764,7 +2766,7 @@ public final class Util {
 	}
 	
 	public static EQCBlockChain DB() throws RocksDBException, ClassNotFoundException, SQLException {
-		return DB(PERSISTENCE.ROCKSDB);
+		return DB(PERSISTENCE.H2);
 	}
 	
 	public static BigInteger UnsignedBiginteger(BigInteger foo) {
@@ -2901,7 +2903,7 @@ public final class Util {
 			if (Util.DB().getEQCHive(ID.valueOf(base), true).isValid(accountsMerkleTree)) {
 				Log.info("No. " + base + " verify passed");
 				// Through merge recovery all relevant Account
-				accountsMerkleTree.merge(null);
+				accountsMerkleTree.merge();
 				Log.info("Successful recovery No. " + base + " 's Account Status");
 				accountsMerkleTree.clear();
 				isSanity = true;
@@ -2971,7 +2973,7 @@ public final class Util {
 				accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(base), new Filter(Mode.VALID));
 				if(eqcHive.isValid(accountsMerkleTree)) {
 					accountsMerkleTree.takeSnapshot();
-					accountsMerkleTree.merge(null);
+					accountsMerkleTree.merge();
 					accountsMerkleTree.clear();
 					Log.info("No. " + base + " verify passed");
 					Log.info("Current tail: " + base);
@@ -3002,11 +3004,11 @@ public final class Util {
 		for(long i=1; i<=eQcoinSubchainHeader.getTotalAccountNumbers().longValue(); ++i) {
 			id = ID.valueOf(i);
 			account = Util.DB().getAccount(id);
-			EQCType.assertNotNull(account);
+			Objects.requireNonNull(account);
 			if(account.getUpdateHeight().compareTo(height) > 0) {
 				Log.info("Accounts table's No. " + i + "'s update height:" + account.getUpdateHeight() + " bigger than new tail base:" + height + " recovery it's current height's history state from snapshot");
 				account = EQCBlockChainH2.getInstance().getAccountSnapshot(id, height);
-				EQCType.assertNotNull(account);
+				Objects.requireNonNull(account);
 				Util.DB().saveAccount(account);
 			}
 		}
@@ -3015,13 +3017,18 @@ public final class Util {
 	public static void updateDisconnectIPStatus(String ip) {
 		try {
 			int counter = 0;
-			counter = EQCBlockChainH2.getInstance().getIPCounter(ip) + 1;
-			if (counter > Util.MAX_COUNTER) {
-				Log.info("Miner " + ip + " discount counter exceed 3 times just delete it");
-				EQCBlockChainH2.getInstance().deleteMiner(ip);
-			} else {
-				Log.info("Miner " + ip + " discount counter is " + counter + " just save it");
-				EQCBlockChainH2.getInstance().saveIPCounter(ip, counter);
+			if (Util.DB().isIPExists(ip, NODETYPE.NONE)) {
+				counter = Util.DB().getIPCounter(ip) + 1;
+				if (counter > Util.MAX_COUNTER) {
+					Log.info(ip + "'s discount counter exceed 3 times just delete it");
+					Util.DB().deleteMiner(ip);
+				} else {
+					Log.info(ip + "'s discount counter is " + counter + " just update it's disconect state");
+					Util.DB().saveIPCounter(ip, counter);
+				}
+			}
+			else {
+				Log.info("Received RPC message from " + ip + " but can't access just discard it");
 			}
 		} catch (Exception e) {
 			Log.Error(e.getMessage());

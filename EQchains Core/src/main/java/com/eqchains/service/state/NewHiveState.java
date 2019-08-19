@@ -29,29 +29,29 @@
  */
 package com.eqchains.service.state;
 
-import com.eqchains.rpc.NewBlock;
+import com.eqchains.rpc.NewHive;
 
 /**
  * @author Xun Wang
  * @date Jul 7, 2019
  * @email 10509759@qq.com
  */
-public class NewBlockState extends EQCServiceState {
-	private NewBlock newBlock;
-	public NewBlockState(State state) {
+public class NewHiveState extends EQCServiceState {
+	private NewHive newBlock;
+	public NewHiveState(State state) {
 		super(state);
 	}
 	/**
 	 * @return the newBlock
 	 */
-	public NewBlock getNewBlock() {
+	public NewHive getNewBlock() {
 		return newBlock;
 	}
 
 	/**
 	 * @param newBlock the newBlock to set
 	 */
-	public void setNewBlock(NewBlock newBlock) {
+	public void setNewBlock(NewHive newBlock) {
 		this.newBlock = newBlock;
 	}
 	

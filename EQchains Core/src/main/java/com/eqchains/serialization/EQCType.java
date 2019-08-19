@@ -35,6 +35,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.Vector;
 
 import com.eqchains.avro.O;
@@ -740,14 +742,14 @@ public class EQCType {
 	}
 	
 	public static void assertNoRedundantData(ByteArrayInputStream is) throws IllegalStateException {
-		assertNotNull((Object)is);
+		Objects.requireNonNull(is);
 		if(!isInputStreamEnd(is)) {
 			throw new IllegalStateException("Exists redundant data in current Object.");
 		}
 	}
 	
 	public static void assertNotNull(ByteArrayInputStream is) throws IllegalStateException {
-		assertNotNull((Object)is);
+		Objects.requireNonNull(is);
 		if(isNULL(is)) {
 			throw new IllegalStateException("The Object shouldn't be null.");
 		}
@@ -759,28 +761,22 @@ public class EQCType {
 		}
 	}
 	
-	public static void assertNotNull(Object object) throws IllegalStateException {
-		if(object == null) {
-			throw new IllegalStateException("The Object shouldn't be null.");
-		}
-	}
-	
 	public static void assertNotZero(ID id) throws IllegalStateException {
-		assertNotNull(id);
+		Objects.requireNonNull(id);
 		if(id.compareTo(ID.ZERO) == 0) {
 			throw new IllegalStateException("The ID shouldn't be zero.");
 		}
 	}
 	
 	public static void assertNotNegative(ID id) throws IllegalStateException {
-		assertNotNull(id);
+		Objects.requireNonNull(id);
 		if(id.compareTo(ID.ZERO) < 0) {
 			throw new IllegalStateException("The ID shouldn't be negative.");
 		}
 	}
 	
 	public static void assertNotNegative(BigInteger bigInteger) throws IllegalStateException {
-		assertNotNull(bigInteger);
+		Objects.requireNonNull(bigInteger);
 		if(bigInteger.compareTo(BigInteger.ZERO) < 0) {
 			throw new IllegalStateException("The BigInteger shouldn't be negative.");
 		}
@@ -805,8 +801,8 @@ public class EQCType {
 	}
 
 	public static void assertNotBigger(ID amount0, ID amount1) throws IllegalStateException {
-		assertNotNull(amount0);
-		assertNotNull(amount1);
+		Objects.requireNonNull(amount0);
+		Objects.requireNonNull(amount1);
 		if(amount0.compareTo(amount1) > 0) {
 			throw new IllegalStateException(amount0 + " shouldn't bigger than " + amount1);
 		}
@@ -815,6 +811,14 @@ public class EQCType {
 	public static void assertEqual(long value, long value1) throws IllegalStateException {
 		if(value != value1) {
 			throw new IllegalStateException("The value " + value + " and " + value1 + " should equal.");
+		}
+	}
+	
+	public static void assertEqual(byte[] original, byte[] saved) throws IllegalStateException {
+		Objects.requireNonNull(original);
+		Objects.requireNonNull(saved);
+		if(!Arrays.equals(original, saved)) {
+			throw new IllegalStateException("Original data:\n" + Util.dumpBytes(original, 16) + " doesn't equal to saved data:\n" + Util.dumpBytes(saved, 16));
 		}
 	}
 	

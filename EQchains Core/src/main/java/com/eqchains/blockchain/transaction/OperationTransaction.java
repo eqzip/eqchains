@@ -239,7 +239,7 @@ public class OperationTransaction extends TransferTransaction {
 		return true;
 	}
 	
-	protected String toInnerJson() {
+	public String toInnerJson() {
 		return
 		"\"OperationTransaction\":" + "\n{\n" + txIn.toInnerJson() + ",\n"
 				+ operation.toInnerJson() + ",\n"

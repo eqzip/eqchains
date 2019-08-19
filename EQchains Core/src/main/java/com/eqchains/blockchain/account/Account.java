@@ -81,7 +81,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	private ID assetListSize;
 	private SoleUpdate soleUpdate;
 //	private String email; // KYC
-	private boolean isHashing;
+	private boolean isSaveHash;
 	private byte[] hash;
 	protected final static ID MAX_VERSION = ID.ZERO;
 	
@@ -336,13 +336,20 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 //		return EQCBlockChainH2.getInstance().updateAccount(this);
 //	}
 	
-	public byte[] getHash() {
+	public byte[] getHash() throws Exception {
 		if(hash == null) {
-			hash = Util.EQCCHA_MULTIPLE_DUAL(getHashBytes(), Util.HUNDREDPULS, true, false);
+			hash = Util.EQCCHA_MULTIPLE_DUAL(getHashBytes(soleUpdate), Util.HUNDREDPULS, true, false);
 		}
 		return hash;
 	}
 	
+	/**
+	 * @param hash the hash to set
+	 */
+	public void setHash(byte[] hash) {
+		this.hash = hash;
+	}
+
 	public boolean isPublickeyExists() {
 		return !publickey.isNULL();
 	}
@@ -566,9 +573,9 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		return false;
 	}
 
-	public byte[] getHashBytes() {
-		return getHashBytes(soleUpdate);
-	}
+//	public byte[] getHashBytes(H) {
+//		return getHashBytes(soleUpdate);
+//	}
 	
 	@Override
 	public byte[] getHashBytes(SoleUpdate soleUpdate) {
@@ -741,21 +748,19 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	/**
-	 * @return the isHashing
+	 * @return the isSaveHash
 	 */
-	public boolean isHashing() {
-		return isHashing;
+	public boolean isSaveHash() {
+		return isSaveHash;
 	}
 
 	/**
-	 * @param isHashing the isHashing to set
+	 * @param isSaveHash the isSaveHash to set
 	 */
-	public void setHashing(boolean isHashing) {
-		this.isHashing = isHashing;
-	}
-	
-	public void clearHash() {
+	public void setSaveHash(boolean isSaveHash) {
+		this.isSaveHash = isSaveHash;
 		hash = null;
+		soleUpdate.setCurrentTailHeight(updateHeight);
 	}
-	
+
 }

@@ -36,14 +36,14 @@ import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
-import com.eqchains.rpc.NewBlock;
+import com.eqchains.rpc.NewHive;
 import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.service.state.EQCServiceState;
 import com.eqchains.service.state.EQCServiceState.State;
-import com.eqchains.service.state.NewBlockState;
+import com.eqchains.service.state.NewHiveState;
 import com.eqchains.service.state.PossibleNodeState;
 import com.eqchains.service.state.SleepState;
-import com.eqchains.service.state.SyncBlockState;
+import com.eqchains.service.state.SyncHiveState;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -53,14 +53,18 @@ import com.eqchains.util.Util;
  * @date Jul 5, 2019
  * @email 10509759@qq.com
  */
-public class PendingNewBlockService extends EQCService {
-	private static PendingNewBlockService instance;
+public class PendingNewHiveService extends EQCService {
+	private static PendingNewHiveService instance;
+	
+	private PendingNewHiveService() {
+		super();
+	}
 
-	public static PendingNewBlockService getInstance() {
+	public static PendingNewHiveService getInstance() {
 		if (instance == null) {
-			synchronized (Keystore.class) {
+			synchronized (PendingNewHiveService.class) {
 				if (instance == null) {
-					instance = new PendingNewBlockService();
+					instance = new PendingNewHiveService();
 				}
 			}
 		}
@@ -75,7 +79,7 @@ public class PendingNewBlockService extends EQCService {
 	 */
 	@Override
 	protected void onDefault(EQCServiceState state) {
-		NewBlockState newBlockState = null;
+		NewHiveState newBlockState = null;
 //		long ping = 0;
 		try {
 //			if (!(SyncBlockService.getInstance().getState() == State.MINER)) {
@@ -85,7 +89,7 @@ public class PendingNewBlockService extends EQCService {
 //			}
 
 			this.state.set(State.PENDINGNEWBLOCK);
-			newBlockState = (NewBlockState) state;
+			newBlockState = (NewHiveState) state;
 			Log.info("PendingNewBlockService receive new block from: " + newBlockState.getNewBlock().getCookie().getIp()
 					+ " height: " + newBlockState.getNewBlock().getEqcHive().getHeight());
 
@@ -116,7 +120,7 @@ public class PendingNewBlockService extends EQCService {
 				PossibleNodeService.getInstance().offerNode(possibleNodeState);
 
 				// Call SyncBlockService valid the new block
-				SyncBlockState syncBlockState = new SyncBlockState();
+				SyncHiveState syncBlockState = new SyncHiveState();
 				syncBlockState.setIp(newBlockState.getNewBlock().getCookie().getIp());
 				syncBlockState.setEqcHive(newBlockState.getNewBlock().getEqcHive());
 				SyncBlockService.getInstance().offerState(syncBlockState);
@@ -132,7 +136,7 @@ public class PendingNewBlockService extends EQCService {
 		}
 	}
 
-	public synchronized void offerNewBlockState(NewBlockState newBlockState) {
+	public synchronized void offerNewBlockState(NewHiveState newBlockState) {
 //		Log.info("PendingNewBlockService offerNewBlockState");
 		offerState(newBlockState);
 	}

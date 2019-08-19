@@ -627,7 +627,7 @@ public class EQChains implements EQCTypable {
 		// Get the new Publickey's ID list from Transactions
 		Vector<ID> newPublickeys = new Vector<>();
 		for(int i=1; i<newTransactionList.size(); ++i) {
-			Account account = accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport().getID());
+			Account account = accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport().getID(), true);
 				if(!account.isPublickeyExists()) {
 					if(!newPublickeys.contains(newTransactionList.get(i).getTxIn().getPassport().getID())) {
 						newPublickeys.add(newTransactionList.get(i).getTxIn().getPassport().getID());
@@ -638,7 +638,7 @@ public class EQChains implements EQCTypable {
 			return false;
 		}
 		for(CompressedPublickey compressedPublickey:newCompressedPublickeyList) {
-			compressedPublickey.setID(accountsMerkleTree.getAccount(AddressTool.publickeyToAI(compressedPublickey.getCompressedPublickey())).getID());
+//			compressedPublickey.setID(accountsMerkleTree.getAccount(AddressTool.publickeyToAI(compressedPublickey.getCompressedPublickey())).getID());
 		}
 		for(int i=0; i<newCompressedPublickeyList.size(); ++i) {
 			if(!newCompressedPublickeyList.get(i).getID().equals(newPublickeys.get(i))) {
@@ -650,11 +650,11 @@ public class EQChains implements EQCTypable {
 //			if(!isPublickeyIDExistsInTransactions(publicKey.getID())) {
 //				return false;
 //			}
-			if(accountsMerkleTree.isPublicKeyExists(compressedPublickey)) {
+			if(false) {//accountsMerkleTree.isPublicKeyExists(compressedPublickey)) {
 				return false;
 			}
 			else {
-				Account account = accountsMerkleTree.getAccount(compressedPublickey.getID());
+				Account account = accountsMerkleTree.getAccount(compressedPublickey.getID(), true);
 				if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), compressedPublickey.getCompressedPublickey())) {
 					return false;
 				}
@@ -663,22 +663,22 @@ public class EQChains implements EQCTypable {
 					publickey1.setCompressedPublickey(compressedPublickey.getCompressedPublickey());
 					publickey1.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
 					account.setPublickey(publickey1);
-					writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(accountsMerkleTree.getFilter().getFilterTable(TABLE.ACCOUNT)), account.getID().getEQCBits(),
-							account.getBytes());
-					writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(accountsMerkleTree.getFilter().getFilterTable(TABLE.ACCOUNT_AI)),
-							account.getPassport().getAddressAI(), account.getID().getEQCBits());
+//					writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(accountsMerkleTree.getFilter().getFilterTable(TABLE.ACCOUNT)), account.getID().getEQCBits(),
+//							account.getBytes());
+//					writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(accountsMerkleTree.getFilter().getFilterTable(TABLE.ACCOUNT_AI)),
+//							account.getPassport().getAddressAI(), account.getID().getEQCBits());
 				}
 			}
 		}
-		if(writeBatch != null) {
-			accountsMerkleTree.getFilter().batchUpdate(writeBatch);
-		}
+//		if(writeBatch != null) {
+//			accountsMerkleTree.getFilter().batchUpdate(writeBatch);
+//		}
 		return true;
 	}
 	
 	public boolean isAllTxInPublickeyExists(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		for(int i=1; i<newTransactionList.size(); ++i) {
-			if(!accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport().getID()).isPublickeyExists()) {
+			if(!accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport().getID(), true).isPublickeyExists()) {
 				return false;
 			}
 		}

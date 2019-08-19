@@ -98,9 +98,9 @@ public class TransactionTest {
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
 					new Filter(Mode.MINERING));
-			compressedPublickey.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
+			compressedPublickey.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
 			transaction.getTxIn().getPassport()
-					.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
+					.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
 			transaction.sign(ecdsa);
 		
 			if (transaction.verify(accountsMerkleTree)) {

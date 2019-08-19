@@ -47,6 +47,7 @@ import com.eqchains.util.Util;
  */
 public class SoleUpdate {
 	private Vector<ID> soleReference;
+	private ID currentTailHeight;
 	
 	public SoleUpdate() {
 		soleReference = new Vector<>();
@@ -58,10 +59,24 @@ public class SoleUpdate {
 				os.write(Util.MAGIC_HASH);
 			}
 			else {
-				os.write(Util.DB().getEQCHeaderBuddyHash(height));
+				os.write(Util.DB().getEQCHeaderBuddyHash(height, currentTailHeight));
 			}
 			soleReference.add(height);
 		}
+	}
+
+	/**
+	 * @return the currentTailHeight
+	 */
+	public ID getCurrentTailHeight() {
+		return currentTailHeight;
+	}
+
+	/**
+	 * @param currentTailHeight the currentTailHeight to set
+	 */
+	public void setCurrentTailHeight(ID currentTailHeight) {
+		this.currentTailHeight = currentTailHeight;
 	}
 	
 }

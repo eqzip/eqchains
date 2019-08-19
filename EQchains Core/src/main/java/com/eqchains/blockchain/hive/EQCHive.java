@@ -291,7 +291,7 @@ public class EQCHive implements EQCTypable {
 		eQcoinSubchain.getEQcoinSubchainHeader().setTotalTransactionNumbers(preEQcoinSubchainHeader.getTotalTransactionNumbers().add(ID.valueOf(eQcoinSubchain.getNewTransactionList().size())));
 		
 		// Update EQcoin AssetSubchainAccount's Header
-		AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE);
+		AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE, true);
 		eqcoin.getAssetSubchainHeader().setTotalSupply(new ID(Util.cypherTotalSupply(eqcHeader.getHeight())));
 		eqcoin.getAssetSubchainHeader().setTotalAccountNumbers(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()
 				.add(BigInteger.valueOf(eQcoinSubchain.getNewPassportList().size())));
@@ -705,12 +705,12 @@ public class EQCHive implements EQCTypable {
 //		}
 			// Check AccountsMerkelTreeRoot
 			if (!Arrays.equals(eqcRoot.getAccountsMerkelTreeRoot(), accountsMerkleTree.getRoot())) {
-				Log.Error("AccountsMerkelTreeRoot is invalid!");
+				Log.Error("EQCAccountsMerkelTreeRoot is invalid!");
 				return false;
 			}
 			// Check TransactionsMerkelTreeRoot
 			if (!Arrays.equals(eqcRoot.getSubchainsMerkelTreeRoot(), getSubchainsMerkelTreeRoot())) {
-				Log.Error("AccountsMerkelTreeRoot is invalid!");
+				Log.Error("EQCSubchainsMerkelTreeRoot is invalid!");
 				return false;
 			}
 			// Verify EQCHeader

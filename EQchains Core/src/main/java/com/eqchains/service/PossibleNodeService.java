@@ -89,17 +89,16 @@ public final class PossibleNodeService extends EQCService {
 				Log.info(possibleNode.getIp() + " is SINGULARITY_IP just return");
 				return;
 			}
-			if(EQCBlockChainH2.getInstance().isIPExists(possibleNode.getIp(), possibleNode.getNodeType())) {
+			if(Util.DB().isIPExists(possibleNode.getIp(), possibleNode.getNodeType())) {
 				Log.info(possibleNode.getIp() + " already in the miner list just return");
 				return;
 			}
 			if(possibleNode.getNodeType() == NODETYPE.MINER) {
 				if(MinerNetworkClient.ping(possibleNode.getIp()) > 0) {
 					Log.info("Received New Miner Node: " + possibleNode.getIp() + " save it to MinerList");
-					EQCBlockChainH2.getInstance().saveMiner(possibleNode.getIp());
+					Util.DB().saveMiner(possibleNode.getIp());
 				}
 				else {
-					Log.info("Received Miner Node: " + possibleNode.getIp() + " but can't access");
 					Util.updateDisconnectIPStatus(possibleNode.getIp());
 //					if(!blackList.contains(possibleNode.getIp())) {
 //						blackList.addIP(possibleNode.getIp());
@@ -112,6 +111,7 @@ public final class PossibleNodeService extends EQCService {
 					EQCBlockChainH2.getInstance().saveFullNode(possibleNode.getIp());
 				}
 				else {
+					Util.updateDisconnectIPStatus(possibleNode.getIp());
 //					if(!blackList.contains(possibleNode.getIp())) {
 //						blackList.addIP(possibleNode.getIp());
 //					}

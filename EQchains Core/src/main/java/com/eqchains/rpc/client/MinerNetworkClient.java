@@ -43,7 +43,7 @@ import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
-import com.eqchains.rpc.NewBlock;
+import com.eqchains.rpc.NewHive;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
 import com.eqchains.util.Log;
@@ -122,7 +122,7 @@ public class MinerNetworkClient extends EQCRPCClient {
 		return ipList;
 	}
 
-	public static Info broadcastNewBlock(NewBlock newBlock, String ip) throws Exception {
+	public static Info broadcastNewBlock(NewHive newBlock, String ip) throws Exception {
 		Info info = null;
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
@@ -205,6 +205,7 @@ public class MinerNetworkClient extends EQCRPCClient {
     	catch (Exception e) {
     		Log.Error(e.getMessage());
     		time = -1;
+    		Util.updateDisconnectIPStatus(remoteIP);
 		}
     	finally {
 			if(nettyTransceiver != null) {

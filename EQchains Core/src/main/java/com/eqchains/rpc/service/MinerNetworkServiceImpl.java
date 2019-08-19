@@ -39,12 +39,12 @@ import com.eqchains.avro.MinerNetwork;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.Info;
-import com.eqchains.rpc.NewBlock;
+import com.eqchains.rpc.NewHive;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
-import com.eqchains.service.PendingNewBlockService;
+import com.eqchains.service.PendingNewHiveService;
 import com.eqchains.service.PossibleNodeService;
-import com.eqchains.service.state.NewBlockState;
+import com.eqchains.service.state.NewHiveState;
 import com.eqchains.service.state.PossibleNodeState;
 import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.util.Log;
@@ -62,7 +62,8 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 	 */
 	@Override
 	public O ping(O cookie) {
-		O info = null;
+		Info info = null;
+		O o = null;
 		Cookie cookie1 = null;
 		try {
 			cookie1 = new Cookie(cookie);
@@ -73,17 +74,18 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 				possibleNode.setNodeType(NODETYPE.MINER);
 				possibleNode.setTime(System.currentTimeMillis());
 				PossibleNodeService.getInstance().offerNode(possibleNode);
-				info = Util.getDefaultInfo().getO();
+				info = Util.getDefaultInfo();
 			} else {
-				info = Util.getInfo(Code.WRONGPROTOCOL, null).getO();
+				info = Util.getInfo(Code.WRONGPROTOCOL, null);
 			}
+			o = info.getO();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 		}
-		Log.info("Give ping response to " + cookie1.getIp());
-		return info;
+		Log.info("Give ping response to " + cookie1.getIp() + " info: " + info);
+		return o;
 	}
 
 	/* (non-Javadoc)
@@ -124,16 +126,16 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 	@Override
 	public O broadcastNewBlock(O block) {
 		O info = null;
-		NewBlock newBlock = null;
-		NewBlockState newBlockState = null;
+		NewHive newBlock = null;
+		NewHiveState newBlockState = null;
 		try {
-			newBlock = new NewBlock(block);
+			newBlock = new NewHive(block);
 			Log.info("MinerNetworkServiceImpl received new block");
 			if(newBlock.getCookie().isSanity()) {
 				info = Util.getDefaultInfo().getO();
-				newBlockState = new NewBlockState(State.PENDINGNEWBLOCK);
+				newBlockState = new NewHiveState(State.PENDINGNEWBLOCK);
 				newBlockState.setNewBlock(newBlock);
-				PendingNewBlockService.getInstance().offerNewBlockState(newBlockState);
+				PendingNewHiveService.getInstance().offerNewBlockState(newBlockState);
 				Log.info("Call PendingNewBlockService handle the new block");
 			}
 			else {

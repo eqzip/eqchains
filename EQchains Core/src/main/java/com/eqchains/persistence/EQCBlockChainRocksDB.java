@@ -55,6 +55,7 @@ import org.rocksdb.WriteOptions;
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.transaction.Transaction;
@@ -287,7 +288,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public   boolean saveAccount(Account account) throws RocksDBException {
+	public   boolean saveAccount(Account account) throws Exception {
 		WriteBatch writeBatch = new WriteBatch();
 			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getID().getEQCBits(), account.getBytes());
 //			Log.info(account.toString());
@@ -584,7 +585,7 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 	}
 
 	@Override
-	public   byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
+	public   byte[] getEQCHeaderBuddyHash(ID height, ID currentHeight) throws Exception {
 		byte[] hash = null;
 		ID tail = getEQCBlockTailHeight();
 		// Due to the latest Account is got from current node so it's xxxUpdateHeight doesn't higher than tail
@@ -742,6 +743,42 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 
 	@Override
 	public boolean isTransactionExistsInPool(TransactionIndex transactionIndex) throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean saveAccount(Account account, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Account getAccount(ID id, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean clear(Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Account getAccount(byte[] addressAI, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean merge(Mode mode) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}

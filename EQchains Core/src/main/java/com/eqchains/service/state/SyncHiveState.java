@@ -3,11 +3,11 @@ package com.eqchains.service.state;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.service.state.EQCServiceState.State;
 
-public class SyncBlockState extends EQCServiceState {
+public class SyncHiveState extends EQCServiceState {
 	private String ip;
 	private EQCHive eqcHive;
 	
-	public SyncBlockState() {
+	public SyncHiveState() {
 		super(State.SYNC);
 	}
 

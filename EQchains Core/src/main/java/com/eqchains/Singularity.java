@@ -29,6 +29,7 @@
  */
 package com.eqchains;
 
+import java.math.BigInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.eqchains.blockchain.account.AssetAccount;
@@ -43,20 +44,20 @@ import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.IPList;
-import com.eqchains.rpc.NewBlock;
+import com.eqchains.rpc.NewHive;
 import com.eqchains.rpc.TailInfo;
 import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.rpc.client.SyncblockNetworkClient;
 import com.eqchains.rpc.service.MinerNetworkService;
 import com.eqchains.rpc.service.SyncblockNetworkService;
 import com.eqchains.rpc.service.TransactionNetworkService;
-import com.eqchains.service.BroadcastNewBlockService;
+import com.eqchains.service.BroadcastNewHiveService;
 import com.eqchains.service.MinerService;
-import com.eqchains.service.PendingNewBlockService;
+import com.eqchains.service.PendingNewHiveService;
 import com.eqchains.service.PossibleNodeService;
 import com.eqchains.service.SyncBlockService;
 import com.eqchains.service.state.EQCServiceState;
-import com.eqchains.service.state.NewBlockState;
+import com.eqchains.service.state.NewHiveState;
 import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.test.Test;
 import com.eqchains.util.ID;
@@ -145,25 +146,30 @@ public class Singularity {
 //			Configuration.getInstance().updateIsInitSingularityBlock(false);
 			Util.IP = args[0];
 			Util.init();
-			for(int i=0; i<100; ++i)
-			Util.saveEQCBlockTailHeight(ID.valueOf(i));
-//			Log.info("" + TABLE.DEFAULT.ordinal());
+//			Log.info("" + Util.DB().getAccount(ID.ONE));
+//			Log.info(""+MinerNetworkClient.ping(Util.SINGULARITY_IP));
+//			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+//			for(int i=0; i<100; ++i)
+//			Util.saveEQCBlockTailHeight(ID.valueOf(15959));
+//			Util.recoveryAccountsStatusTo(ID.valueOf(12566));
+//			Util.recoveryAccounts(Util.DB().getEQCBlockTailHeight());
+//			Log.info("" + Util.DB().getEQCHive(ID.TWO, false).toString());
 //			Log.info("" + Util.cypherTotalSupply(ID.THREE));
-//			Log.info(SyncblockNetworkClient.getBlock(ID.valueOf(74), Util.SINGULARITY_IP).toString());
-//			SyncBlockService.getInstance().setMode(MODE.FULL);
+//			Log.info(SyncblockNetworkClient.getBlock(ID.valueOf(410), Util.SINGULARITY_IP).toString());
+			SyncBlockService.getInstance().setMode(MODE.FULL);
 //			Util.DB().saveEQCBlockTailHeight(ID.ZERO);
 //			ID id = Util.DB().getEQCBlockTailHeight();
-//			SyncBlockService.getInstance().start();
+			SyncBlockService.getInstance().start();
 //			TailInfo tailInfo =  SyncblockNetworkClient.getBlockTail("192.168.0.101");
 //			for(int i=0; i<100000; ++i) {
-//				Thread.sleep(1000);
+//				Thread.sleep(3000);
 //				Test.sendTransaction();
 //			}
 //			AddressTool.verifyAddressCRC32C(Util.SINGULARITY_A);
 //			Test.testTransaction();
 //			MinerService.getInstance().start();
 //			EQCHive eqcHive = Util.DB().getEQCBlock(ID.valueOf(0), false);
-//			Log.info(Util.DB().getEQCBlock(ID.valueOf(0), false).toString());
+//			Log.info(Util.DB().getEQCHive(ID.valueOf(0), false).toString());
 //			EQCBlockChainH2.getInstance().getTransactionListInPool();
 //			Log.info("Tail: " + Util.DB().getEQCBlockTailHeight());
 //			Util.recoverySingularityStatus();

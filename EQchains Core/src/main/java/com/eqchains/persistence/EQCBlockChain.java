@@ -38,6 +38,7 @@ import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
@@ -122,8 +123,7 @@ public interface EQCBlockChain {
 	// For sign and verify Transaction need use relevant TxIn's EQC block header's hash via this function to get it from xxx.EQC.
 	public byte[] getEQCHeaderHash(ID height) throws Exception;
 	
-	@Deprecated
-	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception;
+	public byte[] getEQCHeaderBuddyHash(ID height, ID currentTailHeight) throws Exception;
 	
 	public ID getEQCBlockTailHeight() throws Exception;
 	
@@ -174,5 +174,18 @@ public interface EQCBlockChain {
 	public boolean saveAccountSnapshot(Account account, ID height) throws SQLException, Exception;
 	
 	public boolean deleteAccountSnapshotFrom(ID height, boolean isForward) throws SQLException, Exception;
+	
+	public boolean merge(Mode mode) throws SQLException, Exception;
+	
+	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception;
+	
+	// Filter relevant interface for H2
+	public boolean saveAccount(Account account, Mode mode) throws Exception;
+	
+	public Account getAccount(ID id, Mode mode) throws Exception;
+	
+	public Account getAccount(byte[] addressAI, Mode mode) throws Exception;
+	
+	public boolean clear(Mode mode) throws Exception;
 	
 }

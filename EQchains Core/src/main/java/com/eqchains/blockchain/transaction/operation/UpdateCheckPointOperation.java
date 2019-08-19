@@ -32,14 +32,10 @@ package com.eqchains.blockchain.transaction.operation;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.SQLException;
+import java.util.Arrays;
 
-import org.rocksdb.RocksDBException;
-
-import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -47,22 +43,23 @@ import com.eqchains.blockchain.transaction.operation.Operation.OP;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
-import com.eqchains.util.Util.AddressTool;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 22, 2019
+ * @date Aug 19, 2019
  * @email 10509759@qq.com
  */
-public class UpdateTxFeeRateOperation extends Operation {
-	private byte txFeeRate;
+public class UpdateCheckPointOperation extends Operation {
+	private byte[] checkPointHash;
+	private ID checkPointHeight;
 	
-	public UpdateTxFeeRateOperation() {
-		super(OP.TXFEERATE);
+	public UpdateCheckPointOperation(OP op) {
+		super(OP.CHECKPOINT);
 	}
-	
-	public UpdateTxFeeRateOperation(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
-		super(OP.TXFEERATE);
+
+	public UpdateCheckPointOperation(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
+		super(OP.CHECKPOINT);
 		parseHeader(is, addressShape);
 		parseBody(is, addressShape);
 	}
@@ -109,7 +106,8 @@ public class UpdateTxFeeRateOperation extends Operation {
 	public boolean execute(Object ...objects) throws Exception {
 		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
 		EQcoinSubchainAccount account = (EQcoinSubchainAccount) accountsMerkleTree.getAccount(Asset.EQCOIN, true);
-		account.setTxFeeRate(txFeeRate);
+		account.setCheckPointHash(checkPointHash);
+		account.setCheckPointHeight(checkPointHeight);
 		accountsMerkleTree.saveAccount(account);
 		return true;
 	}
@@ -121,7 +119,21 @@ public class UpdateTxFeeRateOperation extends Operation {
 	public boolean isMeetPreconditions(Object ...objects) throws Exception {
 		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
 		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
-		return isSanity(null) && operationTransaction.getTxIn().getPassport().getID().equals(ID.NINE);
+		boolean isMeetPreconditions = true;
+		if(isSanity(null) && operationTransaction.getTxIn().getPassport().getID().equals(ID.NINE)) {
+			if(checkPointHeight.compareTo(Util.DB().getEQCBlockTailHeight()) > 0) {
+				isMeetPreconditions = false;
+			}
+			else {
+				if(!Arrays.equals(checkPointHash, Util.EQCCHA_MULTIPLE_DUAL(Util.DB().getEQCHeaderHash(checkPointHeight), Util.ONE, true, true))) {
+					isMeetPreconditions = false;
+				}
+			}
+		}
+		else {
+			isMeetPreconditions = false;
+		}
+		return isMeetPreconditions;
 	}
 
 	/* (non-Javadoc)
@@ -129,10 +141,13 @@ public class UpdateTxFeeRateOperation extends Operation {
 	 */
 	@Override
 	public boolean isSanity(AddressShape addressShape) {
-		if(op != OP.TXFEERATE) {
+		if(op != OP.CHECKPOINT) {
 			return false;
 		}
-		if(txFeeRate < 1 || txFeeRate > 10) {
+		if(checkPointHash == null || checkPointHash.length != 32) {
+			return false;
+		}
+		if(!checkPointHeight.isSanity()) {
 			return false;
 		}
 		return true;
@@ -141,9 +156,10 @@ public class UpdateTxFeeRateOperation extends Operation {
 	@Override
 	public String toInnerJson() {
 		return 
-		"\"UpdateAddressOperation\":" + 
+		"\"UpdateCheckPointOperation\":" + 
 		"\n{" +
-		"\"TxFeeRate\":" + "\"" + txFeeRate + "\""  + 
+		"\"CheckPointHash\":" + "\"" + Util.dumpBytes(checkPointHash, 16) + "\","  + 
+		"\"CheckPointHeight\":" + "\"" + checkPointHeight + "\""  + 
 		"\n}\n";
 	}
 
@@ -153,8 +169,8 @@ public class UpdateTxFeeRateOperation extends Operation {
 	@Override
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
-		// Parse TxFeeRate
-		txFeeRate = EQCType.parseBIN(is)[0];
+		checkPointHash = EQCType.parseBIN(is);
+		checkPointHeight = EQCType.parseID(is);
 	}
 
 	/* (non-Javadoc)
@@ -164,8 +180,8 @@ public class UpdateTxFeeRateOperation extends Operation {
 	public byte[] getBodyBytes(AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			// Serialization TxFeeRate
-			os.write(EQCType.bytesToBIN(new byte[] {txFeeRate}));
+			os.write(EQCType.bytesToBIN(checkPointHash));
+			os.write(checkPointHeight.getEQCBits());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -174,46 +190,32 @@ public class UpdateTxFeeRateOperation extends Operation {
 		return os.toByteArray();
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
+	/**
+	 * @return the checkPointHash
 	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = super.hashCode();
-		result = prime * result + txFeeRate;
-		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (!super.equals(obj))
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		UpdateTxFeeRateOperation other = (UpdateTxFeeRateOperation) obj;
-		if (txFeeRate != other.txFeeRate)
-			return false;
-		return true;
+	public byte[] getCheckPointHash() {
+		return checkPointHash;
 	}
 
 	/**
-	 * @return the txFeeRate
+	 * @param checkPointHash the checkPointHash to set
 	 */
-	public byte getTxFeeRate() {
-		return txFeeRate;
+	public void setCheckPointHash(byte[] checkPointHash) {
+		this.checkPointHash = checkPointHash;
 	}
 
 	/**
-	 * @param txFeeRate the txFeeRate to set
+	 * @return the checkPointHeight
 	 */
-	public void setTxFeeRate(byte txFeeRate) {
-		this.txFeeRate = txFeeRate;
+	public ID getCheckPointHeight() {
+		return checkPointHeight;
+	}
+
+	/**
+	 * @param checkPointHeight the checkPointHeight to set
+	 */
+	public void setCheckPointHeight(ID checkPointHeight) {
+		this.checkPointHeight = checkPointHeight;
 	}
 	
 }

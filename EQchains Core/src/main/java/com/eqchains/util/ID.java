@@ -58,6 +58,8 @@ public class ID extends BigInteger {
 	
 	public static ID FIVE = new ID(5);
 	
+	public static ID NINE = new ID(9);
+	
 	/**
 	 * @param EQCBits
 	 */

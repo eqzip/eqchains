@@ -108,7 +108,7 @@ public class UpdateAddressOperation extends Operation {
 	public boolean execute(Object ...objects) throws Exception {
 		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
 		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
-		Account account = accountsMerkleTree.getAccount(operationTransaction.getTxIn().getPassport().getID());
+		Account account = accountsMerkleTree.getAccount(operationTransaction.getTxIn().getPassport().getID(), true);
 		if(account.isPublickeyExists()) {
 			account.setPublickey(null);
 		}
@@ -125,7 +125,9 @@ public class UpdateAddressOperation extends Operation {
 	@Override
 	public boolean isMeetPreconditions(Object ...objects) throws Exception {
 		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[0];
-		return !accountsMerkleTree.isAccountExists(address, true);
+		// Here exists one bug need do more job to fix it for example can't use new Account create in current height
+		// At isAccountExists must filtering because need to check if this Address already exists in current Hive
+		return address.isSanity(AddressShape.READABLE) && !accountsMerkleTree.isAccountExists(address, true);
 	}
 
 	/**

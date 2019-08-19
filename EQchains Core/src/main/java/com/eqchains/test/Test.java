@@ -797,7 +797,7 @@ public class Test {
 		System.out.println("averge time: " + Totaltime / lCount + " total time: " + Totaltime + " count:" + lCount);
 	}
 
-	public static void testEQCBlock() {
+	public static void testEQCBlock() throws Exception {
 		for (int i = 0; i < 2; ++i) {
 			EQCHive eqcBlock;
 			try {
@@ -1298,7 +1298,7 @@ public class Test {
 			EQCBlockChainRocksDB.getInstance().getInstance().saveAccount(account);
 			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(ID.TWO);
 			Log.info(account.getPassport().toString());
-		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -1603,9 +1603,9 @@ public class Test {
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
 					new Filter(Mode.MINERING));
-			publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
+			publicKey2.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
 			transaction.getTxIn().getPassport()
-					.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
+					.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
 			transaction.sign(ecdsa);
 		
 			if (transaction.verify(accountsMerkleTree)) {
@@ -1686,7 +1686,12 @@ public class Test {
 		long c0 = System.currentTimeMillis();
 		int n = 10;
 		for (int i = 0; i < n; ++i) {
-			account.getHash();
+			try {
+				account.getHash();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		long c1 = System.currentTimeMillis();
 		Log.info("total time: " + (c1 - c0) + " average time:" + (double) (c1 - c0) / n);

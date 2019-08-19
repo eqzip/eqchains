@@ -13,7 +13,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<compiler-plugin.version>3.8.0</compiler-plugin.version>
+		<compiler-plugin.version>3.8.1</compiler-plugin.version>
 		<avro.version>1.9.0</avro.version>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
@@ -81,39 +81,39 @@
 			<artifactId>commons-net</artifactId>
 			<version>3.6</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-assembly-plugin -->
+		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm -->
 <!-- 		<dependency> -->
-<!-- 			<groupId>org.apache.maven.plugins</groupId> -->
-<!-- 			<artifactId>maven-assembly-plugin</artifactId> -->
-<!-- 			<version>3.1.1</version> -->
+<!-- 			<groupId>org.ow2.asm</groupId> -->
+<!-- 			<artifactId>asm</artifactId> -->
+<!-- 			<version>7.1</version> -->
 <!-- 		</dependency> -->
 	</dependencies>
 
 	<build>
 		<plugins>
-<!-- 			<plugin> -->
-<!-- 				<artifactId>maven-assembly-plugin</artifactId> -->
-<!-- 				<configuration> -->
-<!-- 					<appendAssemblyId>false</appendAssemblyId> -->
-<!-- 					<descriptorRefs> -->
-<!-- 						<descriptorRef>jar-with-dependencies</descriptorRef> -->
-<!-- 					</descriptorRefs> -->
-<!-- 					<archive> -->
-<!-- 						<manifest> -->
-<!-- 							<mainClass>com.eqchains.Singularity</mainClass> -->
-<!-- 						</manifest> -->
-<!-- 					</archive> -->
-<!-- 				</configuration> -->
-<!-- 				<executions> -->
-<!-- 					<execution> -->
-<!-- 						<id>make-assembly</id> -->
-<!-- 						<phase>package</phase> -->
-<!-- 						<goals> -->
-<!-- 							<goal>assembly</goal> -->
-<!-- 						</goals> -->
-<!-- 					</execution> -->
-<!-- 				</executions> -->
-<!-- 			</plugin> -->
+			<plugin>
+			<artifactId>maven-assembly-plugin</artifactId>
+			<configuration>
+			<appendAssemblyId>false</appendAssemblyId>
+			<descriptorRefs>
+			<descriptorRef>jar-with-dependencies</descriptorRef>
+			</descriptorRefs>
+			<archive>
+			<manifest>
+			<mainClass>com.eqchains.Singularity</mainClass>
+			</manifest>
+			</archive>
+			</configuration>
+			<executions>
+			<execution>
+			<id>make-assembly</id>
+			<phase>package</phase>
+			<goals>
+			<goal>assembly</goal>
+			</goals>
+			</execution>
+			</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -121,6 +121,7 @@
 				<configuration>
 					<source>${maven.compiler.source}</source>
 					<target>${maven.compiler.source}</target>
+					<skip>true</skip> 
 				</configuration>
 			</plugin>
 			<plugin>
@@ -148,7 +149,8 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.0.0-M3</version>
 				<configuration>
-					<skipTests>true</skipTests>
+					<skip>true</skip> 
+<!-- 					<skipTests>true</skipTests> -->
 				</configuration>
 			</plugin>
 			<plugin>

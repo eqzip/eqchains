@@ -49,9 +49,13 @@ import com.eqchains.util.Util;
 public class PendingTransactionService extends EQCService {
 	private static PendingTransactionService instance;
 	
+	private PendingTransactionService() {
+		super();
+	}
+	
 	public static PendingTransactionService getInstance() {
 		if (instance == null) {
-			synchronized (Keystore.class) {
+			synchronized (PendingTransactionService.class) {
 				if (instance == null) {
 					instance = new PendingTransactionService();
 				}

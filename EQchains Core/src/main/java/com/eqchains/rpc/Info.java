@@ -152,4 +152,12 @@ public class Info extends AvroO {
 		return os.toByteArray();
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "Info [cookie=" + cookie + ", code=" + code + ", message=" + message + "]";
+	}
+
 }

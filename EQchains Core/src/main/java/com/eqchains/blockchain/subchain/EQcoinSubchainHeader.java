@@ -146,7 +146,10 @@ public class EQcoinSubchainHeader extends EQCSubchainHeader {
 	}
 	
 	protected String toInnerJson() {
-		return null;
+		return "\"EQcoinSubchainHeader\":" + "{\n" + "\"SubchainID\":" + "\"" + id + "\"" + ",\n"
+				+ "\"TotalTxFee\":" + "\"" + totalTxFee + "\"" + ",\n" + "\"TotalTransactionNumbers\":" + "\"" + totalTransactionNumbers + "\"" + ",\n"
+				 + "\"TotalAccountNumbers\":" + "\"" + totalAccountNumbers + "\"" + ",\n" + coinbaseTransaction.toInnerJson()
+				+ "\n" + "}";
 	}
 	
 }

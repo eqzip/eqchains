@@ -89,7 +89,7 @@ public class MiscTest {
 			EQCBlockChainRocksDB.getInstance().saveAccount(account);
 			Account account2 = EQCBlockChainRocksDB.getInstance().getAccount(ID.ONE);
 			assertEquals(account, account2);
-		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -141,11 +141,11 @@ public class MiscTest {
 	   void verifyBlock() {
 		   ID id;
 		try {
-			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
+			id = Util.DB().getEQCBlockTailHeight();
 			Log.info("" + id);
-			 for(int i=1; i<=id.intValue(); ++i) {
+			 for(int i=4; i<=id.intValue(); ++i) {
 			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINERING));
-			   EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getEQCHive(new ID(i), false);
+			   EQCHive eqcBlock = Util.DB().getEQCHive(new ID(i), false);
 //			   Log.info(eqcBlock.toString());
 				assertTrue(eqcBlock.isValid(accountsMerkleTree));
 				accountsMerkleTree.clear();

@@ -44,18 +44,18 @@ import com.eqchains.util.Util;
  * @date Jul 4, 2019
  * @email 10509759@qq.com
  */
-public class NewBlock extends AvroO implements Comparable<NewBlock> {
+public class NewHive extends AvroO implements Comparable<NewHive> {
 	private Cookie cookie;
 	private EQCHive eqcHive;
 	private ID checkPointHeight;
 	private long time;
 
-	public NewBlock() {
+	public NewHive() {
 		cookie = Util.getCookie();
 		time = System.currentTimeMillis();
 	}
 	
-	public NewBlock(O io) throws Exception {
+	public NewHive(O io) throws Exception {
 		parse(io);
 		time = System.currentTimeMillis();
 	}
@@ -152,7 +152,7 @@ public class NewBlock extends AvroO implements Comparable<NewBlock> {
 	}
 
 	@Override
-	public int compareTo(NewBlock o) {
+	public int compareTo(NewHive o) {
 		return (int) (o.time - time);
 	}
 

@@ -54,7 +54,10 @@ import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.account.Publickey;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.subchain.EQCSubchain;
+import com.eqchains.blockchain.subchain.EQcoinSubchain;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore.ECCTYPE;
@@ -541,28 +544,14 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return true;
 	}
 
-	public void prepareVerify(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		// Fill in TxIn's ReadableAddress excpet Coinbase Transaction
-		if (transactionType != TransactionType.COINBASE) {
-			Account account = accountsMerkleTree.getAccount(txIn.getPassport().getID());
-			txIn.getPassport().setReadableAddress(account.getPassport().getReadableAddress());
-			// Check if Publickey is exists and fill in Publickey's ID and Publickey
-			if (!account.isPublickeyExists()) {
-				throw new IllegalStateException(account.toString() + "'s Publickey shouldn't be empty.");
-			} else {
-				compressedPublickey.setID(txIn.getPassport().getID());
-				compressedPublickey.setCompressedPublickey(accountsMerkleTree.getPublicKey(txIn.getPassport().getID()).getCompressedPublickey());
-				if(account.getPublickey().getPublickeyCreateHeight().compareTo(accountsMerkleTree.getHeight()) == 0) {
-					compressedPublickey.setNew(true);
-				}
-			}
-		}
+	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, EQCSubchain eqcSubchain) throws Exception {
+		
 	}
 
 	public boolean isNonceCorrect(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		// Check if Nonce's value is correct
 		if (!nonce.isNextID(
-				accountsMerkleTree.getAccount(txIn.getPassport().getID()).getAsset(getAssetID()).getNonce())) {
+				accountsMerkleTree.getAccount(txIn.getPassport().getID(), true).getAsset(getAssetID()).getNonce())) {
 			return false;
 		}
 		return true;
@@ -627,11 +616,16 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		// Update current Transaction's relevant Account's AccountsMerkleTree's data
 		// Update current Transaction's TxIn Publickey if need
 		if (compressedPublickey.isNew()) {
-			accountsMerkleTree.savePublicKey(compressedPublickey, accountsMerkleTree.getHeight());
+			Account account = accountsMerkleTree.getAccount(txIn.getPassport().getID(), true);
+			Publickey publickey = new Publickey();
+			publickey.setCompressedPublickey(compressedPublickey.getCompressedPublickey());
+			publickey.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
+			account.setPublickey(publickey);
+			accountsMerkleTree.saveAccount(account);
 		}
 
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce&Balance
-		Account account = accountsMerkleTree.getAccount(txIn.getPassport().getID());
+		Account account = accountsMerkleTree.getAccount(txIn.getPassport().getID(), true);
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
@@ -847,7 +841,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 
 	}
 	
-	protected String toInnerJson() {
+	public String toInnerJson() {
 		return null;
 	}
 	

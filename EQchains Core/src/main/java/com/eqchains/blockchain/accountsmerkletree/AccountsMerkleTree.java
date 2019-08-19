@@ -128,50 +128,43 @@ public class AccountsMerkleTree {
 	 * and it's create height less than current AccountsMerkleTree's
 	 * height.
 	 * 
-	 * @param address
+	 * @param passport
 	 * @param isFiltering When need searching in Filter table just set it to true
 	 * @return true if Account exists
 	 * @throws Exception 
 	 */
-	public synchronized boolean isAccountExists(Passport address, boolean isFiltering) throws Exception {
+	public synchronized boolean isAccountExists(Passport passport, boolean isFiltering) throws Exception {
 		boolean isExists = false;
-		if(isFiltering && filter.isAccountExists(address)) {
+		if(isFiltering && filter.isAccountExists(passport)) {
 			isExists = true;
 		}
 		else {
-			Account account = Util.DB().getAccount(address.getAddressAI());
-			if(account != null && account.getLockCreateHeight().compareTo(height) < 0 && account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
+			Account account = Util.DB().getAccount(passport.getAddressAI());
+			if(account != null && account.getCreateHeight().compareTo(height) < 0 && account.getLockCreateHeight().compareTo(height) < 0 && account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
 				isExists = true;
 			}
 		}
 		return  isExists;
 	}
 	
-	public synchronized boolean isAccountExists(Passport passport) throws Exception {
-		boolean isExists = false;
-			Account account = Util.DB().getAccount(passport.getID());
-			if(account != null && account.getLockCreateHeight().compareTo(height) < 0 && account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
-				isExists = true;
-			}
-		return  isExists;
+	public synchronized Account getAccount(ID id, boolean isFiltering) throws Exception {
+//		EQCType.assertNotBigger(id, previousTotalAccountNumbers); // here need do more job to determine if need this check
+		return filter.getAccount(id, isFiltering);
 	}
 	
-	public synchronized Account getAccount(ID id) throws Exception {
-		EQCType.assertNotBigger(id, previousTotalAccountNumbers);
-		return filter.getAccount(id, true);
-	}
-	
-	public synchronized Account getAccount(Passport address) throws Exception {
-		return filter.getAccount(address, true);
+	public synchronized Account getAccount(Passport passport, boolean isFiltering) throws Exception {
+		return filter.getAccount(passport, isFiltering);
 	}
 	
 	/**
 	 * Save current Account in Filter
 	 * @param account
 	 * @return true if save successful
-	 * @throws RocksDBException 
+	 * @throws Exception 
+	 * @throws SQLException 
+	 * @throws ClassNotFoundException 
 	 */
-	public synchronized void saveAccount(Account account) throws RocksDBException {
+	public synchronized void saveAccount(Account account) throws ClassNotFoundException, SQLException, Exception {
 //		Log.info(account.toString());
 		filter.saveAccount(account);
 	}
@@ -224,16 +217,18 @@ public class AccountsMerkleTree {
 				end = (int) remainder + Util.INIT_ADDRESS_SERIAL_NUMBER; 
 			}
 			for (int j = begin; j < end; ++j) {
-				account = filter.getAccount(new ID(j), false);
+				account = filter.getAccount(new ID(j), true);
 				// If account == null which means error occur
 				if (account == null) {
 					throw new IllegalStateException("Account shouldn't be null");
 				}
 //				Log.info(account.toString());
 //				Log.info(Util.dumpBytes(account.getHash(), 16));
+				account.setSaveHash(true);
 				accountHash = account.getHash();
-				filter.saveAccountHash(account, accountHash);
+				filter.saveAccount(account);
 				accountsHash.add(accountHash);
+//				Log.info("No." + j + "'s "+ Util.dumpBytes(accountHash, 16));
 				accountHash = null;
 			}
 			MerkleTree merkleTree = new MerkleTree(accountsHash);
@@ -263,39 +258,17 @@ public class AccountsMerkleTree {
 		return bytes;
 	}
 
-	public void merge(EQCHive eqcHive) throws Exception {
-		filter.merge(eqcHive);
+	public void merge() throws Exception {
+		filter.merge();
 	}
 	
-	public void clear() throws RocksDBException {
+	public void clear() throws ClassNotFoundException, SQLException, Exception {
 		filter.clear();
 	}
 	
-	public ID getAddressID(Passport address) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException {
-		return filter.getAddressID(address);
-	}
-
-	public Passport getAddress(ID id) throws Exception {
-		return filter.getAddress(id);
-	}
-
-	public CompressedPublickey getPublicKey(ID id) throws Exception {
-		return filter.getPublicKey(id);
-	}
-
-	@Deprecated
-	public void savePublicKey(CompressedPublickey publicKey, ID height) throws Exception {
-		filter.savePublicKey(publicKey, height);
-	}
-
-	public boolean isPublicKeyExists(CompressedPublickey publicKey) throws Exception {
-		return filter.isPublicKeyExists(publicKey);
-	}
-
-	@Deprecated
-	public void deletePublicKey(CompressedPublickey publicKey) throws Exception {
-		filter.deletePublicKey(publicKey);
-	}
+//	public ID getPassportID(Passport address) throws ClassNotFoundException, SQLException, Exception {
+//		return filter.getPassportID(address);
+//	}
 
 	public byte[] getEQCHeaderHash(ID height) throws Exception {
 		return Util.DB().getEQCHeaderHash(height);
@@ -376,7 +349,7 @@ public class AccountsMerkleTree {
 		
 		public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
 			for(AssetStatistics assetStatistics : assetStatisticsList) {
-				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) accountsMerkleTree.getAccount(assetStatistics.assetID);
+				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) accountsMerkleTree.getAccount(assetStatistics.assetID, true);
 				AssetSubchainHeader assetSubchainHeader = assetSubchainAccount.getAssetSubchainHeader();
 				if(assetSubchainHeader.getTotalAccountNumbers().compareTo(assetStatistics.totalAccountNumbers) != 0) {
 					Log.Error("totalAccountNumbers is invalid.");
@@ -430,7 +403,7 @@ public class AccountsMerkleTree {
 		Account account;
 		Statistics statistics = new Statistics();
 		for(int i=1; i<=totalAccountNumbers.longValue(); ++i) {
-			account = filter.getAccount(new ID(i).getEQCBits(), false);
+			account = filter.getAccount(ID.valueOf(i), true);
 //			Log.info(account.toString());
 			statistics.update(account.getAssetList());
 		}
@@ -452,39 +425,17 @@ public class AccountsMerkleTree {
 	}
 	
 	/**
-	 * Retrieve the Account from specific height which maybe is current tail or history height 
-	 * 
-	 * @param addressAI
-	 * @return
-	 * @throws ClassNotFoundException
-	 * @throws RocksDBException
-	 * @throws SQLException
-	 * @throws Exception
-	 */
-	public Account getAccount(byte[] addressAI)
-			throws ClassNotFoundException, RocksDBException, SQLException, Exception {
-		Account account = Util.DB().getAccount(addressAI);
-		ID tail = Util.DB().getEQCBlockTailHeight();
-		if (height.equals(tail) || height.equals(tail.getNextID())) {
-			if (account != null && account.getLockCreateHeight().compareTo(height) <= 0
-					&& account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
-				account = Util.DB().getAccount(addressAI);
-			}
-		}
-		else if(height.compareTo(tail) <= 0) {
-			account = EQCBlockChainH2.getInstance().getAccountSnapshot(addressAI, height.getPreviousID());
-		}
-		else {
-			throw new IllegalStateException("Wrong height " + height + " tail height " + Util.DB().getEQCBlockTailHeight());
-		}
-		return account;
-	}
-
-	/**
 	 * @return the previousTotalAccountNumbers
 	 */
 	public ID getPreviousTotalAccountNumbers() {
 		return previousTotalAccountNumbers;
+	}
+	
+	public void updateGlobalState() throws Exception {
+		// Save the snapshot of current tail height's changed Accounts from Account Table to Snapshot Table
+		takeSnapshot();
+		merge();
+		clear();
 	}
 	
 }

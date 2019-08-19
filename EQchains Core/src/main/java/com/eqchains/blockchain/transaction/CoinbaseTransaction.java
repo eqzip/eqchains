@@ -45,6 +45,8 @@ import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.CoinAsset;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.subchain.EQCSubchain;
+import com.eqchains.blockchain.subchain.EQcoinSubchain;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
@@ -205,16 +207,34 @@ public class CoinbaseTransaction extends TransferTransaction {
 				txOut.setNew(true);
 				initID = initID.getNextID();
 			} else {
-				// For security issue need retrieve and fill in every Address' ID
-				// according to it's AddressAI
-				txOut.getPassport().setID(accountsMerkleTree.getAddressID(txOut.getPassport()));
+				// For security issue need retrieve and fill in every Address' ID according to it's AddressAI
+				txOut.getPassport().setID(accountsMerkleTree.getAccount(txOut.getPassport(), true).getID());
 			}
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.transaction.TransferTransaction#prepareVerify(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree, com.eqchains.blockchain.subchain.EQCSubchain)
+	 */
+	@Override
+	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, EQCSubchain eqcSubchain) throws Exception {
+		EQcoinSubchain eQcoinSubchain = (EQcoinSubchain) eqcSubchain;
+		Account account = null;
+		// Update TxOut's Address' isNew status if need
+		for (TxOut txOut : txOutList) {
+			account = accountsMerkleTree.getAccount(txOut.getPassport().getID(), true);
+			if (account == null) {
+				txOut.getPassport().setReadableAddress(eQcoinSubchain.getPassport(txOut.getPassport().getID()).getReadableAddress());
+				txOut.setNew(true);
+			} else {
+				// For security issue need retrieve and fill in every Address' AddressAI according to it's ID
+				txOut.getPassport().setReadableAddress(account.getPassport().getReadableAddress());
+			}
+		}
+	}
+
 	public void update(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		Account account = null;
-		WriteBatch writeBatch = new WriteBatch();
 		// Update current Transaction's TxOut Account
 		for (TxOut txOut : txOutList) {
 			if (txOut.isNew()) {
@@ -237,21 +257,16 @@ public class CoinbaseTransaction extends TransferTransaction {
 				Log.info("increaseTotalAccountNumbers");
 				accountsMerkleTree.increaseTotalAccountNumbers();
 			} else {
-				account = accountsMerkleTree.getAccount(txOut.getPassport().getID());
+				account = accountsMerkleTree.getAccount(txOut.getPassport().getID(), true);
 			}
 			account.getAsset(getAssetID()).deposit(new ID(txOut.getValue()));
 			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight());
 			account.setUpdateHeight(accountsMerkleTree.getHeight());
-			writeBatch.put(accountsMerkleTree.getFilter().getTableHandle(TABLE.ACCOUNT), account.getID().getEQCBits(), account.getBytes());
-			writeBatch.put(accountsMerkleTree.getFilter().getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(),
-					account.getID().getEQCBits());
+			accountsMerkleTree.saveAccount(account);
 		}
-		
-		accountsMerkleTree.getFilter().batchUpdate(writeBatch);
-		
 	}
 	
-	protected String toInnerJson() {
+	public String toInnerJson() {
 		return
 
 		"\"CoinbaseTransaction\":" + "\n{\n" + TxIn.coinBase() + ",\n"

@@ -54,8 +54,10 @@ import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.EQChains;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHeader;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.hive.EQCRoot;
@@ -84,7 +86,6 @@ import com.eqchains.util.Util.AddressTool;
  * @email 10509759@qq.com
  */
 public class EQCBlockChainH2 implements EQCBlockChain {
-
 	private static final String JDBC_URL = "jdbc:h2:" + Util.H2_DATABASE_NAME;
 	private static final String USER = "W3C SGML";
 	/**
@@ -149,6 +150,12 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 						+ "hash BINARY(64) NOT NULL,"
 						+ "update_height BIGINT NOT NULL,"
 						+ "bytes BINARY NOT NULL"
+						+ ")");
+			 
+			 result = statement.execute("CREATE TABLE IF NOT EXISTS EQCHIVE("
+						+ "height BIGINT  PRIMARY KEY," // need add CHECK(id>0)
+						+ "bytes BINARY NOT NULL UNIQUE,"
+						+ "eqcheader_hash BINARY(64) NOT NULL"
 						+ ")");
 			
 			// Create Balance table which contain every Account's history balance
@@ -717,72 +724,21 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getEQCBlock(com.eqzip.eqcoin.util.SerialNumber, boolean)
 	 */
 	@Override
-	public synchronized EQCHive getEQCHive(ID height, boolean isSegwit) {
-		EQCHive eqcBlock = null;
-		File file = new File(Util.BLOCK_PATH + height.longValue() + Util.EQC_SUFFIX);
+	public synchronized EQCHive getEQCHive(ID height, boolean isSegwit) throws Exception {
+		EQCHive eqcHive = null;
+		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
 		if(file.exists() && file.isFile() && (file.length() > 0)) {
-			eqcBlock = new EQCHive();
 			InputStream is = null;
 			try {
 				is = new FileInputStream(file);
-				ByteArrayInputStream bis = new ByteArrayInputStream(is.readAllBytes());
-				byte[] bytes = null;
-				// Parse EqcHeader
-				if ((bytes = EQCType.parseBIN(bis)) != null) {
-					eqcBlock.setEqcHeader(new EQCHeader(bytes));
-				}
-				// Parse Root
-				bytes = null;
-				if ((bytes = EQCType.parseBIN(bis)) != null) {
-					eqcBlock.setRoot(new EQCRoot(bytes));
-				}
-//				// Parse Index
-//				bytes = null;
-//				if ((bytes = EQCType.parseBIN(bis)) != null) {
-//					if (!Index.isValid(bytes)) {
-//						throw new ClassCastException("getEQCBlock during parse Index error occur wrong format");
-//					}
-//					eqcBlock.setIndex(new Index(bytes));
-//				}
-				// Parse Transactions
-				bytes = null;
-				if ((bytes = EQCType.parseBIN(bis)) != null) {
-//					if (!Transactions.isValid(bytes)) {
-//						throw new ClassCastException("getEQCBlock during parse Transactions error occur wrong format");
-//					}
-					EQChains eqChains = null;
-					try {
-						eqChains = new EQChains(bytes);
-					}
-					catch(Exception e) {
-						Log.info(e.getMessage());
-					}
-					if(eqChains != null) {
-//						eqcBlock.setTransactions(eqChains);
-					}
-					else {
-						throw new ClassCastException("getEQCBlock during parse Transactions error occur wrong format");
-					}
-				}
-				if (!isSegwit) {
-					// Parse Signatures
-					bytes = null;
-					if ((bytes = EQCType.parseBIN(bis)) != null) {
-						if (!EQCSignatures.isValid(bytes)) {
-							throw new ClassCastException(
-									"getEQCBlock during parse Signatures error occur wrong format");
-						}
-//						eqcBlock.setSignatures(new EQCSignatures(bytes));
-					}
-				}
+				eqcHive = new EQCHive(is.readAllBytes(), isSegwit);
 			} catch (IOException | NoSuchFieldException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				eqcBlock = null;
 				Log.Error(e.getMessage());
 			}
 		}
-		return eqcBlock;
+		return eqcHive;
 	}
 
 	/*
@@ -795,7 +751,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Deprecated
 	public synchronized boolean isEQCBlockExists(ID height) {
 		boolean isEQCBlockExists = false;
-		File file = new File(Util.BLOCK_PATH + height.longValue() + Util.EQC_SUFFIX);
+		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
 		if (file.exists() && file.isFile() && (file.length() > 0)) {
 			isEQCBlockExists = true;
 		}
@@ -809,11 +765,10 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * blockchain.EQCBlock)
 	 */
 	@Override
-	public synchronized boolean saveEQCHive(EQCHive eqcHive) throws IOException {
+	public synchronized boolean saveEQCHive(EQCHive eqcHive) throws Exception {
 		Objects.requireNonNull(eqcHive);
 		EQCHive eqcHive2 = null;
-		boolean isSucc = false;
-		File file = new File(Util.BLOCK_PATH + eqcHive.getHeight().longValue() + Util.EQC_SUFFIX);
+		File file = new File(Util.HIVE_PATH + eqcHive.getHeight().longValue() + Util.EQC_SUFFIX);
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		bos.write(eqcHive.getBytes());
 		// Save EQCBlock
@@ -822,14 +777,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		os.flush();
 		os.close();
 		eqcHive2 = getEQCHive(eqcHive.getHeight(), false);
-		Objects.requireNonNull(eqcHive2);
-		if(eqcHive.equals(eqcHive2)) {
-			isSucc = true;
-		}
-		else {
-			throw new IllegalStateException("Original data:\n" + Util.dumpBytes(eqcHive.getBytes(), 16) + " doesn't equal to saved data:\n" + Util.dumpBytes(eqcHive2.getBytes(), 16));
-		}
-		return isSucc;
+		EQCType.assertEqual(eqcHive.getBytes(), Objects.requireNonNull(eqcHive2).getBytes());
+		return true;
 	}
 
 	/*
@@ -840,8 +789,23 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 * util.SerialNumber)
 	 */
 	@Override
-	public synchronized boolean deleteEQCHive(ID height) {
-		return false;
+	public synchronized boolean deleteEQCHive(ID height) throws Exception {
+		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
+		if(file.exists()) {
+			if(file.delete()) {
+				Log.info("EQCHive No." + height + " delete successful");
+			}
+			else {
+				Log.info("EQCHive No." + height + " delete failed");
+			}
+		}
+		else {
+			Log.info("EQCHive No." + height + " doesn't exists");
+		}
+		if(getEQCHive(height, true) != null) {
+			throw new IllegalStateException("EQCHive No." + height + " delete failed");
+		}
+		return true;
 	}
 
 	/*
@@ -854,7 +818,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Deprecated
 	public synchronized EQCHeader getEQCHeader(ID height) {
 		EQCHeader eqcHeader = null;
-		File file = new File(Util.BLOCK_PATH + height.longValue() + Util.EQC_SUFFIX);
+		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
 		if(file.exists() && file.isFile() && (file.length() > 0)) {
 			InputStream is = null;
 			try {
@@ -873,18 +837,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			}
 		}
 		return eqcHeader;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.eqzip.eqcoin.blockchain.EQCBlockChain#getTransactionsHash(com.EQCOIN Foundation.
-	 * eqcoin.util.SerialNumber)
-	 */
-	@Deprecated
-	public synchronized byte[] getTransactionsHash(ID height) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	/*
@@ -948,43 +900,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return txInValue - txOutValue;
 	}
 
-//	@Override
-//	public synchronized Vector<Transaction> getTransactionList(Address address, SerialNumber height) {
-//		// TODO Auto-generated method stub
-//		return null;
-//	}
-
-//	public synchronized byte[] getTxInBlockHeaderHash(Address txInAddress) {
-//		byte[] bytes = null;
-//		try {
-//			 ResultSet resultSet = statement.executeQuery("SELECT * FROM TXIN_HEADER_HASH WHERE address_id ='" + txInAddress.getSerialNumber().longValue() + "'");
-//			 if(resultSet.next()) {
-//				 bytes = resultSet.getBytes("header_hash");
-//			 }
-//		} catch (SQLException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			Log.Error(e.getMessage());
-//		}
-//		return bytes;
-//	}
-//	
-//	@Override
-//	public synchronized boolean setTxInBlockHeaderHash(byte[] hash, SerialNumber addressSerialNumber, SerialNumber height) {
-//		int result = 0;
-//		try {
-//			result = statement.executeUpdate("INSERT INTO TXIN_HEADER_HASH (header_hash, address_sn, height) VALUES('" 
-//					+ hash + "','"
-//					+ addressSerialNumber.longValue() + "','"
-//					+ height.longValue() + "')");
-//			Log.info("result: " + result);
-//		} catch (SQLException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			Log.Error(e.getMessage());
-//		}
-//		return result == ONE_ROW;
-//	}
 
 	@Deprecated
 	public synchronized ID getTxInHeight(Passport txInAddress) {
@@ -1016,50 +931,52 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 
 	@Override
 	public synchronized boolean saveEQCBlockTailHeight(ID height) {
-		int result = 0;
+		int rowCounter = 0;
 		try {
 			if (getEQCBlockTailHeight() != null) {
-				result = statement.executeUpdate("UPDATE SYNCHRONIZATION SET block_tail_height='"
+				rowCounter = statement.executeUpdate("UPDATE SYNCHRONIZATION SET block_tail_height='"
 						+ height.longValue() + "' WHERE key='1'");
 
 			}
 			else {
-				result = statement.executeUpdate("INSERT INTO SYNCHRONIZATION (block_tail_height) VALUES('" 
+				rowCounter = statement.executeUpdate("INSERT INTO SYNCHRONIZATION (block_tail_height) VALUES('" 
 						+ height.longValue() + "')");
 			}
-//			Log.info("result: " + result);
+			EQCType.assertEqual(rowCounter, ONE_ROW);
+			ID savedHeight = getEQCBlockTailHeight();
+			Objects.requireNonNull(savedHeight);
+			EQCType.assertEqual(height.longValue(), savedHeight.longValue());
+			Log.info("saveEQCBlockTailHeight " + height + " successful");
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 		}
-		return false;
+		return true;
 	}
 
 	@Override
 	public synchronized ID getEQCBlockTailHeight() throws SQLException {
-		ID serialNumber = null;
+  		ID id = null;
 		ResultSet resultSet = statement.executeQuery("SELECT * FROM SYNCHRONIZATION");
 		if (resultSet.next()) {
-			serialNumber = new ID(BigInteger.valueOf(resultSet.getLong("block_tail_height")));
+			id = new ID(BigInteger.valueOf(resultSet.getLong("block_tail_height")));
 		}
-		return serialNumber;
+		return id;
 	}
 
 	@Override
-	public synchronized ID getTotalAccountNumbers(ID height) {
-		ID serialNumber = null;
-		try {
-			 ResultSet resultSet = statement.executeQuery("SELECT * FROM SYNCHRONIZATION");
-			 if(resultSet.next()) {
-				 serialNumber = new ID(BigInteger.valueOf(resultSet.getLong("total_account_numbers")));
-			 }
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.Error(e.getMessage());
+	public synchronized ID getTotalAccountNumbers(ID height) throws ClassNotFoundException, RocksDBException, Exception {
+		EQCType.assertNotBigger(height, getEQCBlockTailHeight());
+		AssetSubchainAccount assetSubchainAccount = null;
+
+		if (height.compareTo(getEQCBlockTailHeight()) < 0) {
+			assetSubchainAccount = (AssetSubchainAccount) getAccountSnapshot(ID.ONE,
+					height);
+		} else {
+			assetSubchainAccount = (AssetSubchainAccount) getAccount(ID.ONE);
 		}
-		return serialNumber;
+		return assetSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers();
 	}
 
 	@Deprecated
@@ -1085,10 +1002,16 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 	
 	@Override
-	@Deprecated
-	public synchronized byte[] getEQCHeaderHash(ID height) {
-		EQCHive eqcBlock = getEQCHive(height, true);
-		return eqcBlock.getEqcHeader().getHash();
+	public synchronized byte[] getEQCHeaderHash(ID height) throws Exception {
+		EQCType.assertNotBigger(height, getEQCBlockTailHeight());
+		byte[] hash = null;
+		if(height.compareTo(getEQCBlockTailHeight()) < 0) {
+			hash = Objects.requireNonNull(getEQCHive(height.getNextID(), true)).getEqcHeader().getPreHash();
+		}
+		else {
+			hash = Objects.requireNonNull(getEQCHive(height, true)).getEqcHeader().getHash();
+		}
+		return hash;
 	}
 
 	/*
@@ -1476,68 +1399,77 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		}
 		return boolResult;
 	}
-
-	
-	boolean result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT("
-			+ "id BIGINT  PRIMARY KEY," // need add CHECK(id>0)
-			+ "address_ai BINARY(33) NOT NULL UNIQUE,"
-			+ "create_height BIGINT NOT NULL,"
-			+ "hash BINARY(64) NOT NULL,"
-			+ "update_height BIGINT NOT NULL,"
-			+ "bytes BINARY NOT NULL"
-			+ ")");
 	
 	@Override
-	public boolean saveAccount(Account account) throws SQLException {
-		int result = 0;
+	public boolean saveAccount(Account account) throws Exception {
+		int rowCounter = 0;
 		PreparedStatement preparedStatement = null;
 			if (getAccount(account.getID()) != null) {
 					preparedStatement = connection.prepareStatement("UPDATE ACCOUNT SET id = ?, address_ai = ?,  create_height = ?, hash = ?, update_height = ?, bytes = ? WHERE id = ?");
 					preparedStatement.setLong(1, account.getID().longValue());
 					preparedStatement.setBytes(2, account.getPassport().getAddressAI());
 					preparedStatement.setLong(3, account.getCreateHeight().longValue());
-					preparedStatement.setBytes(4, account.isHashing()?account.getHash():Util.NULL_HASH);
+					preparedStatement.setBytes(4, account.isSaveHash()?Objects.requireNonNull(account.getHash()):Util.NULL_HASH);
 					preparedStatement.setLong(5, account.getUpdateHeight().longValue());
 					preparedStatement.setBytes(6, account.getBytes());
 					preparedStatement.setLong(7, account.getID().longValue());
-					result = preparedStatement.executeUpdate();
-//					Log.info("UPDATE: " + result);
+					rowCounter = preparedStatement.executeUpdate();
+//					Log.info("UPDATE: " + rowCounter);
 			}
 			else {
 				preparedStatement = connection.prepareStatement("INSERT INTO ACCOUNT (id, address_ai, create_height, hash, update_height, bytes) VALUES (?, ?, ?, ?, ?, ?)");
 				preparedStatement.setLong(1, account.getID().longValue());
 				preparedStatement.setBytes(2, account.getPassport().getAddressAI());
 				preparedStatement.setLong(3, account.getCreateHeight().longValue());
-				preparedStatement.setBytes(4, account.isHashing()?account.getHash():Util.NULL_HASH);
+				preparedStatement.setBytes(4, account.isSaveHash()?Objects.requireNonNull(account.getHash()):Util.NULL_HASH);
 				preparedStatement.setLong(5, account.getUpdateHeight().longValue());
 				preparedStatement.setBytes(6, account.getBytes());
-				preparedStatement.setLong(7, account.getID().longValue());
-				result = preparedStatement.executeUpdate();
-//				Log.info("INSERT: " + result);
+				rowCounter = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + rowCounter);
 			}
-		return result == ONE_ROW;
+		EQCType.assertEqual(rowCounter, ONE_ROW);
+		Account savedAccount = getAccount(account.getID());
+		EQCType.assertEqual(account.getBytes(), savedAccount.getBytes());
+		return true;
 	}
 
 	@Override
-	public Account getAccount(ID serialNumber) {
-		// TODO Auto-generated method stub
-		return null;
+	public Account getAccount(ID id) throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
+		Account account = null;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ACCOUNT WHERE id=?");
+		preparedStatement.setLong(1, id.longValue());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			account = Account.parseAccount(resultSet.getBytes("bytes"));
+		}
+		return account;
 	}
 
 	@Override
-	public boolean deleteAccount(ID serialNumber) {
-		return false;
+	public boolean deleteAccount(ID id) throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
+		int rowCounter = 0;
+		PreparedStatement preparedStatement;
+		preparedStatement = connection.prepareStatement("DELETE FROM ACCOUNT WHERE id =?");
+		preparedStatement.setLong(1, id.longValue());
+		rowCounter = preparedStatement.executeUpdate();
+		Log.info("rowCounter: " + rowCounter);
+		EQCType.assertEqual(rowCounter, ONE_ROW);
+		if(getAccount(id) != null) {
+			throw new IllegalStateException("deleteAccount No." + id + " failed Account still exists");
+		}
+		return true;
 	}
 
 	@Override
-	public Account getAccount(byte[] addressAI) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public boolean saveTotalAccountNumbers(ID numbers) {
-		// TODO Auto-generated method stub
-		return false;
+	public Account getAccount(byte[] addressAI) throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
+		Account account = null;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ACCOUNT WHERE address_ai=?");
+		preparedStatement.setBytes(1, addressAI);
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			account = Account.parseAccount(resultSet.getBytes("bytes"));
+		}
+		return account;
 	}
 
 	@Override
@@ -1560,9 +1492,9 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			} 
 //		}
 		
-		if(account == null) {
-			throw new NullPointerException("No. " + accountID + " relevant Account is NULL");
-		}
+//		if(account == null) {
+//			throw new IllegalStateException("getAccountSnapshot No. " + accountID + " relevant Account is NULL");
+//		}
 		
 		return account;
 	}
@@ -1674,9 +1606,24 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public byte[] getEQCHeaderBuddyHash(ID height) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+	public byte[] getEQCHeaderBuddyHash(ID height, ID currentTailHeight) throws Exception {
+		byte[] hash = null;
+		// Due to the latest Account is got from current node so it's xxxUpdateHeight doesn't higher than currentTailHeight
+//		EQCType.assertNotBigger(height, tail);
+		// Here need pay attention to shouldn't include tail height because
+		if(height.compareTo(currentTailHeight) < 0) {
+			hash = getEQCHeaderHash(height);
+		}
+		else if(height.equals(currentTailHeight)) {
+			hash = getEQCHeaderHash(height.getPreviousID());
+		}
+//		else if(height.equals(tail.getNextID())){
+//			hash = getEQCHeaderHash(tail);
+//		}
+		else {
+			throw new IllegalArgumentException("Height " + height + " shouldn't bigger than current tail height " + currentTailHeight);
+		}
+		return hash;
 	}
 
 	@Override
@@ -2054,6 +2001,104 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public void deleteEQCHiveFromTo(ID fromHeight, ID toHeight) throws Exception {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public boolean saveAccount(Account account, Mode mode) throws Exception {
+		int rowCounter = 0;
+		PreparedStatement preparedStatement = null;
+			if (getAccount(account.getID(), mode) != null) {
+					preparedStatement = connection.prepareStatement("UPDATE " + ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID") + " SET id = ?, address_ai = ?,  create_height = ?, hash = ?, update_height = ?, bytes = ? WHERE id = ?");
+					preparedStatement.setLong(1, account.getID().longValue());
+					preparedStatement.setBytes(2, account.getPassport().getAddressAI());
+					preparedStatement.setLong(3, account.getCreateHeight().longValue());
+					preparedStatement.setBytes(4, account.isSaveHash()?Objects.requireNonNull(account.getHash()):Util.NULL_HASH);
+					preparedStatement.setLong(5, account.getUpdateHeight().longValue());
+					preparedStatement.setBytes(6, account.getBytes());
+					preparedStatement.setLong(7, account.getID().longValue());
+					rowCounter = preparedStatement.executeUpdate();
+//					Log.info("UPDATE: " + rowCounter);
+			}
+			else {
+				preparedStatement = connection.prepareStatement("INSERT INTO " + ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID") + " (id, address_ai, create_height, hash, update_height, bytes) VALUES (?, ?, ?, ?, ?, ?)");
+				preparedStatement.setLong(1, account.getID().longValue());
+				preparedStatement.setBytes(2, account.getPassport().getAddressAI());
+				preparedStatement.setLong(3, account.getCreateHeight().longValue());
+				preparedStatement.setBytes(4, account.isSaveHash()?Objects.requireNonNull(account.getHash()):Util.NULL_HASH);
+				preparedStatement.setLong(5, account.getUpdateHeight().longValue());
+				preparedStatement.setBytes(6, account.getBytes());
+				rowCounter = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + rowCounter);
+			}
+		EQCType.assertEqual(rowCounter, ONE_ROW);
+		Account savedAccount = getAccount(account.getID(), mode);
+		EQCType.assertEqual(account.getBytes(), savedAccount.getBytes());
+		return true;
+	}
+
+	@Override
+	public Account getAccount(ID id, Mode mode) throws Exception {
+		Account account = null;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " + ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID") + " WHERE id=?");
+		preparedStatement.setLong(1, id.longValue());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			account = Account.parseAccount(resultSet.getBytes("bytes"));
+		}
+		return account;
+	}
+
+	@Override
+	public boolean clear(Mode mode) throws Exception {
+		PreparedStatement preparedStatement;
+		preparedStatement = connection.prepareStatement("DELETE FROM " + ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID"));
+		preparedStatement.executeUpdate();
+		preparedStatement = connection.prepareStatement("SELECT * FROM " + ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID"));
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if(resultSet.next()) {
+			throw new IllegalStateException("Clear " +  ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID") + " failed still have items in it");
+		}
+		return true;
+	}
+
+	@Override
+	public Account getAccount(byte[] addressAI, Mode mode) throws Exception {
+		Account account = null;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " + ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID") + " WHERE address_ai = ?");
+		preparedStatement.setBytes(1, addressAI);;
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			account = Account.parseAccount(resultSet.getBytes("bytes"));
+		}
+		return account;
+	}
+
+	@Override
+	public boolean merge(Mode mode) throws SQLException, Exception {
+		Account account = null;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " + ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID"));
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while(resultSet.next()) {
+			account = Account.parseAccount(resultSet.getBytes("bytes"));
+			account.setHash(resultSet.getBytes("hash"));
+			account.setSaveHash(true);
+			saveAccount(account);
+		}
+		return true;
+	}
+
+	@Override
+	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception {
+		Account account = null;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " + ((mode==Mode.MINERING)?"ACCOUNT_MINING":"ACCOUNT_VALID"));
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while(resultSet.next()) {
+			account = Account.parseAccount(resultSet.getBytes("bytes"));
+			account.setHash(resultSet.getBytes("hash"));
+			account.setSaveHash(true);
+			saveAccountSnapshot(account, height);
+		}
+		return true;
 	}
 
 //	public boolean savePossibleNode(String ip, NODETYPE nodeType) throws SQLException, Exception {

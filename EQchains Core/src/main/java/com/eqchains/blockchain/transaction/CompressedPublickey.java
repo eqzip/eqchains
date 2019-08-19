@@ -39,6 +39,7 @@ import java.util.Arrays;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCTypable;
@@ -211,7 +212,7 @@ public class CompressedPublickey implements EQCTypable {
 
 	@Override
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		Account account = accountsMerkleTree.getAccount(AddressTool.publickeyToAI(compressedPublickey));
+		Account account = accountsMerkleTree.getAccount(new Passport(AddressTool.AIToAddress(AddressTool.publickeyToAI(compressedPublickey))), true);
 		if(!account.isPublickeyExists()) {
 			if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), compressedPublickey)) {
 				return false;

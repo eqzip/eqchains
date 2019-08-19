@@ -317,9 +317,9 @@ public class EQCHeader implements EQCTypable {
 			return false;
 		}
 		// getHash()
-		Log.info(Util.getHexString(getHash()));
+//		Log.info(Util.getHexString(getHash()));
 		if (new BigInteger(1, getHash()).compareTo(Util.targetBytesToBigInteger(target)) > 0) {
-			Log.info("falied");
+			Log.info("Difficulty is invalid");
 			return false;
 		}
 		return true;

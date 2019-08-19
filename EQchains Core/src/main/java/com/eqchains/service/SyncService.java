@@ -52,9 +52,13 @@ import com.eqchains.util.Util;
 public class SyncService extends EQCService {
 	private static SyncService instance;
 
+	private SyncService() {
+		super();
+	}
+	
 	public static SyncService getInstance() {
 		if (instance == null) {
-			synchronized (Keystore.class) {
+			synchronized (SyncService.class) {
 				if (instance == null) {
 					instance = new SyncService();
 				}

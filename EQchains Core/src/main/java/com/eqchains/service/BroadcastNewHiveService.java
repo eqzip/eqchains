@@ -37,7 +37,7 @@ import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.Info;
 import com.eqchains.rpc.client.MinerNetworkClient;
 import com.eqchains.service.state.EQCServiceState;
-import com.eqchains.service.state.NewBlockState;
+import com.eqchains.service.state.NewHiveState;
 import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
@@ -47,14 +47,18 @@ import com.eqchains.util.Util;
  * @date Jul 13, 2019
  * @email 10509759@qq.com
  */
-public class BroadcastNewBlockService extends EQCService {
-	private static BroadcastNewBlockService instance;
+public class BroadcastNewHiveService extends EQCService {
+	private static BroadcastNewHiveService instance;
 	
-	public static BroadcastNewBlockService getInstance() {
+	private BroadcastNewHiveService() {
+		super();
+	}
+	
+	public static BroadcastNewHiveService getInstance() {
 		if (instance == null) {
-			synchronized (Keystore.class) {
+			synchronized (BroadcastNewHiveService.class) {
 				if (instance == null) {
-					instance = new BroadcastNewBlockService();
+					instance = new BroadcastNewHiveService();
 				}
 			}
 		}
@@ -66,15 +70,15 @@ public class BroadcastNewBlockService extends EQCService {
 	 */
 	@Override
 	protected void onDefault(EQCServiceState state) {
-		NewBlockState newBlockState = null;
+		NewHiveState newHiveState = null;
 		try {
-			this.state.set(State.BROADCASTNEWBLOCK);
-			newBlockState = (NewBlockState) state;
+			this.state.set(State.BROADCASTNEWHIVE);
+			newHiveState = (NewHiveState) state;
 			if(!Util.IP.equals(Util.SINGULARITY_IP)) {
 				try {
-					Log.info("Begin BroadcastNewBlock to SINGULARITY_IP");
-					Info info = MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock(), Util.SINGULARITY_IP);
-					Log.info("BroadcastNewBlock to SINGULARITY_IP result: " + info.getCode());
+					Log.info("Begin Broadcast new hive with height: " + newHiveState.getNewBlock().getEqcHive().getHeight() + " to SINGULARITY_IP");
+					Info info = MinerNetworkClient.broadcastNewBlock(newHiveState.getNewBlock(), Util.SINGULARITY_IP);
+					Log.info("Broadcast new hive with height: " + newHiveState.getNewBlock().getEqcHive().getHeight() + " to SINGULARITY_IP result: " + info.getCode());
 				}
 				catch (Exception e) {
 					Log.Error(e.getMessage());
@@ -85,9 +89,9 @@ public class BroadcastNewBlockService extends EQCService {
 				for(String ip:minerList.getIpList()) {
 					if(!Util.IP.equals(ip)) {
 						try {
-							Log.info("Begin BroadcastNewBlock to: " + ip);
-							Info info = MinerNetworkClient.broadcastNewBlock(newBlockState.getNewBlock(), ip);
-							Log.info("BroadcastNewBlock to: " + ip + " result: " + info.getCode());
+							Log.info("Begin Broadcast new hive with height: " + newHiveState.getNewBlock().getEqcHive().getHeight() + " to: " + ip);
+							Info info = MinerNetworkClient.broadcastNewBlock(newHiveState.getNewBlock(), ip);
+							Log.info("Broadcast new hive with height: " + newHiveState.getNewBlock().getEqcHive().getHeight() + " to: " + ip + " result: " + info.getCode());
 						}
 						catch (Exception e) {
 							if(e instanceof IOException) {
@@ -105,7 +109,7 @@ public class BroadcastNewBlockService extends EQCService {
 		}
 	}
 
-	public void offerNewBlockState(NewBlockState newBlockState) {
+	public void offerNewBlockState(NewHiveState newBlockState) {
 //		Log.info("offerNewBlockState: " + newBlockState);
 		offerState(newBlockState);
 	}
