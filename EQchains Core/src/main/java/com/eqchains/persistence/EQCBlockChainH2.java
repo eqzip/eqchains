@@ -97,8 +97,13 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	private static Statement statement;
 	private static EQCBlockChainH2 instance;
 	private static final int ONE_ROW = 1;
+	
 	public enum NODETYPE {
 		NONE, FULL, MINER
+	}
+	
+	public enum STATUS {
+		BEGIN, END
 	}
 	
 	private EQCBlockChainH2() throws ClassNotFoundException, SQLException {
@@ -126,34 +131,43 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	private synchronized void createTable() throws SQLException {
 			// Create Account table. Each Account should be unique and it's Passport's ID should be one by one
 			boolean result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT("
-					+ "id BIGINT  PRIMARY KEY," // need add CHECK(id>0)
+					+ "id BIGINT  PRIMARY KEY CHECK id > 0,"
 					+ "address_ai BINARY(33) NOT NULL UNIQUE,"
-					+ "create_height BIGINT NOT NULL,"
+					+ "create_height BIGINT NOT NULL CHECK create_height >= 0,"
 					+ "hash BINARY(64) NOT NULL,"
-					+ "update_height BIGINT NOT NULL,"
-					+ "bytes BINARY NOT NULL"
+					+ "update_height BIGINT NOT NULL CHECK update_height >= 0,"
+					+ "bytes BINARY NOT NULL UNIQUE"
 					+ ")");
 			
 			 result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT_MINING("
-					+ "id BIGINT  PRIMARY KEY," // need add CHECK(id>0)
-					+ "address_ai BINARY(33) NOT NULL UNIQUE,"
-					+ "create_height BIGINT NOT NULL,"
-					+ "hash BINARY(64) NOT NULL,"
-					+ "update_height BIGINT NOT NULL,"
-					+ "bytes BINARY NOT NULL"
-					+ ")");
+					    + "id BIGINT  PRIMARY KEY CHECK id > 0,"
+						+ "address_ai BINARY(33) NOT NULL UNIQUE,"
+						+ "create_height BIGINT NOT NULL CHECK create_height >= 0,"
+						+ "hash BINARY(64) NOT NULL,"
+						+ "update_height BIGINT NOT NULL CHECK update_height >= 0,"
+						+ "bytes BINARY NOT NULL UNIQUE"
+						+ ")");
 			 
 			 result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT_VALID("
-						+ "id BIGINT  PRIMARY KEY," // need add CHECK(id>0)
+					    + "id BIGINT  PRIMARY KEY CHECK id > 0,"
 						+ "address_ai BINARY(33) NOT NULL UNIQUE,"
-						+ "create_height BIGINT NOT NULL,"
+						+ "create_height BIGINT NOT NULL CHECK create_height >= 0,"
 						+ "hash BINARY(64) NOT NULL,"
-						+ "update_height BIGINT NOT NULL,"
-						+ "bytes BINARY NOT NULL"
+						+ "update_height BIGINT NOT NULL CHECK update_height >= 0,"
+						+ "bytes BINARY NOT NULL UNIQUE"
+						+ ")");
+			 
+				// Create Account table update status table
+				result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT_UPDATE_STATUS("
+						+ "height BIGINT NOT NULL CHECK height >= 0,"
+						+ "snapshot TINYINT NOT NULL,"
+						+ "account_merge TINYINT NOT NULL,"
+						+ "transaction_merge TINYINT NOT NULL,"
+						+ "clear TINYINT NOT NULL"
 						+ ")");
 			 
 			 result = statement.execute("CREATE TABLE IF NOT EXISTS EQCHIVE("
-						+ "height BIGINT  PRIMARY KEY," // need add CHECK(id>0)
+						+ "height BIGINT  PRIMARY KEY CHECK height >= 0,"
 						+ "bytes BINARY NOT NULL UNIQUE,"
 						+ "eqcheader_hash BINARY(64) NOT NULL"
 						+ ")");
@@ -176,12 +190,35 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			
 			// Create Transaction table
 			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION("
-					+ "key BIGINT PRIMARY KEY AUTO_INCREMENT, "
-					+ "height BIGINT,"
-					+ "trans_id BIGINT,"
-					+ "io BOOLEAN,"
-					+ "address_id BIGINT,"
-					+ "value BIGINT"
+					+ "height BIGINT NOT NULL CHECK height >= 0,"
+					+ "index INT NOT NULL CHECK index >= 0,"
+					+ "asset_id BIGINT NOT NULL CHECK asset_id > 0,"
+					+ "id BIGINT NOT NULL CHECK id > 0,"
+					+ "op TINYINT NOT NULL,"
+					+ "value BIGINT NOT NULL CHECK value > 0,"
+					+ "object BINARY"
+					+ ")");
+			
+			// Create Transaction mining table
+			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION_MINING("
+					+ "height BIGINT NOT NULL CHECK height >= 0,"
+					+ "index INT NOT NULL CHECK index >= 0,"
+					+ "asset_id BIGINT NOT NULL CHECK asset_id > 0,"
+					+ "id BIGINT NOT NULL CHECK id > 0,"
+					+ "op TINYINT NOT NULL,"
+					+ "value BIGINT NOT NULL CHECK value > 0,"
+					+ "object BINARY"
+					+ ")");
+			
+			// Create Transaction valid table
+			statement.execute("CREATE TABLE IF NOT EXISTS TRANSACTION_VALID("
+					+ "height BIGINT NOT NULL CHECK height >= 0,"
+					+ "index INT NOT NULL CHECK index >= 0,"
+					+ "asset_id BIGINT NOT NULL CHECK asset_id > 0,"
+					+ "id BIGINT NOT NULL CHECK id > 0,"
+					+ "op TINYINT NOT NULL,"
+					+ "value BIGINT NOT NULL CHECK value > 0,"
+					+ "object BINARY"
 					+ ")");
 			
 			// Create EQC block transactions hash table for fast verify the transaction saved in the TRANSACTION table.
@@ -726,21 +763,26 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Override
 	public synchronized EQCHive getEQCHive(ID height, boolean isSegwit) throws Exception {
 		EQCHive eqcHive = null;
-		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
-		if(file.exists() && file.isFile() && (file.length() > 0)) {
-			InputStream is = null;
-			try {
-				is = new FileInputStream(file);
-				eqcHive = new EQCHive(is.readAllBytes(), isSegwit);
-			} catch (IOException | NoSuchFieldException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Log.Error(e.getMessage());
-			}
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM EQCHIVE WHERE height=?");
+		preparedStatement.setLong(1, height.longValue());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			eqcHive = new EQCHive(resultSet.getBytes("bytes"), isSegwit);
 		}
 		return eqcHive;
 	}
 
+	public synchronized boolean isEQCHiveExists(ID height) throws Exception {
+		boolean isExists = false;
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM EQCHIVE WHERE height=?");
+		preparedStatement.setLong(1, height.longValue());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			isExists = true;
+		}
+		return isExists;
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -768,16 +810,30 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public synchronized boolean saveEQCHive(EQCHive eqcHive) throws Exception {
 		Objects.requireNonNull(eqcHive);
 		EQCHive eqcHive2 = null;
-		File file = new File(Util.HIVE_PATH + eqcHive.getHeight().longValue() + Util.EQC_SUFFIX);
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		bos.write(eqcHive.getBytes());
-		// Save EQCBlock
-		OutputStream os = new FileOutputStream(file);
-		os.write(bos.toByteArray());
-		os.flush();
-		os.close();
+		int rowCounter = 0;
+		PreparedStatement preparedStatement = null;
+			if (isEQCHiveExists(eqcHive.getHeight())) {
+					preparedStatement = connection.prepareStatement("UPDATE EQCHIVE SET height = ?, bytes = ?,  eqcheader_hash = ? WHERE height = ?");
+					preparedStatement.setLong(1, eqcHive.getHeight().longValue());
+					preparedStatement.setBytes(2, eqcHive.getBytes());
+					preparedStatement.setBytes(3, eqcHive.getEqcHeader().getHash());
+					preparedStatement.setLong(4, eqcHive.getHeight().longValue());
+					rowCounter = preparedStatement.executeUpdate();
+//					Log.info("UPDATE: " + rowCounter);
+			}
+			else {
+				preparedStatement = connection.prepareStatement("INSERT INTO EQCHIVE (height, bytes, eqcheader_hash) VALUES (?, ?, ?)");
+				preparedStatement.setLong(1, eqcHive.getHeight().longValue());
+				preparedStatement.setBytes(2, eqcHive.getBytes());
+				preparedStatement.setBytes(3, eqcHive.getEqcHeader().getHash());
+				rowCounter = preparedStatement.executeUpdate();
+//				Log.info("INSERT: " + rowCounter);
+			}
+		EQCType.assertEqual(rowCounter, ONE_ROW);
 		eqcHive2 = getEQCHive(eqcHive.getHeight(), false);
-		EQCType.assertEqual(eqcHive.getBytes(), Objects.requireNonNull(eqcHive2).getBytes());
+		EQCType.assertEqual(eqcHive.getBytes(), eqcHive2.getBytes());
+		byte[] eqcHeaderHash = getEQCHeaderHash(eqcHive.getHeight());
+		EQCType.assertEqual(eqcHive2.getEqcHeader().getHash(), eqcHeaderHash);
 		return true;
 	}
 
@@ -790,20 +846,15 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	 */
 	@Override
 	public synchronized boolean deleteEQCHive(ID height) throws Exception {
-		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
-		if(file.exists()) {
-			if(file.delete()) {
-				Log.info("EQCHive No." + height + " delete successful");
-			}
-			else {
-				Log.info("EQCHive No." + height + " delete failed");
-			}
-		}
-		else {
-			Log.info("EQCHive No." + height + " doesn't exists");
-		}
-		if(getEQCHive(height, true) != null) {
-			throw new IllegalStateException("EQCHive No." + height + " delete failed");
+		int rowCounter = 0;
+		PreparedStatement preparedStatement;
+		preparedStatement = connection.prepareStatement("DELETE FROM EQCHIVE WHERE id =?");
+		preparedStatement.setLong(1, height.longValue());
+		rowCounter = preparedStatement.executeUpdate();
+		Log.info("rowCounter: " + rowCounter);
+		EQCType.assertEqual(rowCounter, ONE_ROW);
+		if(isEQCHiveExists(height)) {
+			throw new IllegalStateException("deleteEQCHive No." + height + " failed EQCHive still exists");
 		}
 		return true;
 	}
@@ -1003,13 +1054,13 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	
 	@Override
 	public synchronized byte[] getEQCHeaderHash(ID height) throws Exception {
-		EQCType.assertNotBigger(height, getEQCBlockTailHeight());
+//		EQCType.assertNotBigger(height, getEQCBlockTailHeight());
 		byte[] hash = null;
-		if(height.compareTo(getEQCBlockTailHeight()) < 0) {
-			hash = Objects.requireNonNull(getEQCHive(height.getNextID(), true)).getEqcHeader().getPreHash();
-		}
-		else {
-			hash = Objects.requireNonNull(getEQCHive(height, true)).getEqcHeader().getHash();
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM EQCHIVE WHERE height=?");
+		preparedStatement.setLong(1, height.longValue());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		if (resultSet.next()) {
+			hash = resultSet.getBytes("eqcheader_hash");
 		}
 		return hash;
 	}
@@ -1991,13 +2042,11 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return counter;
 	}
 
-	@Override
 	public void deleteAccountFromTo(ID fromID, ID toID) throws Exception {
 		// TODO Auto-generated method stub
 		
 	}
 
-	@Override
 	public void deleteEQCHiveFromTo(ID fromHeight, ID toHeight) throws Exception {
 		// TODO Auto-generated method stub
 		
@@ -2140,5 +2189,89 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 ////					Log.info("UPDATE: " + result);
 //		return result == ONE_ROW;
 //	}
+	
+	public synchronized EQCHive getEQCHiveFile(ID height, boolean isSegwit) throws Exception {
+		EQCHive eqcHive = null;
+		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
+		if(file.exists() && file.isFile() && (file.length() > 0)) {
+			InputStream is = null;
+			try {
+				is = new FileInputStream(file);
+				eqcHive = new EQCHive(is.readAllBytes(), isSegwit);
+			} catch (IOException | NoSuchFieldException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.Error(e.getMessage());
+			}
+		}
+		return eqcHive;
+	}
+
+	public synchronized boolean isEQCBlockExistsFile(ID height) {
+		boolean isEQCBlockExists = false;
+		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
+		if (file.exists() && file.isFile() && (file.length() > 0)) {
+			isEQCBlockExists = true;
+		}
+		return isEQCBlockExists;
+	}
+
+	public synchronized boolean saveEQCHiveFile(EQCHive eqcHive) throws Exception {
+		Objects.requireNonNull(eqcHive);
+		EQCHive eqcHive2 = null;
+		File file = new File(Util.HIVE_PATH + eqcHive.getHeight().longValue() + Util.EQC_SUFFIX);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		bos.write(eqcHive.getBytes());
+		// Save EQCBlock
+		OutputStream os = new FileOutputStream(file);
+		os.write(bos.toByteArray());
+		os.flush();
+		os.close();
+		eqcHive2 = getEQCHive(eqcHive.getHeight(), false);
+		EQCType.assertEqual(eqcHive.getBytes(), Objects.requireNonNull(eqcHive2).getBytes());
+		return true;
+	}
+
+	public synchronized boolean deleteEQCHiveFile(ID height) throws Exception {
+		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
+		if(file.exists()) {
+			if(file.delete()) {
+				Log.info("EQCHive No." + height + " delete successful");
+			}
+			else {
+				Log.info("EQCHive No." + height + " delete failed");
+			}
+		}
+		else {
+			Log.info("EQCHive No." + height + " doesn't exists");
+		}
+		if(getEQCHive(height, true) != null) {
+			throw new IllegalStateException("EQCHive No." + height + " delete failed");
+		}
+		return true;
+	}
+
+	public synchronized EQCHeader getEQCHeaderFile(ID height) {
+		EQCHeader eqcHeader = null;
+		File file = new File(Util.HIVE_PATH + height.longValue() + Util.EQC_SUFFIX);
+		if(file.exists() && file.isFile() && (file.length() > 0)) {
+			InputStream is = null;
+			try {
+				is = new FileInputStream(file);
+				ByteArrayInputStream bis = new ByteArrayInputStream(is.readAllBytes());
+				byte[] bytes = null;
+				// Parse EqcHeader
+				if ((bytes = EQCType.parseBIN(bis)) != null) {
+					eqcHeader = new EQCHeader(bytes);
+				}
+			} catch (IOException | NoSuchFieldException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				eqcHeader = null;
+				Log.Error(e.getMessage());
+			}
+		}
+		return eqcHeader;
+	}
 
 }

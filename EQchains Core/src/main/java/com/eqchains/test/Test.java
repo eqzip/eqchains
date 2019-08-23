@@ -2017,7 +2017,7 @@ public class Test {
 		transaction.setTxIn(txIn);
 		TxOut txOut = new TxOut();
 		txOut.setPassport(new Passport(userAccount1.getReadableAddress()));
-		txOut.setValue(50 * Util.ABC);
+		txOut.setValue(500 * Util.ABC);
 		transaction.addTxOut(txOut);
 		try {
 			transaction.setNonce(EQCBlockChainRPC.getInstance().getTransactionMaxNonce(transaction.getNest()).getNonce().getNextID());

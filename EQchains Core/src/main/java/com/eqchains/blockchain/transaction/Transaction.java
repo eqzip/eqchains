@@ -629,7 +629,8 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
-		account.getAsset(getAssetID()).getBalance().subtract(new ID(getBillingValue()));
+		account.getAsset(getAssetID()).withdraw(ID.valueOf(getBillingValue()));
+		account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight());
 		account.setUpdateHeight(accountsMerkleTree.getHeight());
 		accountsMerkleTree.saveAccount(account);
 	}

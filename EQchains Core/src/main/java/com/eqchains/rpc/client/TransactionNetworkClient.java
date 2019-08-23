@@ -59,13 +59,15 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class TransactionNetworkClient extends EQCRPCClient {
-	
+
 	public static Info ping(Cookie cookie, String ip) throws Exception {
 		Info info = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			info = new Info(client.ping(cookie.getO()));
 		} catch (Exception e) {
@@ -73,10 +75,11 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return info;
@@ -87,7 +90,9 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getMinerList());
 		} catch (Exception e) {
@@ -95,10 +100,10 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return ipList;
@@ -109,7 +114,9 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			info = new Info(client.sendTransaction(transaction.getO()));
 		} catch (Exception e) {
@@ -117,10 +124,10 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return info;
@@ -131,7 +138,9 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			id = new ID(client.getID(new O(ByteBuffer.wrap(addressAI))));
 		} catch (Exception e) {
@@ -139,10 +148,10 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return id;
@@ -153,7 +162,9 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			account = Account.parseAccount(client.getAccount(new O(ByteBuffer.wrap(addressAI))));
 		} catch (Exception e) {
@@ -161,10 +172,10 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return account;
@@ -175,7 +186,9 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			maxNonce = new MaxNonce(client.getMaxNonce(nest.getO()));
 		} catch (Exception e) {
@@ -183,10 +196,10 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return maxNonce;
@@ -197,7 +210,9 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			balance = new Balance(client.getBalance(nest.getO()));
 		} catch (Exception e) {
@@ -205,10 +220,10 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return balance;
@@ -219,7 +234,9 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			signHash = new SignHash(client.getSignHash(id.getO()));
 		} catch (Exception e) {
@@ -227,10 +244,10 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return signHash;
@@ -241,7 +258,9 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			transactionList = new TransactionList(client.getPendingTransactionList(id.getO()));
 		} catch (Exception e) {
@@ -249,35 +268,35 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return transactionList;
 	}
 
 	public static long ping(String remoteIP) {
-    	NettyTransceiver client = null;
-    	TransactionNetwork proxy = null;
-    	long time = System.currentTimeMillis();
-    	try {
-    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), Util.TRANSACTION_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
-    		proxy = SpecificRequestor.getClient(TransactionNetwork.class, client);
-    		proxy.ping(cookie.getO());
-    		time = System.currentTimeMillis() - time;
-    	}
-    	catch (Exception e) {
-    		Log.Error(e.getMessage());
-    		time = -1;
-		}
-    	finally {
-			if(client != null) {
+		NettyTransceiver client = null;
+		TransactionNetwork proxy = null;
+		long time = System.currentTimeMillis();
+		try {
+			client = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.TRANSACTION_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
+			proxy = SpecificRequestor.getClient(TransactionNetwork.class, client);
+			proxy.ping(cookie.getO());
+			time = System.currentTimeMillis() - time;
+		} catch (Exception e) {
+			Log.Error(e.getMessage());
+			time = -1;
+		} finally {
+			if (client != null) {
 				client.close();
 			}
 		}
-    	return time;
+		return time;
 	}
-	
+
 }

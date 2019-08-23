@@ -71,14 +71,17 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	private ID version;
 	private ID versionUpdateHeight;
 	/**
-	 * Body field include Version, Passport, Publickey, AssetList
+	 * Body field include Passport, Publickey, AssetList
 	 */
 	private Passport passport;
 	private ID lockCreateHeight;
 	private Publickey publickey;
+	/**
+	 * 	 Record the Account's update height
+	 */
 	private ID updateHeight;
 	private Vector<Asset> assetList;
-	private ID assetListSize;
+//	private ID assetListSize;
 	private SoleUpdate soleUpdate;
 //	private String email; // KYC
 	private boolean isSaveHash;
@@ -223,17 +226,17 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 		lockCreateHeight = new ID(EQCType.parseEQCBits(is));
 		// Parse Publickey
 		publickey = new Publickey(is);
-		// Parse Update Height
+		// Parse Account Update Height
 		updateHeight = EQCType.parseID(is);
 		// Parse Asset
 		ARRAY array = null;
 		if (!(array = EQCType.parseARRAY(is)).isNULL()) {
-			assetListSize = new ID(array.size);
 			ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
-			for(int i = 0; i<assetListSize.intValue(); ++i) {
+			while(!EQCType.isInputStreamEnd(iStream)) {
 				assetList.add(Asset.parseAsset(iStream));
 			}
 			EQCType.assertNoRedundantData(iStream);
+			EQCType.assertEqual(array.size, assetList.size());
 		} else {
 			throw EQCType.NULL_OBJECT_EXCEPTION;
 		}
@@ -414,16 +417,13 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 	@Override
 	public boolean isSanity() {
-		if(accountType == null || version == null || passport == null || lockCreateHeight == null || publickey == null || assetList == null || assetListSize == null) {
+		if(accountType == null || version == null || passport == null || lockCreateHeight == null || publickey == null || assetList == null) {
 			return false;
 		}
-		if(!accountType.isSanity() || !version.isSanity() || !passport.isSanity(null) || !lockCreateHeight.isSanity() || !publickey.isSanity() || !assetListSize.isSanity()) {
+		if(!accountType.isSanity() || !version.isSanity() || !passport.isSanity(null) || !lockCreateHeight.isSanity() || !publickey.isSanity()) {
 			return false;
 		}
 		if(version.compareTo(MAX_VERSION) > 0) {
-			return false;
-		}
-		if(assetListSize.compareTo(new ID(assetList.size())) != 0) {
 			return false;
 		}
 		for(Asset asset : assetList) {

@@ -480,19 +480,16 @@ public class EQCBlockChainRPC implements EQCBlockChain {
 		return false;
 	}
 
-	@Override
 	public int getIPCounter(String ip) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	@Override
 	public void deleteAccountFromTo(ID fromID, ID toID) throws Exception {
 		// TODO Auto-generated method stub
 		
 	}
 
-	@Override
 	public void deleteEQCHiveFromTo(ID fromHeight, ID toHeight) throws Exception {
 		// TODO Auto-generated method stub
 		
@@ -536,6 +533,12 @@ public class EQCBlockChainRPC implements EQCBlockChain {
 
 	@Override
 	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isEQCHiveExists(ID height) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}

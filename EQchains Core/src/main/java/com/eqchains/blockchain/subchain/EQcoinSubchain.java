@@ -85,16 +85,11 @@ public class EQcoinSubchain extends EQCSubchain {
 	}
 
 	public EQcoinSubchain() {
-		init();
+		super();
 	}
 
 	public EQcoinSubchain(byte[] bytes, boolean isSegwit) throws Exception {
-		init();
-		EQCType.assertNotNull(bytes);
-		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		parseHeader(is);
-		parseBody(is);
-		EQCType.assertNoRedundantData(is);
+		super(bytes, isSegwit);
 	}
 
 	public void addTransaction(Transaction transaction) {

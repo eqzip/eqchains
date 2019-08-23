@@ -55,13 +55,14 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class MinerNetworkClient extends EQCRPCClient {
-	
+
 	public static Info ping(Cookie cookie, String ip) throws Exception {
 		Info info = null;
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			info = new Info(client.ping(cookie.getO()));
 		} catch (Exception e) {
@@ -69,10 +70,10 @@ public class MinerNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return info;
@@ -83,7 +84,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getMinerList());
 		} catch (Exception e) {
@@ -91,10 +93,10 @@ public class MinerNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return ipList;
@@ -105,7 +107,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getFullNodeList());
 		} catch (Exception e) {
@@ -113,10 +116,10 @@ public class MinerNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return ipList;
@@ -127,7 +130,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			info = new Info(client.broadcastNewBlock(newBlock.getO()));
 		} catch (Exception e) {
@@ -135,10 +139,10 @@ public class MinerNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return info;
@@ -149,7 +153,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			O syncTime = new O(ByteBuffer.wrap(Util.longToBytes(EQCBlockChainH2.getInstance().getMinerSyncTime(ip))));
 			transactionIndexList = new TransactionIndexList(client.getTransactionIndexList(syncTime));
@@ -159,10 +164,10 @@ public class MinerNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return transactionIndexList;
@@ -173,7 +178,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		MinerNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			transactionList2 = new TransactionList(client.getTransactionList(transactionList.getO()));
 		} catch (Exception e) {
@@ -181,10 +187,10 @@ public class MinerNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return transactionList2;
@@ -192,42 +198,42 @@ public class MinerNetworkClient extends EQCRPCClient {
 
 	public static long ping(String remoteIP) {
 		Log.info("Begin ping: " + remoteIP);
-    	NettyTransceiver nettyTransceiver = null;
-    	MinerNetwork client = null;
-    	long time = System.currentTimeMillis();
-    	try {
-    		nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
-    		client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
-    		client.ping(cookie.getO());
-    		time = System.currentTimeMillis() - time;
-    		Log.info("Get ping response from " + remoteIP + " used " + time + "ms");
-    	}
-    	catch (Exception e) {
-    		Log.Error(e.getMessage());
-    		time = -1;
-    		Util.updateDisconnectIPStatus(remoteIP);
-		}
-    	finally {
-			if(nettyTransceiver != null) {
+		NettyTransceiver nettyTransceiver = null;
+		MinerNetwork client = null;
+		long time = System.currentTimeMillis();
+		try {
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.MINER_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
+			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
+			client.ping(cookie.getO());
+			time = System.currentTimeMillis() - time;
+			Log.info("Get ping response from " + remoteIP + " used " + time + "ms");
+		} catch (Exception e) {
+			Log.Error(e.getMessage());
+			time = -1;
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
-    	return time;
+		return time;
 	}
-	
+
 	public static String getFastestServer(IPList ipList) {
 		String fastestServer = null;
 		long time = 0;
 		long maxTime = 0;
-		for(String ip:ipList.getIpList()) {
+		for (String ip : ipList.getIpList()) {
 			Log.info("Try to get the fastest server current ip: " + ip);
 			time = ping(ip);
-			if(time > maxTime) {
+			if (time > maxTime) {
 				fastestServer = ip;
 				maxTime = time;
 			}
 		}
 		return fastestServer;
 	}
-	
+
 }

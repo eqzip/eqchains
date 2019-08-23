@@ -146,6 +146,10 @@ public class Singularity {
 //			Configuration.getInstance().updateIsInitSingularityBlock(false);
 			Util.IP = args[0];
 			Util.init();
+			while(true) {
+				MinerNetworkClient.ping("192.168.0.0");
+			}
+//			EQCHive eqcHive = Util.DB().getEQCHive(ID.ZERO, true);
 //			Log.info("" + Util.DB().getAccount(ID.ONE));
 //			Log.info(""+MinerNetworkClient.ping(Util.SINGULARITY_IP));
 //			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
@@ -153,16 +157,16 @@ public class Singularity {
 //			Util.saveEQCBlockTailHeight(ID.valueOf(15959));
 //			Util.recoveryAccountsStatusTo(ID.valueOf(12566));
 //			Util.recoveryAccounts(Util.DB().getEQCBlockTailHeight());
-//			Log.info("" + Util.DB().getEQCHive(ID.TWO, false).toString());
+//			Log.info("" + Util.DB().getEQCHive(ID.valueOf(1969), false).toString());
 //			Log.info("" + Util.cypherTotalSupply(ID.THREE));
 //			Log.info(SyncblockNetworkClient.getBlock(ID.valueOf(410), Util.SINGULARITY_IP).toString());
-			SyncBlockService.getInstance().setMode(MODE.FULL);
+//			SyncBlockService.getInstance().setMode(MODE.FULL);
 //			Util.DB().saveEQCBlockTailHeight(ID.ZERO);
 //			ID id = Util.DB().getEQCBlockTailHeight();
-			SyncBlockService.getInstance().start();
+//			SyncBlockService.getInstance().start();
 //			TailInfo tailInfo =  SyncblockNetworkClient.getBlockTail("192.168.0.101");
-//			for(int i=0; i<100000; ++i) {
-//				Thread.sleep(3000);
+//			for(int i=0; i<1; ++i) {
+//				Thread.sleep(10);
 //				Test.sendTransaction();
 //			}
 //			AddressTool.verifyAddressCRC32C(Util.SINGULARITY_A);

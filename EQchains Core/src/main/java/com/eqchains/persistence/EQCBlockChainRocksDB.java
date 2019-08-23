@@ -311,7 +311,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return false;
 	}
 	
-	@Override
 	public  void deleteAccountFromTo(ID fromID, ID toID) throws Exception {
 		WriteBatch writeBatch = new WriteBatch();
 		Account account = null;
@@ -383,7 +382,6 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 			return false;
 	}
 	
-	@Override
 	public   void deleteEQCHiveFromTo(ID fromHeight, ID toHeight) throws RocksDBException {
 			WriteBatch writeBatch = new WriteBatch();
 			ID id = null;
@@ -779,6 +777,12 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 
 	@Override
 	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isEQCHiveExists(ID height) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}

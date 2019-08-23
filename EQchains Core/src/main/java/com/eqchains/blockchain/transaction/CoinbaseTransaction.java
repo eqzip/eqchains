@@ -63,8 +63,7 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @email 10509759@qq.com
  */
 public class CoinbaseTransaction extends TransferTransaction {
-	public final static int MIN_TXOUT = 1;
-	public final static int MAX_TXOUT = 3;
+	public final static int REWARD_NUMBERS = 3;
 	
 	private void init() {
 		txIn = null;
@@ -141,6 +140,10 @@ public class CoinbaseTransaction extends TransferTransaction {
 			if(!txOutList.get(1).getPassport().getID().equals(ID.TWO)) {
 				return false;
 			}
+			if(txOutList.get(2).getPassport().getID().equals(ID.ONE) || txOutList.get(2).getPassport().getID().equals(ID.TWO)) {
+				Log.Error("No.3 Coinbase Reward's ID shouldn't equal to 1 or 2");
+				return false;
+			}
 			if(txOutList.get(0).getValue() != Util.EQC_FOUNDATION_COINBASE_REWARD) {
 				return false;
 			}
@@ -161,7 +164,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 */
 	@Override
 	public boolean isTxOutNumberValid() {
-		return txOutList.size() == MAX_TXOUT;
+		return txOutList.size() == REWARD_NUMBERS;
 	}
 
 	@Override
@@ -302,7 +305,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
 		byte txOutValidCount = 0;
-		while (txOutValidCount < MAX_TXOUT && !EQCType.isInputStreamEnd(is)) {
+		while (txOutValidCount++ < MAX_TXOUT && !EQCType.isInputStreamEnd(is)) {
 			txOutList.add(new TxOut(is, addressShape));
 		}
 	}

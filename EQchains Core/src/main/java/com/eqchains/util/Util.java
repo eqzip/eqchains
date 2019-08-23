@@ -315,7 +315,7 @@ public final class Util {
 	
 	public static final int SYNCBLOCK_NETWORK_PORT = 7997;
 	
-	public static final int TRANSACTION_NETWORK_PORT = 7979;
+	public static final int TRANSACTION_NETWORK_PORT = 9977;
 	
 	public static final String SINGULARITY_A = "2Gw36sN18ZXSmywAPXrBmbYexwqC4tB2ULeePQdpq3DrJ8BamQ";
 	

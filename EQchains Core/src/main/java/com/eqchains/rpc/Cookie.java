@@ -139,5 +139,13 @@ public class Cookie extends AvroO {
 		os.write(version.getEQCBits());
 		return os.toByteArray();
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "Cookie [ip=" + ip + ", version=" + version + "]";
+	}
 	
 }

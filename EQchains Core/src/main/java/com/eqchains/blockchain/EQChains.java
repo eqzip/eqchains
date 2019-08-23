@@ -598,7 +598,7 @@ public class EQChains implements EQCTypable {
 				asset.setNonce(ID.ZERO);
 				asset.setNonceUpdateHeight(accountsMerkleTree.getHeight());
 				account.setAsset(asset);
-				account.setUpdateHeight(accountsMerkleTree.getHeight());
+//				account.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
 				accountsMerkleTree.saveAccount(account);
 //					Log.info("Original Account Numbers: " + accountsMerkleTree.getTotalAccountNumbers());
 //					accountsMerkleTree.increaseTotalAccountNumbers();

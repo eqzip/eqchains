@@ -225,11 +225,11 @@ public class EQCHive implements EQCTypable {
 			passport.setReadableAddress(Util.SINGULARITY_C);
 			CoinbaseTransaction coinbaseTransaction = Util.generateCoinBaseTransaction(passport, accountsMerkleTree);
 			// Check if CoinBase isValid and update CoinBase's Account
+			coinbaseTransaction.prepareAccounting(accountsMerkleTree,
+					eQcoinSubchain.getNewPassportID(accountsMerkleTree));
 			if (!coinbaseTransaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
 				throw new IllegalStateException("CoinbaseTransaction is invalid: " + coinbaseTransaction);
 			} else {
-				coinbaseTransaction.prepareAccounting(accountsMerkleTree,
-						eQcoinSubchain.getNewPassportID(accountsMerkleTree));
 				coinbaseTransaction.update(accountsMerkleTree);
 			}
 			// Add CoinBase into EQcoinSubchainHeader

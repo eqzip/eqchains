@@ -135,7 +135,7 @@ public final class MinerService extends EQCService {
 			try {
 				blockTailHeight = Util.DB().getEQCBlockTailHeight();
 				/////////////////////////////////////////////////
-//				if(blockTailHeight.compareTo(ID.valueOf(5)) == 0) {
+//				if(blockTailHeight.compareTo(ID.valueOf(2)) == 0) {
 //					break;
 //				}
 			} catch (Exception e) {
@@ -286,15 +286,15 @@ public final class MinerService extends EQCService {
 					break;
 				}
 				nonce = nonce.getNextID();
-//				if(nonce.mod(ID.TWO).equals(ID.ZERO)) {
-//					try {
-//						Thread.sleep(1000);
-//					} catch (InterruptedException e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//						Log.Error(e.getMessage());
-//					}
-//				}
+				if(nonce.mod(ID.TWO).equals(ID.ZERO)) {
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						Log.Error(e.getMessage());
+					}
+				}
 			}
 		}
 		Log.info("End of minering");

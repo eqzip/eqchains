@@ -53,13 +53,15 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class SyncblockNetworkClient extends EQCRPCClient {
-	
+
 	public static Info ping(Cookie cookie, String ip) throws Exception {
 		Info info = null;
 		NettyTransceiver nettyTransceiver = null;
 		SyncblockNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			info = new Info(client.ping(cookie.getO()));
 		} catch (Exception e) {
@@ -67,10 +69,11 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return info;
@@ -81,7 +84,9 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		SyncblockNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getMinerList());
 		} catch (Exception e) {
@@ -89,10 +94,10 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return ipList;
@@ -103,7 +108,9 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		SyncblockNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getFullNodeList());
 		} catch (Exception e) {
@@ -111,10 +118,10 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return ipList;
@@ -125,7 +132,9 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		SyncblockNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			tailInfo = new TailInfo(client.getBlockTail());
 		} catch (Exception e) {
@@ -133,10 +142,10 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return tailInfo;
@@ -147,7 +156,9 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		NettyTransceiver nettyTransceiver = null;
 		SyncblockNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			eqcHive = new EQCHive(client.getBlock(height.getO()), false);
 		} catch (Exception e) {
@@ -155,21 +166,23 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return eqcHive;
 	}
-	
+
 	public static byte[] getEQCHeaderHash(ID height, String ip) throws Exception {
 		byte[] eqcHeaderHash = null;
 		NettyTransceiver nettyTransceiver = null;
 		SyncblockNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			eqcHeaderHash = client.getEQCHeaderHash(height.getO()).o.array();
 		} catch (Exception e) {
@@ -177,21 +190,23 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return eqcHeaderHash;
 	}
-	
+
 	public static EQCHeader getEQCHeader(ID height, String ip) throws Exception {
 		EQCHeader eqcHeader = null;
 		NettyTransceiver nettyTransceiver = null;
 		SyncblockNetwork client = null;
 		try {
-			nettyTransceiver = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+			nettyTransceiver = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			eqcHeader = new EQCHeader(client.getEQCHeader(height.getO()));
 		} catch (Exception e) {
@@ -199,49 +214,48 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 			throw e;
-		}
-		finally {
-			if(nettyTransceiver != null) {
+		} finally {
+			if (nettyTransceiver != null) {
 				nettyTransceiver.close();
+				Log.info("nettyTransceiver closed");
 			}
 		}
 		return eqcHeader;
 	}
-	
+
 	public static long ping(String remoteIP) {
-    	NettyTransceiver client = null;
-    	SyncblockNetwork proxy = null;
-    	long time = System.currentTimeMillis();
-    	try {
-    		client = new NettyTransceiver(new InetSocketAddress(InetAddress.getByName(remoteIP), Util.SYNCBLOCK_NETWORK_PORT), 30000l);
-    		proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
-    		proxy.ping(cookie.getO());
-    		time = System.currentTimeMillis() - time;
-    	}
-    	catch (Exception e) {
-    		Log.Error(e.getMessage());
-    		time = -1;
-		}
-    	finally {
-			if(client != null) {
+		NettyTransceiver client = null;
+		SyncblockNetwork proxy = null;
+		long time = System.currentTimeMillis();
+		try {
+			client = new NettyTransceiver(
+					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.SYNCBLOCK_NETWORK_PORT), 30000l);
+			proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
+			proxy.ping(cookie.getO());
+			time = System.currentTimeMillis() - time;
+		} catch (Exception e) {
+			Log.Error(e.getMessage());
+			time = -1;
+		} finally {
+			if (client != null) {
 				client.close();
 			}
 		}
-    	return time;
+		return time;
 	}
-	
+
 	public static String getFastestServer(IPList ipList) {
 		String fastestServer = null;
 		long time = 0;
 		long maxTime = 0;
-		for(String ip:ipList.getIpList()) {
+		for (String ip : ipList.getIpList()) {
 			time = ping(ip);
-			if(time > maxTime) {
+			if (time > maxTime) {
 				fastestServer = ip;
 				maxTime = time;
 			}
 		}
 		return fastestServer;
 	}
-	
+
 }

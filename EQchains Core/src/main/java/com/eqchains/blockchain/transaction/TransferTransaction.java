@@ -744,10 +744,11 @@ public class TransferTransaction extends Transaction {
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
 		account.getAsset(getAssetID()).withdraw(new ID(getBillingValue()));
+		account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight());
 		// Update current Transaction's TxIn Publickey if need
 		if (compressedPublickey.isNew()) {
 			Publickey publickey = new Publickey();
-			publickey.setCompressedPublickey(this.compressedPublickey.getCompressedPublickey());
+			publickey.setCompressedPublickey(compressedPublickey.getCompressedPublickey());
 			publickey.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
 			account.setPublickey(publickey);
 		}

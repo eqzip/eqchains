@@ -75,18 +75,14 @@ public interface EQCBlockChain {
 	
 	public boolean deleteAccount(ID id) throws Exception;
 	
-	@Deprecated
-	public void deleteAccountFromTo(ID fromID, ID toID) throws Exception;
-	
 	// Block relevant interface for for avro, H2(optional).
+	public boolean isEQCHiveExists(ID height) throws Exception;
+	
 	public boolean saveEQCHive(EQCHive eqcHive) throws Exception;
 	
 	public EQCHive getEQCHive(ID height, boolean isSegwit) throws Exception;
 	
 	public boolean deleteEQCHive(ID height) throws Exception;
-	
-	@Deprecated
-	public void deleteEQCHiveFromTo(ID fromHeight, ID toHeight) throws Exception;
 	
 	// TransactionPool relevant interface for H2, avro.
 	public boolean isTransactionExistsInPool(Transaction transaction) throws SQLException;

@@ -170,6 +170,10 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 				EQCType.assertEqual(signatures.size, newSignatureList.size());
 			}
 		}
+		else {
+			// Just skip the data stream to keep data stream's format is valid
+			EQCType.parseARRAY(is);
+		}
 	}
 
 	@Override
@@ -262,7 +266,7 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 		if(id.equals(ID.ONE)) {
 			eqcSubchain = new EQcoinSubchain(bytes, isSegwit);
 		}
-		else if(id.equals(ID.FIVE)) {
+		else if(id.equals(ID.SIX)) {
 			eqcSubchain = new EthereumSubchain(bytes, isSegwit);
 		}
 		return eqcSubchain;
