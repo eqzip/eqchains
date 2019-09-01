@@ -787,4 +787,52 @@ public class EQCBlockChainRocksDB implements EQCBlockChain {
 		return false;
 	}
 
+	@Override
+	public ID isTransactionExists(Transaction transaction) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteTransaction(Transaction transaction) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteTransactionFrom(ID height) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isTransactionExists(Transaction transaction, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteTransaction(Transaction transaction, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteTransactionFrom(ID height, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

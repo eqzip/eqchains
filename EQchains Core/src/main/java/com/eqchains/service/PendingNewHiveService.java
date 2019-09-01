@@ -38,6 +38,7 @@ import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.NewHive;
 import com.eqchains.rpc.client.MinerNetworkClient;
+import com.eqchains.rpc.client.SyncblockNetworkClient;
 import com.eqchains.service.state.EQCServiceState;
 import com.eqchains.service.state.EQCServiceState.State;
 import com.eqchains.service.state.NewHiveState;
@@ -90,7 +91,7 @@ public class PendingNewHiveService extends EQCService {
 
 			this.state.set(State.PENDINGNEWBLOCK);
 			newBlockState = (NewHiveState) state;
-			Log.info("PendingNewBlockService receive new block from: " + newBlockState.getNewBlock().getCookie().getIp()
+			Log.info("PendingNewBlockService receive new hive from: " + newBlockState.getNewBlock().getCookie().getIp()
 					+ " height: " + newBlockState.getNewBlock().getEqcHive().getHeight());
 
 //			onPause();
@@ -113,6 +114,13 @@ public class PendingNewHiveService extends EQCService {
 					&& newBlockState.getNewBlock().getCheckPointHeight()
 							.compareTo(eQcoinSubchainAccount.getCheckPointHeight()) >= 0
 					&& newBlockState.getNewBlock().getEqcHive().getEqcHeader().isDifficultyValid()) {
+				if(newBlockState.getNewBlock().getEqcHive().getHeight().compareTo(Util.DB().getEQCBlockTailHeight().getNextID()) > 0) {
+					if(SyncblockNetworkClient.ping(newBlockState.getNewBlock().getCookie().getIp()) == -1) {
+						Log.info("Received new hive and which height:" + newBlockState.getNewBlock().getEqcHive().getHeight() + " is more than one bigger than local tail:" + Util.DB().getEQCBlockTailHeight() + " but it's IP:" + newBlockState.getNewBlock().getCookie().getIp() + " can't reach here have nothing to do");
+						return;
+					}
+				}
+				
 				// Begin handle PossibleNode
 				PossibleNodeState possibleNodeState = new PossibleNodeState();
 				possibleNodeState.setIp(newBlockState.getNewBlock().getCookie().getIp());

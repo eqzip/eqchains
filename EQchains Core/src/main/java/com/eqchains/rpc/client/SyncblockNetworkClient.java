@@ -31,9 +31,11 @@ package com.eqchains.rpc.client;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
 
 import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
+import org.jboss.netty.channel.socket.oio.OioClientSocketChannelFactory;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
@@ -60,7 +62,8 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		SyncblockNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			info = new Info(client.ping(cookie.getO()));
@@ -85,7 +88,8 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		SyncblockNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getMinerList());
@@ -109,7 +113,8 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		SyncblockNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getFullNodeList());
@@ -133,7 +138,8 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		SyncblockNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			tailInfo = new TailInfo(client.getBlockTail());
@@ -157,7 +163,8 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		SyncblockNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			eqcHive = new EQCHive(client.getBlock(height.getO()), false);
@@ -181,7 +188,8 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		SyncblockNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			eqcHeaderHash = client.getEQCHeaderHash(height.getO()).o.array();
@@ -205,7 +213,8 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		SyncblockNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
 			eqcHeader = new EQCHeader(client.getEQCHeader(height.getO()));
@@ -229,7 +238,8 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		long time = System.currentTimeMillis();
 		try {
 			client = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.SYNCBLOCK_NETWORK_PORT), 30000l);
+					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
 			proxy.ping(cookie.getO());
 			time = System.currentTimeMillis() - time;

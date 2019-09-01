@@ -60,6 +60,8 @@ package com.eqchains.service;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
@@ -87,9 +89,11 @@ public final class MinerService extends EQCService {
 	private static MinerService instance;
 	private static AccountsMerkleTree accountsMerkleTree;
 	private ID newHiveHeight;
+	private AtomicBoolean isMining;
 	
 	private MinerService() {
 		super();
+		isMining = new AtomicBoolean(false);
 	}
 
 	public static MinerService getInstance() {
@@ -110,8 +114,18 @@ public final class MinerService extends EQCService {
 	public synchronized void start() {
 		super.start();
 		worker.setPriority(Thread.MIN_PRIORITY);
-		offerState(EQCServiceState.getDefaultState());
+		startMining();
 		Log.info(name + "started");
+	}
+	
+	/* (non-Javadoc)
+	 * @see com.eqchains.service.EQCService#stop()
+	 */
+	@Override
+	public synchronized void stop() {
+		isRunning.set(false);
+		resumeHalt();
+		super.stop();
 	}
 
 	/*
@@ -122,11 +136,36 @@ public final class MinerService extends EQCService {
 	 */
 	@Override
 	protected void onDefault(EQCServiceState state) {
+		switch (state.getState()) {
+		case MINING:
+			this.state.set(State.MINING);
+			isMining.set(true);
+			onMinering(state);
+			break;
+		default:
+			break;
+		}
+	}
+	
+	public void stopMining() {
+		Log.info(name + "begin stop mining progress");
+		isMining.set(false);
+		if (isPausing.get()) {
+			resumePause();
+		}
+		resumeHalt();
+	}
+	
+	public void startMining() {
+		offerState(new EQCServiceState(State.MINING));
+	}
+	
+	private void onMinering(EQCServiceState state) {
 		Log.info("Begin minering...");
 		this.state.set(State.MINER);
-		while (isRunning.get()) {
+		while (isRunning.get() && isMining.get()) {
  			onPause("prepare minering");
-			if(!isRunning.get()) {
+			if(!isRunning.get() || !isMining.get()) {
 				Log.info("Exit from prepare minering");
 				break;
 			}
@@ -158,7 +197,7 @@ public final class MinerService extends EQCService {
 			newHiveHeight = blockTailHeight.getNextID();
 			// If create AccountsMerkleTree just create it
 			try {
-				accountsMerkleTree = new AccountsMerkleTree(newHiveHeight, new Filter(Mode.MINERING));
+				accountsMerkleTree = new AccountsMerkleTree(newHiveHeight, new Filter(Mode.MINING));
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -208,8 +247,8 @@ public final class MinerService extends EQCService {
 			BigInteger difficulty = Util.targetBytesToBigInteger(newEQCHive.getEqcHeader().getTarget());
 			while (true) {
 				onPause("minering");
-				if(!isRunning.get()) {
-					Log.info("Exit from minering");
+				if(!isRunning.get() || !isMining.get()) {
+					Log.info("Exit from mining");
 					break;
 				}
 				newEQCHive.getEqcHeader().setNonce(nonce);
@@ -219,8 +258,8 @@ public final class MinerService extends EQCService {
 						synchronized (EQCService.class) {
 							// Here add synchronized to avoid conflict with Sync block service handle new received block
 							Log.info("Begin synchronized (EQCService.class)");
-							onPause("verify new block");
-							if(!isRunning.get()) {
+//							onPause("verify new block"); // Here can't pause which will cause deadlock
+							if(!isRunning.get() || !isMining.get()) {
 								// Here need check if it has been stopped
 								Log.info("Exit from verify new block");
 								break;
@@ -274,7 +313,7 @@ public final class MinerService extends EQCService {
 							}
 							else {
 								Log.Error("Current mining height is: " + newHiveHeight + " but local tail height changed to: " + Util.DB().getEQCBlockTailHeight() + 
-										"so have to discard this block");
+										" so have to discard this block");
 							}
 							Log.info("End synchronized (EQCService.class)");
 						}
@@ -286,20 +325,30 @@ public final class MinerService extends EQCService {
 					break;
 				}
 				nonce = nonce.getNextID();
-				if(nonce.mod(ID.TWO).equals(ID.ZERO)) {
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-						Log.Error(e.getMessage());
-					}
+				if(nonce.mod(ID.TWO).equals(ID.ZERO) && isRunning.get() && isMining.get()) {
+					halt();
 				}
 			}
 		}
-		Log.info("End of minering");
+		Log.info("End of mining");
 	}
 
+	private void halt() {
+		synchronized (name) {
+			try {
+				name.wait(1000);
+			} catch (InterruptedException e) {
+				Log.Error(e.getMessage());
+			}
+		}
+	}
+	
+	private void resumeHalt() {
+		synchronized (name) {
+			name.notify();
+		}
+	}
+	
 	/**
 	 * @return the newBlockHeight
 	 */

@@ -96,7 +96,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	 * @email 10509759@qq.com
 	 */
 	public enum AccountType {
-		ASSET, SMARTCONTRACT, ASSETSUBCHAIN, EQCOINSUBCHAIN, MISC, INVALID;
+		ASSET, SMARTCONTRACT, ASSETSUBCHAIN, EQCOINSUBCHAIN, ETHEREUMSUBCHAIN, INVALID;
 		public static AccountType get(int ordinal) {
 			AccountType accountType = null;
 			switch (ordinal) {
@@ -110,7 +110,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 				accountType = AccountType.EQCOINSUBCHAIN;
 				break;
 			case 4:
-				accountType = AccountType.MISC;
+				accountType = AccountType.ETHEREUMSUBCHAIN;
 				break;
 			default:
 				accountType = AccountType.INVALID;
@@ -119,7 +119,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 			return accountType;
 		}
 		public boolean isSanity() {
-			if((this.ordinal() < ASSET.ordinal()) || (this.ordinal() > INVALID.ordinal()) || (this.ordinal() == INVALID.ordinal())) {
+			if((this.ordinal() < ASSET.ordinal()) || (this.ordinal() >= INVALID.ordinal())) {
 				return false;
 			}
 			return true;

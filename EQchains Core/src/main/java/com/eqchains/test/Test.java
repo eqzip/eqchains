@@ -1602,7 +1602,7 @@ public class Test {
 			}
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
-					new Filter(Mode.MINERING));
+					new Filter(Mode.MINING));
 			publicKey2.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
 			transaction.getTxIn().getPassport()
 					.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
@@ -1658,7 +1658,7 @@ public class Test {
 			Log.info("getQos: " + operationTransaction.getQos());
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
-					new Filter(Mode.MINERING));
+					new Filter(Mode.MINING));
 			operationTransaction.sign(ecdsa);
 			EQCBlockChainH2.getInstance().saveTransactionInPool(operationTransaction);
 		} catch (Exception e) {
@@ -1813,7 +1813,7 @@ public class Test {
 			id = EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight();
 			for (int i = 1; i < id.intValue(); ++i) {
 				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i),
-						new Filter(Mode.MINERING));
+						new Filter(Mode.MINING));
 				EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(new ID(i), true);
 				try {
 					eqcBlock.isValid(accountsMerkleTree);
@@ -2043,7 +2043,7 @@ public class Test {
 			}
 //			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 //					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
-//					new Filter(Mode.MINERING));
+//					new Filter(Mode.MINING));
 //			publicKey2.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));
 //			transaction.getTxIn().getPassport()
 //					.setID(accountsMerkleTree.getAddressID(transaction.getTxIn().getPassport()));

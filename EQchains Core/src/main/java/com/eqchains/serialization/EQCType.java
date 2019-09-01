@@ -553,6 +553,11 @@ public class EQCType {
 		else {
 			throw EOF_EXCEPTION;
 		}
+		if(bytes.length > 1) {
+			if((bytes[0] == 128) && (bytes[1] < 192) ) {
+				throw new IllegalStateException("Bad format the highest byte can't be zero");
+			}
+		}
 		return bytes;
 	}
 	

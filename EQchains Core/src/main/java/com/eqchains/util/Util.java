@@ -2292,7 +2292,7 @@ public final class Util {
 		}
 		// Create AccountsMerkleTree
 		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO,
-				new Filter(Mode.MINERING));
+				new Filter(Mode.MINING));
 
 		// Create EQC block
 		eqcHive = new EQCHive();
@@ -2403,7 +2403,7 @@ public final class Util {
 		account1.setUpdateHeight(ID.ZERO);
 		accountsMerkleTree.saveAccount(account1);
 		accountsMerkleTree.increaseTotalAccountNumbers();
-//		transaction.setNonce(ID.ONE);
+		transaction.setNonce(ID.ONE);
 		
 		transaction.prepareAccounting(accountsMerkleTree, ID.valueOf(eqcHive.getEQcoinSubchain().getNewPassportList().size()));
 		eqcHive.getEQcoinSubchain().addCoinbaseTransaction(transaction);

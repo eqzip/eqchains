@@ -30,15 +30,21 @@
 package com.eqchains;
 
 import java.math.BigInteger;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.transaction.CoinbaseTransaction;
+import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.configuration.Configuration;
+import com.eqchains.crypto.MerkleTree;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainRocksDB;
@@ -146,9 +152,26 @@ public class Singularity {
 //			Configuration.getInstance().updateIsInitSingularityBlock(false);
 			Util.IP = args[0];
 			Util.init();
-			while(true) {
-				MinerNetworkClient.ping("192.168.0.0");
-			}
+//			Account account = Util.DB().getAccount(Asset.EQCOIN);
+//			Vector<Account> accounts = new Vector<>();
+//			for(int i=0; i<100000; ++i) {
+//				accounts.add(account);
+//			}
+//			Vector<byte[]> bytes = new Vector<>();
+//			long time0 = System.currentTimeMillis();
+//			for(Account account2:accounts) {
+//				account2.setHash(null);
+//				bytes.add(account2.getHash());
+////				Log.info(Util.dumpBytes(account2.getHash(), 16));
+//			}
+//			long time1 = System.currentTimeMillis();
+//			Log.info("Hashs time: " + (time1-time0));
+//			time1 = System.currentTimeMillis();
+//			MerkleTree merkleTree = new MerkleTree(bytes);
+//			merkleTree.generateRoot();
+//			long time2 = System.currentTimeMillis();
+//			Log.info("MerkleTree time: " + (time2-time1));
+//			TailInfo tailInfo = SyncblockNetworkClient.getBlockTail("14.221.176.138");
 //			EQCHive eqcHive = Util.DB().getEQCHive(ID.ZERO, true);
 //			Log.info("" + Util.DB().getAccount(ID.ONE));
 //			Log.info(""+MinerNetworkClient.ping(Util.SINGULARITY_IP));
@@ -164,6 +187,10 @@ public class Singularity {
 //			Util.DB().saveEQCBlockTailHeight(ID.ZERO);
 //			ID id = Util.DB().getEQCBlockTailHeight();
 //			SyncBlockService.getInstance().start();
+//			MinerService.getInstance().start();
+//			Thread.sleep(5000);
+//			MinerService.getInstance().stopMining();
+//			MinerService.getInstance().startMining();
 //			TailInfo tailInfo =  SyncblockNetworkClient.getBlockTail("192.168.0.101");
 //			for(int i=0; i<1; ++i) {
 //				Thread.sleep(10);
@@ -172,7 +199,14 @@ public class Singularity {
 //			AddressTool.verifyAddressCRC32C(Util.SINGULARITY_A);
 //			Test.testTransaction();
 //			MinerService.getInstance().start();
-//			EQCHive eqcHive = Util.DB().getEQCBlock(ID.valueOf(0), false);
+			EQCHive eqcHive = Util.DB().getEQCHive(ID.valueOf(0), false);
+			EQCBlockChainH2.getInstance().deleteTransaction(eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().getCoinbaseTransaction());
+//			CoinbaseTransaction coinbaseTransaction = eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().getCoinbaseTransaction();
+//			for(TxOut txOut:coinbaseTransaction.getTxOutList()) {
+//				txOut.setNew(true);
+//				txOut.getPassport().setReadableAddress(Util.DB().getAccount(txOut.getPassport().getID()).getPassport().getReadableAddress());
+//			}
+//			EQCBlockChainH2.getInstance().saveTransaction(coinbaseTransaction, ID.ZERO, ID.ZERO, ID.ONE);
 //			Log.info(Util.DB().getEQCHive(ID.valueOf(0), false).toString());
 //			EQCBlockChainH2.getInstance().getTransactionListInPool();
 //			Log.info("Tail: " + Util.DB().getEQCBlockTailHeight());
@@ -196,6 +230,15 @@ public class Singularity {
 //				Log.info("2");
 //			}
 //			EQCBlockChainRocksDB.getInstance().dumpAccount();
+//			long i = 0;
+//			while(true) {
+//				try {
+//					SyncblockNetworkClient.getBlock(ID.valueOf(1001), Util.SINGULARITY_IP);
+//					Log.info("" + i++);
+//				} catch (Exception e) {
+//					Log.Error(e.getMessage());
+//				}
+//			}
 //			Test.testKeystore();
 //			SyncBlockService.getInstance().start();
 //			SyncBlockService.getInstance().offerState(new EQCServiceState(State.SERVER));

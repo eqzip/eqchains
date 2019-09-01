@@ -184,4 +184,35 @@ public interface EQCBlockChain {
 	
 	public boolean clear(Mode mode) throws Exception;
 	
+	// Audit layer relevant interface for H2
+//	public ID isTransactionIndexExists(Transaction transaction, ID height, ID index) throws Exception;
+//	
+//	public boolean saveTransactionIndex(Transaction transaction, ID height, ID index, ID sn) throws Exception;
+//	
+//	public boolean deleteTransactionIndex(Transaction transaction, ID height, ID index) throws Exception;
+//	
+//	public boolean deleteTransactionIndexFrom(ID height) throws Exception;
+	
+	public ID isTransactionExists(Transaction transaction) throws Exception;
+	
+	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn) throws Exception;
+	
+	public boolean deleteTransaction(Transaction transaction) throws Exception;
+	
+	public boolean deleteTransactionFrom(ID height) throws Exception;
+	
+//	public ID isTransactionIndexExists(Transaction transaction, ID height, ID index, Mode mode) throws Exception;
+//	
+//	public ID saveTransactionIndex(Transaction transaction, ID height, ID index, Mode mode) throws Exception;
+//	
+//	public boolean deleteTransactionIndex(Transaction transaction, ID height, ID index, Mode mode) throws Exception;
+	
+	public boolean isTransactionExists(Transaction transaction, Mode mode) throws Exception;
+	
+	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn, Mode mode) throws Exception;
+	
+	public boolean deleteTransaction(Transaction transaction, Mode mode) throws Exception;
+	
+	public boolean deleteTransactionFrom(ID height, Mode mode) throws Exception;
+	
 }

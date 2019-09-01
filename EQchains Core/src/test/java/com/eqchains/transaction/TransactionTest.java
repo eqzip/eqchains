@@ -97,7 +97,7 @@ public class TransactionTest {
 			}
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
 					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
-					new Filter(Mode.MINERING));
+					new Filter(Mode.MINING));
 			compressedPublickey.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
 			transaction.getTxIn().getPassport()
 					.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());

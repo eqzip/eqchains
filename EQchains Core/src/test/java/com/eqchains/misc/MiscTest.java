@@ -121,7 +121,7 @@ public class MiscTest {
 		try {
 			id = EQCBlockChainRocksDB.getInstance().getEQCBlockTailHeight();
 			 for(int i=22; i<=id.intValue(); ++i) {
-				   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINERING));
+				   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINING));
 					accountsMerkleTree.buildAccountsMerkleTree();
 					accountsMerkleTree.generateRoot();
 					Log.info(Util.dumpBytes(accountsMerkleTree.getRoot(), 16));
@@ -144,7 +144,7 @@ public class MiscTest {
 			id = Util.DB().getEQCBlockTailHeight();
 			Log.info("" + id);
 			 for(int i=4; i<=id.intValue(); ++i) {
-			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINERING));
+			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINING));
 			   EQCHive eqcBlock = Util.DB().getEQCHive(new ID(i), false);
 //			   Log.info(eqcBlock.toString());
 				assertTrue(eqcBlock.isValid(accountsMerkleTree));

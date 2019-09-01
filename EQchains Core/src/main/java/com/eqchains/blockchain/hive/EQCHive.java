@@ -285,6 +285,8 @@ public class EQCHive implements EQCTypable {
 			}
 		}
 
+		// Add audit layer at the following positions
+		
 		// Update EQcoinSubchain's Header
 		EQcoinSubchainHeader preEQcoinSubchainHeader = accountsMerkleTree.getEQCBlock(accountsMerkleTree.getHeight().getPreviousID(), true).getEQcoinSubchain().getEQcoinSubchainHeader();
 		eQcoinSubchain.getEQcoinSubchainHeader().setTotalAccountNumbers(preEQcoinSubchainHeader.getTotalAccountNumbers().add(ID.valueOf(eQcoinSubchain.getNewPassportList().size())));

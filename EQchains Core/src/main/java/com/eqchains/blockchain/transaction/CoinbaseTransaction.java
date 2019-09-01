@@ -133,6 +133,9 @@ public class CoinbaseTransaction extends TransferTransaction {
 		if(!isSanity(addressShape)) {
 			return false;
 		}
+		if(!nonce.equals(accountsMerkleTree.getHeight().getNextID())) {
+			return false;
+		}
 		if (accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight())) < 0) {
 			if(!txOutList.get(0).getPassport().getID().equals(ID.ONE)) {
 				return false;
@@ -169,7 +172,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 
 	@Override
 	public boolean isSanity(AddressShape addressShape) {
-		if(transactionType == null || txIn != null || nonce != null || txOutList == null) {
+		if(transactionType == null || txIn != null || nonce == null || txOutList == null) {
 			Log.Error("Some member variables is null");
 			return false;
 		}
@@ -183,6 +186,10 @@ public class CoinbaseTransaction extends TransferTransaction {
 		}
 		if (!isTxOutNumberValid()) {
 			Log.Error("Total TxOut numbers is invalid");
+			return false;
+		}
+		if(!nonce.isSanity()) {
+			Log.Error("Nonce is invalid");
 			return false;
 		}
 		for(TxOut txOut : txOutList) {
@@ -274,7 +281,9 @@ public class CoinbaseTransaction extends TransferTransaction {
 
 		"\"CoinbaseTransaction\":" + "\n{\n" + TxIn.coinBase() + ",\n"
 		+ "\"TxOutList\":" + "\n{\n" + "\"Size\":" + "\"" + txOutList.size() + "\"" + ",\n"
-		+ "\"List\":" + "\n" + getTxOutString() + "\n}";
+		+ "\"List\":" + "\n" + getTxOutString() + ",\n" 
+		+ "\"Nonce\":" + "\"" + nonce + "\"" + 
+		"\n}";
 	}
 
 	/* (non-Javadoc)
@@ -304,6 +313,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	}
 
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
+		nonce = EQCType.parseID(is);
 		byte txOutValidCount = 0;
 		while (txOutValidCount++ < MAX_TXOUT && !EQCType.isInputStreamEnd(is)) {
 			txOutList.add(new TxOut(is, addressShape));
@@ -313,6 +323,8 @@ public class CoinbaseTransaction extends TransferTransaction {
 	public byte[] getBodyBytes(AddressShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
+			// Serialization nonce
+			os.write(EQCType.bigIntegerToEQCBits(nonce));
 			// Serialization TxOut
 			for (TxOut txOut : txOutList) {
 				os.write(txOut.getBytes(addressShape));

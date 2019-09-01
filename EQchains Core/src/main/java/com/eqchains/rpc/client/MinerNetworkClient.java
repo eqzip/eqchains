@@ -32,9 +32,11 @@ package com.eqchains.rpc.client;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.concurrent.Executors;
 
 import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
+import org.jboss.netty.channel.socket.oio.OioClientSocketChannelFactory;
 
 import com.eqchains.avro.O;
 import com.eqchains.blockchain.hive.EQCHive;
@@ -62,7 +64,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		MinerNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			info = new Info(client.ping(cookie.getO()));
 		} catch (Exception e) {
@@ -85,7 +88,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		MinerNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getMinerList());
 		} catch (Exception e) {
@@ -108,7 +112,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		MinerNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getFullNodeList());
 		} catch (Exception e) {
@@ -131,7 +136,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		MinerNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			info = new Info(client.broadcastNewBlock(newBlock.getO()));
 		} catch (Exception e) {
@@ -154,7 +160,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		MinerNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			O syncTime = new O(ByteBuffer.wrap(Util.longToBytes(EQCBlockChainH2.getInstance().getMinerSyncTime(ip))));
 			transactionIndexList = new TransactionIndexList(client.getTransactionIndexList(syncTime));
@@ -179,7 +186,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		MinerNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), Util.DEFAULT_TIMEOUT);
+					new InetSocketAddress(InetAddress.getByName(ip), Util.MINER_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			transactionList2 = new TransactionList(client.getTransactionList(transactionList.getO()));
 		} catch (Exception e) {
@@ -203,8 +211,8 @@ public class MinerNetworkClient extends EQCRPCClient {
 		long time = System.currentTimeMillis();
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.MINER_NETWORK_PORT),
-					Util.DEFAULT_TIMEOUT);
+					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.MINER_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(MinerNetwork.class, nettyTransceiver);
 			client.ping(cookie.getO());
 			time = System.currentTimeMillis() - time;
@@ -228,7 +236,11 @@ public class MinerNetworkClient extends EQCRPCClient {
 		for (String ip : ipList.getIpList()) {
 			Log.info("Try to get the fastest server current ip: " + ip);
 			time = ping(ip);
-			if (time > maxTime) {
+			if(maxTime == 0 && time != -1) {
+				fastestServer = ip;
+				maxTime = time;
+			}
+			if (time < maxTime) {
 				fastestServer = ip;
 				maxTime = time;
 			}

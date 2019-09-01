@@ -64,7 +64,7 @@ public abstract class EQCService implements Runnable {
 		isWaiting = new AtomicBoolean(false);
 		isStopped = new AtomicBoolean(true);
 		state = new AtomicReference<>();
-		 name = this.getClass().getSimpleName() + " ";
+		name = this.getClass().getSimpleName() + " ";
 	}
 	
 	public synchronized void start() {
@@ -72,9 +72,9 @@ public abstract class EQCService implements Runnable {
 		synchronized (isStopped) {
 			if(!isStopped.get()) {
 				try {
-					Log.info(name + "waiting for previous thread stop");
+					Log.info(name + "waiting for previous thread stop state: " + worker.getState());
 					isStopped.wait();
-					Log.info(name + "previous thread stopped");
+					Log.info(name + "previous thread stopped state:" + worker.getState());
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -83,14 +83,14 @@ public abstract class EQCService implements Runnable {
 			}
 		}
 		
-		if (worker == null || !worker.isAlive()) {
+		if (worker == null || !worker.isAlive() || !isPausing.get()) {
 			Log.info(name + " old worker thread's ID: " + ((worker==null)?worker:worker.getId()));
 			worker = new Thread(this);
 			Log.info(name + " create new thread successful thread ID: " + worker.getId());
 			worker.setPriority(Thread.NORM_PRIORITY);
 			worker.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
 				public void uncaughtException(Thread t, Throwable e) {
-					Log.Error(name + "thread state: " + worker.getState() + "Uncaught Exception occur: " + e.getMessage());
+					Log.Error(name + "thread state: " + worker.getState() + " Uncaught Exception occur: " + e.getMessage());
 					isStopped.set(true);
 					Log.info(name + "beginning stop " + name);
 					stop();
@@ -98,11 +98,19 @@ public abstract class EQCService implements Runnable {
 					start();
 				}
 			});
-			isRunning.set(true);
-			isStopped.set(false);
-			state.set(State.RUNNING);
 			name = this.getClass().getSimpleName() + " thread ID: " + worker.getId() + " ";
 			worker.start();
+			synchronized (isRunning) {
+				try {
+					Log.info(name + "waiting for thread start");
+					isRunning.wait();
+					Log.info(name + "thread started");
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					Log.Error(e.getMessage());
+				}
+			}
 		}
 		else {
 				Log.info(name + "previous thread's worker still exists&running and it's state: " + worker.getState());
@@ -123,6 +131,9 @@ public abstract class EQCService implements Runnable {
 		if (isPausing.get()) {
 			resumePause();
 		}
+		if(isWaiting.get()) {
+			resumeWaiting();
+		}
 		offerState(new EQCServiceState(State.STOP));
 	}
 
@@ -137,8 +148,12 @@ public abstract class EQCService implements Runnable {
 		synchronized (isPausing) {
 			if (isPausing.get()) {
 				try {
+					if(!isRunning.get()) {
+						Log.info(name + "received pause request at " + ((phase==null)?phase:phase[0]) + " but due to is already stop running so here have nothing to do");
+						return;
+					}
 					if(phase != null) {
-						Log.info(name + " paused at " + phase[0]);
+						Log.info(name + "paused at " + phase[0]);
 					}
 					Log.info(name + "is pausing now thread state: " + worker.getState());
 					isPausing.wait();
@@ -191,7 +206,13 @@ public abstract class EQCService implements Runnable {
 
 	@Override
 	public void run() {
-		Log.info(name + "worker thread is running now... thread state: " + worker.getState());
+		isRunning.set(true);
+		synchronized (isRunning) {
+			isRunning.notify();
+		}
+		isStopped.set(false);
+		state.set(State.RUNNING);
+		Log.info(name + "new worker thread is running now... thread id: " + worker.getId());
 		EQCServiceState state = null;
 		while (isRunning.get()) {
 			try {
@@ -244,21 +265,22 @@ public abstract class EQCService implements Runnable {
 			Log.info(name + "onSleep time: " + sleepState.getSleepTime());
 			if (isSleeping.get()) {
 				try {
+					if(!isRunning.get()) {
+						Log.info(name + "received sleep request but due to is already stop running so here have nothing to do");
+						return;
+					}
 					if (sleepState.getSleepTime() == 0) {
 						isSleeping.wait();
 					} else {
 						isSleeping.wait(sleepState.getSleepTime());
 					}
+					onSleep(sleepState);
 					isSleeping.set(false);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 					Log.Error(e.getMessage());
 				}
-			}
-
-			if (isRunning.get()) {
-				onSleep(sleepState);
 			}
 		}
 	}
@@ -270,6 +292,10 @@ public abstract class EQCService implements Runnable {
 	protected void onWaiting(EQCServiceState state) {
 		synchronized (isWaiting) {
 			if (isWaiting.get()) {
+				if(!isRunning.get()) {
+					Log.info(name + "received wait request but due to is already stop running so here have nothing to do");
+					return;
+				}
 				Log.info(name + "onWaiting");
 				try {
 					isWaiting.wait();

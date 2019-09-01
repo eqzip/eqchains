@@ -36,7 +36,6 @@ import java.util.Comparator;
 import java.util.Vector;
 import java.util.concurrent.PriorityBlockingQueue;
 
-import org.apache.velocity.runtime.directive.Break;
 import org.h2.util.IntIntHashMap;
 
 import com.eqchains.blockchain.account.Account;
@@ -167,6 +166,8 @@ public class SyncBlockService extends EQCService {
 				if (Util.IP.equals(Util.SINGULARITY_IP)) {
 					// This is Singularity node and miner list is empty just start Minering
 					Log.info("This is Singularity node and miner list is empty just start Minering");
+					// Here just remove extra message because when have new miner join will register in miner list
+					pendingMessage.clear();
 					offerState(new EQCServiceState(State.MINER));
 					return;
 				}
@@ -209,6 +210,8 @@ public class SyncBlockService extends EQCService {
 				// Miner list isn't empty but can retrieve any miner tail from the miner network
 				if (Util.IP.equals(Util.SINGULARITY_IP)) {
 					// This is Singularity node and miner list is empty just start Minering
+					// Here just remove extra message because when have new miner join will register in miner list
+					pendingMessage.clear();
 					offerState(new EQCServiceState(State.MINER));
 					return;
 				} else {
@@ -466,6 +469,7 @@ public class SyncBlockService extends EQCService {
 		boolean isNeedRestart = false;
 		Log.info("onMiner");
 		if (!MinerService.getInstance().isRunning()) {
+			Log.info("Begin start new MinerService");
 			MinerService.getInstance().start();
 		} else {
 			try {
@@ -473,15 +477,15 @@ public class SyncBlockService extends EQCService {
 				synchronized (EQCService.class) {
 					Log.info("Begin synchronized (EQCService.class)");
 					if (!MinerService.getInstance().getNewBlockHeight().isNextID(Util.DB().getEQCBlockTailHeight())) {
-						Log.info("Changed to new minering base");
-						MinerService.getInstance().stop();
+						Log.info("Changed to new mining base begin stop current mining progress");
+						MinerService.getInstance().stopMining();
 						isNeedRestart = true;
 					}
 					Log.info("End synchronized (EQCService.class)");
 				}
 				if (isNeedRestart) {
-					Log.info("Need restart just beginning restart");
-					MinerService.getInstance().start();
+					Log.info("Need restart just beginning new mining progress");
+					MinerService.getInstance().startMining();;
 				} else {
 					if (MinerService.getInstance().isPausing.get()) {
 						Log.info("Still mining in the tail and Miner service was paused just resume it");

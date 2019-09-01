@@ -32,9 +32,11 @@ package com.eqchains.rpc.client;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.concurrent.Executors;
 
 import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
+import org.jboss.netty.channel.socket.oio.OioClientSocketChannelFactory;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.TransactionNetwork;
@@ -66,7 +68,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			info = new Info(client.ping(cookie.getO()));
@@ -91,7 +94,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			ipList = new IPList(client.getMinerList());
@@ -115,7 +119,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			info = new Info(client.sendTransaction(transaction.getO()));
@@ -139,7 +144,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			id = new ID(client.getID(new O(ByteBuffer.wrap(addressAI))));
@@ -163,7 +169,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			account = Account.parseAccount(client.getAccount(new O(ByteBuffer.wrap(addressAI))));
@@ -187,7 +194,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			maxNonce = new MaxNonce(client.getMaxNonce(nest.getO()));
@@ -211,7 +219,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			balance = new Balance(client.getBalance(nest.getO()));
@@ -235,7 +244,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			signHash = new SignHash(client.getSignHash(id.getO()));
@@ -259,7 +269,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		TransactionNetwork client = null;
 		try {
 			nettyTransceiver = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(ip), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
 			transactionList = new TransactionList(client.getPendingTransactionList(id.getO()));
@@ -283,7 +294,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		long time = System.currentTimeMillis();
 		try {
 			client = new NettyTransceiver(
-					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.TRANSACTION_NETWORK_PORT),
+					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.TRANSACTION_NETWORK_PORT), new OioClientSocketChannelFactory(
+			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			proxy = SpecificRequestor.getClient(TransactionNetwork.class, client);
 			proxy.ping(cookie.getO());
