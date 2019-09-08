@@ -295,6 +295,7 @@ public class Passport implements EQCAddressShapeTypable {
 
 	@Override
 	public boolean isSanity(AddressShape addressShape) {
+		// Here exists one bug need check if code is null due to in mvp phase the code should be null
 		if (getAddressType() != AddressType.T1 && getAddressType() != AddressType.T2) {
 			return false;
 		}
@@ -387,4 +388,20 @@ public class Passport implements EQCAddressShapeTypable {
 		return false;
 	}
 
+	public boolean compare(Passport passport) {
+		if(!id.equals(passport.getID())) {
+			return false;
+		}
+		if(!readableAddress.equals(passport.getReadableAddress())) {
+			return false;
+		}
+		if(code != null) {
+			return false;
+		}
+		if(passport.getCode() != null) {
+			return false;
+		}
+		return true;
+	}
+	
 }

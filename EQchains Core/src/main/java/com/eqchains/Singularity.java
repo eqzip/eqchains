@@ -183,10 +183,10 @@ public class Singularity {
 //			Log.info("" + Util.DB().getEQCHive(ID.valueOf(1969), false).toString());
 //			Log.info("" + Util.cypherTotalSupply(ID.THREE));
 //			Log.info(SyncblockNetworkClient.getBlock(ID.valueOf(410), Util.SINGULARITY_IP).toString());
-//			SyncBlockService.getInstance().setMode(MODE.FULL);
+			SyncBlockService.getInstance().setMode(MODE.FULL);
 //			Util.DB().saveEQCBlockTailHeight(ID.ZERO);
 //			ID id = Util.DB().getEQCBlockTailHeight();
-//			SyncBlockService.getInstance().start();
+			SyncBlockService.getInstance().start();
 //			MinerService.getInstance().start();
 //			Thread.sleep(5000);
 //			MinerService.getInstance().stopMining();
@@ -199,14 +199,20 @@ public class Singularity {
 //			AddressTool.verifyAddressCRC32C(Util.SINGULARITY_A);
 //			Test.testTransaction();
 //			MinerService.getInstance().start();
-			EQCHive eqcHive = Util.DB().getEQCHive(ID.valueOf(0), false);
-			EQCBlockChainH2.getInstance().deleteTransaction(eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().getCoinbaseTransaction());
+//			EQCHive eqcHive = Util.DB().getEQCHive(ID.valueOf(0), false);
+//			EQCBlockChainH2.getInstance().deleteTransactionFrom(ID.valueOf(7), Mode.VALID);
+//			EQCBlockChainH2.getInstance().deleteTransaction(eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().getCoinbaseTransaction(), Mode.GLOBAL);
 //			CoinbaseTransaction coinbaseTransaction = eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().getCoinbaseTransaction();
 //			for(TxOut txOut:coinbaseTransaction.getTxOutList()) {
 //				txOut.setNew(true);
 //				txOut.getPassport().setReadableAddress(Util.DB().getAccount(txOut.getPassport().getID()).getPassport().getReadableAddress());
 //			}
-//			EQCBlockChainH2.getInstance().saveTransaction(coinbaseTransaction, ID.ZERO, ID.ZERO, ID.ONE);
+//			for (int i = 0; i < 10; ++i) {
+//				Log.info("i: " + i);
+//				ID h = ID.valueOf(i);
+//				coinbaseTransaction.setNonce(h.getNextID());
+//				EQCBlockChainH2.getInstance().saveTransaction(coinbaseTransaction, h, ID.ZERO, h.getNextID(), Mode.VALID);
+//			}
 //			Log.info(Util.DB().getEQCHive(ID.valueOf(0), false).toString());
 //			EQCBlockChainH2.getInstance().getTransactionListInPool();
 //			Log.info("Tail: " + Util.DB().getEQCBlockTailHeight());

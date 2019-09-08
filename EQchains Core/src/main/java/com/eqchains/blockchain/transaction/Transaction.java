@@ -41,9 +41,11 @@ import java.security.NoSuchProviderException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.acl.Owner;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.Vector;
 
 import org.rocksdb.RocksDBException;
@@ -62,6 +64,7 @@ import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2.TRANSACTION_OP;
 import com.eqchains.rpc.MaxNonce;
 import com.eqchains.rpc.Nest;
 import com.eqchains.serialization.EQCAddressShapeInheritable;
@@ -467,6 +470,28 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		}
 		return transaction;
 	}
+	
+	public static Transaction parseTransaction(ResultSet resultSet, TransactionType transactionType) {
+		Objects.requireNonNull(resultSet);
+		Transaction transaction = null;
+		try {
+			if (transactionType == TransactionType.COINBASE) {
+				transaction = new CoinbaseTransaction(resultSet);
+			} else if (transactionType == TransactionType.TRANSFER) {
+				transaction = new TransferTransaction(resultSet);
+			} else if (transactionType == TransactionType.OPERATION) {
+				transaction = new OperationTransaction(resultSet);
+			}
+			else {
+				throw new IllegalStateException("Bad transaction format " + transactionType);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return transaction;
+	}
 
 	public boolean verifySignature() throws ClassNotFoundException, RocksDBException, SQLException, Exception {
 		boolean isTransactionValid = false;
@@ -646,7 +671,6 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 	}
 
-	@Override
 	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
 			throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		// Parse nonce
@@ -844,6 +868,10 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	
 	public String toInnerJson() {
 		return null;
+	}
+	
+	public boolean compare(Transaction transaction) {
+		return false;
 	}
 	
 }

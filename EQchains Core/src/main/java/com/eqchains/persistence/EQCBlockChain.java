@@ -193,13 +193,13 @@ public interface EQCBlockChain {
 //	
 //	public boolean deleteTransactionIndexFrom(ID height) throws Exception;
 	
-	public ID isTransactionExists(Transaction transaction) throws Exception;
-	
-	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn) throws Exception;
-	
-	public boolean deleteTransaction(Transaction transaction) throws Exception;
-	
-	public boolean deleteTransactionFrom(ID height) throws Exception;
+//	public ID isTransactionExists(Transaction transaction) throws Exception;
+//	
+//	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn) throws Exception;
+//	
+//	public boolean deleteTransaction(Transaction transaction) throws Exception;
+//	
+//	public boolean deleteTransactionFrom(ID height) throws Exception;
 	
 //	public ID isTransactionIndexExists(Transaction transaction, ID height, ID index, Mode mode) throws Exception;
 //	
@@ -207,7 +207,7 @@ public interface EQCBlockChain {
 //	
 //	public boolean deleteTransactionIndex(Transaction transaction, ID height, ID index, Mode mode) throws Exception;
 	
-	public boolean isTransactionExists(Transaction transaction, Mode mode) throws Exception;
+	public ID isTransactionExists(Transaction transaction, Mode mode) throws Exception;
 	
 	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn, Mode mode) throws Exception;
 	

@@ -64,7 +64,7 @@ public class Filter {
 	private Mode mode;
 
 	public enum Mode {
-		MINING, VALID
+		GLOBAL, MINING, VALID
 	}
 
 	public Filter(Mode mode) throws ClassNotFoundException, SQLException, Exception {

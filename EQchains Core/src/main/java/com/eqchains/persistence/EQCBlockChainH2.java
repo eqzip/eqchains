@@ -52,6 +52,7 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Vector;
 
+import org.h2.index.Index;
 import org.rocksdb.RocksDBException;
 
 import com.eqchains.blockchain.EQChains;
@@ -217,6 +218,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			statement.execute("DROP TABLE TRANSACTION_POOL");
 			statement.execute("DROP TABLE TXIN_HEADER_HASH");
 			statement.execute("DROP TABLE ACCOUNT_SNAPSHOT");
+			
 //			statement.execute("DROP TABLE ");
 			return true; // Here need do more job
 	}
@@ -239,7 +241,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 						+ ")");
 			 
 			 result = statement.execute("CREATE TABLE IF NOT EXISTS EQCHIVE("
-						+ "height BIGINT  PRIMARY KEY CHECK height >= 0,"
+						+ "height BIGINT  NOT NULL CHECK height >= 0,"
 						+ "bytes BINARY NOT NULL UNIQUE,"
 						+ "eqcheader_hash BINARY(64) NOT NULL"
 						+ ")");
@@ -2438,13 +2440,41 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		}
 		return true;
 	}
+	
+	private String getTransactionTableName(Mode mode) {
+		String table = null;
+		if(mode == Mode.GLOBAL) {
+			table = TRANSACTION;
+		}
+		else if(mode == Mode.MINING) {
+			table = TRANSACTION_MINING;
+		}
+		else if(mode == Mode.VALID) {
+			table = TRANSACTION_VALID;
+		}
+		return table;
+	}
 
-	public boolean isTransactionExists(ID sn) throws Exception {
+	private String getTransactionIndexTableName(Mode mode) {
+		String table = null;
+		if(mode == Mode.GLOBAL) {
+			table = TRANSACTION_INDEX;
+		}
+		else if(mode == Mode.MINING) {
+			table = TRANSACTION_MINING_INDEX;
+		}
+		else if(mode == Mode.VALID) {
+			table = TRANSACTION_VALID_INDEX;
+		}
+		return table;
+	}
+	
+	public boolean isTransactionExists(ID sn, Mode mode) throws Exception {
 		boolean isExists = false;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
 		preparedStatement = connection
-				.prepareStatement("SELECT * FROM " + TRANSACTION + " WHERE sn=?");
+				.prepareStatement("SELECT * FROM " + getTransactionTableName(mode) + " WHERE sn=?");
 		preparedStatement.setLong(1, sn.longValue());
 		resultSet = preparedStatement.executeQuery();
 		if (resultSet.next()) {
@@ -2453,16 +2483,16 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return isExists;
 	}
 
-	public boolean deleteTransaction(Transaction transaction, ID sn) throws Exception {
+	public boolean deleteTransaction(Transaction transaction, ID sn, Mode mode) throws Exception {
 		int rowCounter = 0;
 		PreparedStatement preparedStatement;
-		preparedStatement = connection.prepareStatement("DELETE FROM " + TRANSACTION + " WHERE sn=?");
+		preparedStatement = connection.prepareStatement("DELETE FROM " + getTransactionTableName(mode) + " WHERE sn=?");
 		preparedStatement.setLong(1, sn.longValue());
 		rowCounter = preparedStatement.executeUpdate();
 		Log.info("rowCounter: " + rowCounter);
 		EQCType.assertEqual(rowCounter, ONE_ROW);
-		if (isTransactionExists(sn)) {
-			throw new IllegalStateException("deleteTransaction " + TRANSACTION + " failed Transaction still exists");
+		if (isTransactionExists(sn, mode)) {
+			throw new IllegalStateException("deleteTransaction from " + getTransactionTableName(mode) + " failed Transaction still exists");
 		}
 		return true;
 	}
@@ -2492,30 +2522,34 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public synchronized ID isTransactionExists(Transaction transaction) throws SQLException {
+	public synchronized ID isTransactionExists(Transaction transaction, Mode mode) throws SQLException {
 		ID sn = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
+		String transactionIndexTable = getTransactionIndexTableName(mode);
+		String transactionTable = getTransactionTableName(mode);
 		
 		preparedStatement = connection
-				.prepareStatement("SELECT * FROM " + TRANSACTION_INDEX + " INNER JOIN " + TRANSACTION + 
-						" ON TRANSACTION_INDEX.sn=TRANSACTION.sn " + " WHERE TRANSACTION_INDEX.type=? AND TRANSACTION_INDEX.asset_id=? AND TRANSACTION_INDEX.nonce=? AND TRANSACTION.id=?");//, ResultSet.TYPE_SCROLL_SENSITIVE,ResultSet.CONCUR_UPDATABLE);
+				.prepareStatement("SELECT * FROM " + transactionIndexTable + " INNER JOIN " + transactionTable + 
+						" ON " + transactionIndexTable + ".sn=" + transactionTable + ".sn " + " WHERE " + transactionIndexTable + ".type=? AND " + transactionIndexTable + ".asset_id=? AND " + transactionIndexTable + ".nonce=? AND " + transactionTable + ".op=? AND " + transactionTable + ".id=?", ResultSet.TYPE_SCROLL_SENSITIVE,ResultSet.CONCUR_UPDATABLE);
 		if (transaction instanceof CoinbaseTransaction) {
 			preparedStatement.setByte(1, (byte) transaction.getTransactionType().ordinal());
 			preparedStatement.setLong(2, transaction.getAssetID().longValue());
 			preparedStatement.setLong(3, transaction.getNonce().longValue());
-			preparedStatement.setLong(4, transaction.getTxOutList().get(2).getPassport().getID().longValue());
+			preparedStatement.setByte(4, (byte) TRANSACTION_OP.TXOUT.ordinal());
+			preparedStatement.setLong(5, transaction.getTxOutList().get(2).getPassport().getID().longValue());
 		} else {
 			preparedStatement.setByte(1, (byte) transaction.getTransactionType().ordinal());
 			preparedStatement.setLong(2, transaction.getAssetID().longValue());
 			preparedStatement.setLong(3, transaction.getNonce().longValue());
-			preparedStatement.setLong(4, transaction.getTxIn().getPassport().getID().longValue());
+			preparedStatement.setByte(4, (byte) TRANSACTION_OP.TXIN.ordinal());
+			preparedStatement.setLong(5, transaction.getTxIn().getPassport().getID().longValue());
 		}
 		resultSet = preparedStatement.executeQuery();
-//		resultSet.last();
-//		if(resultSet.getRow() > 1) {
-//			throw new IllegalStateException("Only can exists one result set for " + transaction);
-//		}
+		resultSet.last();
+		if(resultSet.getRow() > 1) {
+			throw new IllegalStateException("Only can exists one result set for " + transaction);
+		}
 		if (resultSet.first()) {
 			// Here need check if exist transaction equal to original transaction
 			sn = ID.valueOf(resultSet.getLong("sn"));
@@ -2525,26 +2559,29 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 	
 	@Override
-	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn) throws Exception {
+	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn, Mode mode) throws Exception {
 		int rowCounter = 0;
 		PreparedStatement preparedStatement = null;
-		ID sn1 = isTransactionExists(transaction);
+		String transactionIndexTable = getTransactionIndexTableName(mode);
+		String transactionTable = getTransactionTableName(mode);
+		
+		ID sn1 = isTransactionExists(transaction, mode);
 		if (sn1 != null) {
 			throw new IllegalStateException(
 					"Result set " + transaction + " at height: " + height + " index: " + index + " shouldn't exists");
 		}
 		
-		preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION_INDEX (sn, type, height, index, asset_id, nonce) VALUES(?, ?, ?, ?, ?, ?)");
+		preparedStatement = connection.prepareStatement("INSERT INTO " + transactionIndexTable + " (sn, type, height, index, asset_id, nonce) VALUES(?, ?, ?, ?, ?, ?)");
 		// Save Transaction Index
 		preparedStatement.setLong(1, sn.longValue());
 		preparedStatement.setByte(2, (byte) transaction.getTransactionType().ordinal());
 		preparedStatement.setLong(3, height.longValue());
-		preparedStatement.setLong(4, index.longValue());
+		preparedStatement.setInt(4, index.intValue());
 		preparedStatement.setLong(5, transaction.getAssetID().longValue());
 		preparedStatement.setLong(6, transaction.getNonce().longValue());
 		preparedStatement.executeUpdate();
 		
-		preparedStatement = connection.prepareStatement("INSERT INTO TRANSACTION (sn, op, id, value, object) VALUES(?, ?, ?, ?, ?)");
+		preparedStatement = connection.prepareStatement("INSERT INTO " + transactionTable + " (sn, op, id, value, object) VALUES(?, ?, ?, ?, ?)");
 		// Save Transaction
 		if(transaction.getTransactionType() == TransactionType.TRANSFER) {
 			preparedStatement.setLong(1, sn.longValue());
@@ -2641,66 +2678,116 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		preparedStatement.executeBatch();
 		
 		// Check if the saved Transaction equal to original Transaction
-//		rowCounter = statement.executeUpdate();
-//		EQCType.assertEqual(rowCounter, ONE_ROW);
-//		Account savedAccount = getAccount(account.getID());
-//		EQCType.assertEqual(account.getBytes(), savedAccount.getBytes());
+		// Check if current transaction index have been saved
+		preparedStatement = connection
+				.prepareStatement("SELECT * FROM " + transactionIndexTable + " WHERE sn=?", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+		preparedStatement.setLong(1, sn.longValue());
+		ResultSet resultSet = preparedStatement.executeQuery();
+		resultSet.last();
+		if(resultSet.getRow() > 1) {
+			throw new IllegalStateException("Only can exists one result set for " + transaction);
+		}
+		if (!resultSet.first()) {
+			throw new IllegalStateException("After saveTransaction with SN:" + sn + " transaction index should exists");
+		}
+		else {
+			if(sn.longValue() != resultSet.getLong("sn") || transaction.getTransactionType().ordinal() != resultSet.getByte("type") || index.longValue() != resultSet.getInt("index") ||  transaction.getAssetID().longValue() != resultSet.getLong("asset_id") || transaction.getNonce().longValue() != resultSet.getLong("nonce")) {
+				throw new IllegalStateException("After saveTransaction with SN:" + sn + " transaction index should equal");
+			}
+		}
+		
+		ID nonce = ID.valueOf(resultSet.getLong("nonce"));
+		// Check if current transaction have been saved
+		preparedStatement = connection
+				.prepareStatement("SELECT * FROM " + transactionTable + " WHERE sn=?");
+		preparedStatement.setLong(1, sn.longValue());
+		resultSet = preparedStatement.executeQuery();
+		Transaction transaction2 = Transaction.parseTransaction(resultSet, transaction.getTransactionType());
+		transaction2.setNonce(nonce);
+		if(!transaction2.compare(transaction)) {
+			throw new IllegalStateException("After saveTransaction with SN:" + sn + " transaction index should exists");
+		}
 		preparedStatement.close();
 		
 		return true;
 	}
 
 	@Override
-	public boolean deleteTransaction(Transaction transaction) throws Exception {
-//		PreparedStatement preparedStatement = null;
-//		preparedStatement = connection.prepareStatement("DELETE FROM " + TRANSACTION_INDEX + " INNER JOIN " + TRANSACTION + 
-//				" ON TRANSACTION_INDEX.sn=TRANSACTION.sn " + " WHERE TRANSACTION_INDEX.type=? AND TRANSACTION_INDEX.asset_id=? AND TRANSACTION_INDEX.nonce=? AND TRANSACTION.id=?");
-//		preparedStatement.setByte(1, (byte) transaction.getTransactionType().ordinal());
-//		preparedStatement.setLong(2, transaction.getAssetID().longValue());
-//		preparedStatement.setLong(3, transaction.getNonce().longValue());
-//		preparedStatement.executeUpdate();
-//		preparedStatement.close();
-		ID sn = isTransactionExists(transaction);
+	public boolean deleteTransaction(Transaction transaction, Mode mode) throws Exception {
+		ID sn = isTransactionExists(transaction, mode);
 		Statement statement = null;
+		ResultSet resultSet = null;
+		String transactionIndexTable = getTransactionIndexTableName(mode);
+		String transactionTable = getTransactionTableName(mode);
+		
 		if(sn != null) {
 			statement = connection.createStatement();
 			statement.addBatch("DELETE FROM TRANSACTION_INDEX WHERE sn=" + sn.longValue());
 			statement.addBatch("DELETE FROM TRANSACTION WHERE sn=" + sn.longValue());
 			statement.executeBatch();
-			if(isTransactionExists(transaction) != null) {
-				throw new IllegalStateException("After deleteTransaction it shouldn't eixsts: " + transaction);
+			statement.close();
+			// Check if all transaction have been deleted
+			PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_INDEX WHERE sn=?");
+			preparedStatement.setLong(1, sn.longValue());
+			resultSet = preparedStatement.executeQuery();
+			if(resultSet.next()) {
+				throw new IllegalStateException("After deleteTransaction with SN:" + sn + " transaction shouldn't exists");
 			}
+			// Check if all transaction index have been deleted
+			preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION WHERE sn==?");
+			preparedStatement.setLong(1, sn.longValue());
+			resultSet = preparedStatement.executeQuery();
+			if(resultSet.next()) {
+				throw new IllegalStateException("After deleteTransactionFrom:" + sn + " transaction index shouldn't exists");
+			}
+			preparedStatement.close();
 		}
 		return true;
 	}
 
 	@Override
-	public boolean deleteTransactionFrom(ID height) throws Exception {
-		return true;
-	}
-
-	@Override
-	public boolean isTransactionExists(Transaction transaction, Mode mode) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn, Mode mode) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean deleteTransaction(Transaction transaction, Mode mode) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
 	public boolean deleteTransactionFrom(ID height, Mode mode) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
+		PreparedStatement preparedStatement = null;
+		ResultSet resultSet = null;
+		String transactionIndexTable = getTransactionIndexTableName(mode);
+		String transactionTable = getTransactionTableName(mode);
+		Vector<ID> transactionList = new Vector<>();
+		
+		preparedStatement = connection.prepareStatement("SELECT * FROM " + transactionIndexTable + " WHERE height >= ?");
+		preparedStatement.setLong(1, height.longValue());
+		resultSet = preparedStatement.executeQuery();
+		
+		while(resultSet.next()) {
+			preparedStatement = connection.prepareStatement("DELETE FROM " + transactionTable + " WHERE sn=?");
+			Log.info("Sn:" + resultSet.getLong("sn"));
+			transactionList.add(ID.valueOf(resultSet.getLong("sn")));
+			preparedStatement.setLong(1, resultSet.getLong("sn"));
+			int nResult = preparedStatement.executeUpdate();
+			Log.info("Result: " + nResult);
+		}
+		
+		for(ID id:transactionList) {
+			// Check if all transaction have been deleted
+			preparedStatement = connection.prepareStatement("SELECT * FROM " + transactionTable + " WHERE sn=?");
+			preparedStatement.setLong(1, id.longValue());
+			resultSet = preparedStatement.executeQuery();
+			if(resultSet.next()) {
+				throw new IllegalStateException("After deleteTransactionFrom:" + height + " at " + transactionTable + " shouldn't exists");
+			}
+		}
+		
+		preparedStatement = connection.prepareStatement("DELETE FROM " + transactionIndexTable + "  WHERE height >= ?");
+		preparedStatement.setLong(1, height.longValue());
+		preparedStatement.executeUpdate();
+		// Check if all transaction index have been deleted
+		preparedStatement = connection.prepareStatement("SELECT * FROM " + transactionIndexTable + " WHERE height >= ?");
+		preparedStatement.setLong(1, height.longValue());
+		resultSet = preparedStatement.executeQuery();
+		if(resultSet.next()) {
+			throw new IllegalStateException("After deleteTransactionIndexFrom:" + height + " transaction index shouldn't exists");
+		}
+		preparedStatement.close();
+		return true;
 	}
 
 }

@@ -96,4 +96,15 @@ public class TxOut extends Tx {
 		this.isNew = isNew;
 	}
 	
+	@Override
+	public boolean compare(Tx tx) {
+		if(!super.compare(tx)) {
+			return false;
+		}
+		if(isNew != ((TxOut)tx).isNew) {
+			return false;
+		}
+		return true;
+	}
+	
 }

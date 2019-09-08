@@ -32,8 +32,10 @@ package com.eqchains.blockchain.transaction;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Vector;
 
 import org.rocksdb.RocksDBException;
@@ -47,6 +49,8 @@ import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.blockchain.transaction.operation.Operation;
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
+import com.eqchains.blockchain.transaction.operation.UpdateAddressOperation;
+import com.eqchains.persistence.EQCBlockChainH2.TRANSACTION_OP;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -83,6 +87,32 @@ public class OperationTransaction extends TransferTransaction {
 		EQCType.assertNoRedundantData(is);
 	}
 
+	public OperationTransaction(ResultSet resultSet) throws NoSuchFieldException, IOException,
+			UnsupportedOperationException, NoSuchFieldException, IllegalStateException, SQLException {
+		super(TransactionType.OPERATION);
+		Objects.requireNonNull(resultSet);
+		// Parse Header
+		solo = SOLO;
+		transactionType = TransactionType.OPERATION;
+		// Parse Body without nonce
+		while (resultSet.next()) {
+			if(!parseBody(resultSet)) {
+				if (resultSet.getByte("op") == TRANSACTION_OP.ADDRESS.ordinal()) {
+					UpdateAddressOperation updateAddressOperation = new UpdateAddressOperation();
+					updateAddressOperation.setAddress(new Passport(AddressTool.AIToAddress(resultSet.getBytes("object"))));
+				}
+				else if (resultSet.getByte("op") == TRANSACTION_OP.TXFEERATE.ordinal()) {
+					UpdateAddressOperation updateAddressOperation = new UpdateAddressOperation();
+					updateAddressOperation.setAddress(new Passport(AddressTool.AIToAddress(resultSet.getBytes("object"))));
+				}
+				else if (resultSet.getByte("op") == TRANSACTION_OP.CHECKPOINT.ordinal()) {
+					UpdateAddressOperation updateAddressOperation = new UpdateAddressOperation();
+					updateAddressOperation.setAddress(new Passport(AddressTool.AIToAddress(resultSet.getBytes("object"))));
+				}
+			}
+		}
+	}
+	
 	/**
 	 * @return the operation
 	 */

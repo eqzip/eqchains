@@ -255,4 +255,14 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 		
 	}
 
+	public boolean compare(Tx tx) {
+		if(!passport.compare(tx.getPassport())) {
+			return false;
+		}
+		if(value != tx.getValue()) {
+			return false;
+		}
+		return true;
+	}
+	
 }

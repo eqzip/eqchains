@@ -32,7 +32,9 @@ package com.eqchains.blockchain.transaction;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Objects;
 import java.util.Vector;
 
 import org.rocksdb.RocksDBException;
@@ -48,6 +50,7 @@ import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.subchain.EQcoinSubchain;
 import com.eqchains.persistence.EQCBlockChainH2;
+import com.eqchains.persistence.EQCBlockChainH2.TRANSACTION_OP;
 import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCType;
@@ -84,6 +87,51 @@ public class CoinbaseTransaction extends TransferTransaction {
 		parseHeader(is, addressShape);
 		parseBody(is, addressShape);
 		EQCType.assertNoRedundantData(is);
+	}
+	
+	public CoinbaseTransaction(ResultSet resultSet)
+			throws NoSuchFieldException, IOException, IllegalStateException, SQLException {
+		super(TransactionType.COINBASE);
+		Objects.requireNonNull(resultSet);
+		init();
+		// Parse Header
+		solo = SOLO;
+		transactionType = TransactionType.COINBASE;
+		// Parse Body without nonce
+		while(resultSet.next()) {
+			if(resultSet.getByte("op") == TRANSACTION_OP.TXOUT.ordinal()) {
+				TxOut txOut = getTxOut(ID.valueOf(resultSet.getLong("id")));
+				if(txOut != null) {
+					txOut.setValue(resultSet.getLong("value"));
+				}
+				else {
+					txOut = new TxOut();
+					Passport passport = new Passport();
+					passport.setID(ID.valueOf(resultSet.getLong("id")));
+					txOut.setPassport(passport);
+					txOut.setValue(resultSet.getLong("value"));
+					addTxOut(txOut);
+				}
+			}
+			else if(resultSet.getByte("op") == TRANSACTION_OP.PASSPORT.ordinal()) {
+				TxOut txOut = getTxOut(ID.valueOf(resultSet.getLong("id")));
+				if(txOut != null) {
+					txOut.setNew(true);
+					txOut.getPassport().setReadableAddress(AddressTool.AIToAddress(resultSet.getBytes("object")));
+				}
+				else {
+					txOut = new TxOut();
+					txOut.setNew(true);
+					Passport passport = new Passport();
+					passport.setID(ID.valueOf(resultSet.getLong("id")));
+					passport.setReadableAddress(AddressTool.AIToAddress(resultSet.getBytes("object")));
+					txOut.setPassport(passport);
+					addTxOut(txOut);
+				}
+			} else {
+				throw new IllegalStateException("Invalid CoinBase Transaction OP type");
+			}
+		}
 	}
 
 	/*
@@ -336,5 +384,26 @@ public class CoinbaseTransaction extends TransferTransaction {
 		}
 		return os.toByteArray();
 	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.transaction.Transaction#compare(com.eqchains.blockchain.transaction.Transaction)
+	 */
+	@Override
+	public boolean compare(Transaction transaction) {
+		if(transactionType != transaction.getTransactionType()) {
+			return false;
+		}
+		for(int i=0; i<REWARD_NUMBERS; ++i) {
+			if(!txOutList.get(i).compare(transaction.getTxOutList().get(i))) {
+				return false;
+			}
+		}
+		if(!nonce.equals(transaction.getNonce())) {
+			return false;
+		}
+		return true;
+	}
+	
+	
 	
 }

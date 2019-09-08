@@ -36,10 +36,12 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.Vector;
 
 import org.rocksdb.RocksDBException;
@@ -59,6 +61,7 @@ import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainRocksDB;
+import com.eqchains.persistence.EQCBlockChainH2.TRANSACTION_OP;
 import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -95,6 +98,69 @@ public class TransferTransaction extends Transaction {
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseBody(is, addressShape);
 		EQCType.assertNoRedundantData(is);
+	}
+	
+	public boolean parseBody(ResultSet resultSet)
+			throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException, SQLException {
+			boolean isHandled = false;
+			if (resultSet.getByte("op") == TRANSACTION_OP.TXOUT.ordinal()) {
+				TxOut txOut = getTxOut(ID.valueOf(resultSet.getLong("id")));
+				if(txOut != null) {
+					txOut.setValue(resultSet.getLong("value"));
+				}
+				else {
+					txOut = new TxOut();
+					Passport passport = new Passport();
+					passport.setID(ID.valueOf(resultSet.getLong("id")));
+					txOut.setPassport(passport);
+					txOut.setValue(resultSet.getLong("value"));
+					addTxOut(txOut);
+				}
+				isHandled = true;
+			} 
+			else if (resultSet.getByte("op") == TRANSACTION_OP.PASSPORT.ordinal()) {
+				TxOut txOut = getTxOut(ID.valueOf(resultSet.getLong("id")));
+				if(txOut != null) {
+					txOut.setNew(true);
+					txOut.getPassport().setReadableAddress(AddressTool.AIToAddress(resultSet.getBytes("object")));
+				}
+				else {
+					txOut = new TxOut();
+					txOut.setNew(true);
+					Passport passport = new Passport();
+					passport.setID(ID.valueOf(resultSet.getLong("id")));
+					passport.setReadableAddress(AddressTool.AIToAddress(resultSet.getBytes("object")));
+					txOut.setPassport(passport);
+					addTxOut(txOut);
+				}
+				isHandled = true;
+			}
+			else if (resultSet.getByte("op") == TRANSACTION_OP.PUBLICKEY.ordinal()) {
+				compressedPublickey.setNew(true);
+				compressedPublickey.setCompressedPublickey(resultSet.getBytes("object")); 
+				compressedPublickey.setID(ID.valueOf(resultSet.getLong("id")));
+				isHandled = true;
+			}
+			else if (resultSet.getByte("op") == TRANSACTION_OP.TXIN.ordinal()) {
+				TxIn txIn = new TxIn();
+				Passport passport = new Passport();
+				passport.setID(ID.valueOf(resultSet.getLong("id")));
+				txIn.setPassport(passport);
+				txIn.setValue(resultSet.getLong("value"));
+				isHandled = true;
+			}
+			return isHandled;
+	}
+	
+	public TransferTransaction(ResultSet resultSet) throws NoSuchFieldException, IOException,
+			UnsupportedOperationException, NoSuchFieldException, IllegalStateException, SQLException {
+		super(TransactionType.TRANSFER);
+		Objects.requireNonNull(resultSet);
+		init();
+		// Parse Body without nonce
+		while (resultSet.next()) {
+			parseBody(resultSet);
+		}
 	}
 
 	public TransferTransaction() {
@@ -601,6 +667,17 @@ public class TransferTransaction extends Transaction {
 			}
 		}
 		return boolIsExists;
+	}
+	
+	public TxOut getTxOut(ID id) {
+		TxOut txOut = null;
+		for (TxOut txOut2 : txOutList) {
+			if (txOut2.getPassport().getID().equals(id)) {
+				txOut = txOut2;
+				break;
+			}
+		}
+		return txOut;
 	}
 
 	public boolean isTxOutAddressUnique() {

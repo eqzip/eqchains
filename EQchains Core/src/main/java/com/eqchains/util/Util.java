@@ -2269,6 +2269,7 @@ public final class Util {
 			transaction.addTxOut(eqcFoundationTxOut);
 			transaction.addTxOut(eqzipTxOut);
 			transaction.addTxOut(minerTxOut);
+			transaction.setNonce(accountsMerkleTree.getHeight().getNextID());
 		} catch (Exception e) {
 			Log.Error(e.getMessage());
 		}
