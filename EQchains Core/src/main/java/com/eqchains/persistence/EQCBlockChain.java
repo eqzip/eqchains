@@ -29,27 +29,22 @@
  */
 package com.eqchains.persistence;
 
-import java.io.IOException;
-import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Vector;
-
-import org.rocksdb.RocksDBException;
-
 import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
+import com.eqchains.rpc.Balance;
+import com.eqchains.rpc.IPList;
+import com.eqchains.rpc.MaxNonce;
 import com.eqchains.rpc.Nest;
 import com.eqchains.rpc.SignHash;
 import com.eqchains.rpc.TransactionIndex;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
-import com.eqchains.rpc.Balance;
-import com.eqchains.rpc.IPList;
-import com.eqchains.rpc.MaxNonce;
 import com.eqchains.util.ID;
 
 /**
@@ -60,22 +55,35 @@ import com.eqchains.util.ID;
 public interface EQCBlockChain {
 	
 	// Account relevant interface for H2, avro(optional).
-	public boolean saveAccount(Account account) throws Exception;
+	public boolean saveAccount(Account account, Mode mode) throws Exception;
 	
 	/**
-	 * Get Account according to it's ID.
+	 * Get Account from Global state DB according to it's ID which is the latest status.
 	 * <p>
 	 * @param id
 	 * @return
 	 * @throws Exception
 	 */
-	public Account getAccount(ID id) throws Exception;
+	public Account getAccount(ID id, Mode mode) throws Exception;
 	
-	public Account getAccount(byte[] addressAI) throws Exception;
+	/**
+	 * Get Account from the specific height if which doesn't exists will return null.
+	 * If the height equal to current tail's height will retrieve the Account from ACCOUNT_GLOBAL table otherwise will try retrieve it from Account snapshot table.
+	 * <p>
+	 * @param id
+	 * @param height
+	 * @return
+	 * @throws Exception
+	 */
+	public Account getAccount(ID id, ID height) throws Exception;
 	
-	public boolean deleteAccount(ID id) throws Exception;
+	public Account getAccount(byte[] addressAI, Mode mode) throws Exception;
 	
-	// Block relevant interface for for avro, H2(optional).
+	public boolean deleteAccount(ID id, Mode mode) throws Exception;
+	
+	public boolean clear(Mode mode) throws Exception;
+	
+	//  relevant interface for for avro, H2(optional).
 	public boolean isEQCHiveExists(ID height) throws Exception;
 	
 	public boolean saveEQCHive(EQCHive eqcHive) throws Exception;
@@ -93,7 +101,7 @@ public interface EQCBlockChain {
 	
 	public boolean deleteTransactionInPool(Transaction transaction) throws SQLException;
 	
-	public boolean deleteTransactionsInPool(EQCHive eqcHive) throws SQLException, ClassNotFoundException, RocksDBException, Exception;
+	public boolean deleteTransactionsInPool(EQCHive eqcHive) throws SQLException, ClassNotFoundException, Exception;
 	
 	public Vector<Transaction> getTransactionListInPool() throws SQLException, Exception;
 	
@@ -125,6 +133,7 @@ public interface EQCBlockChain {
 	
 	public boolean saveEQCBlockTailHeight(ID height) throws Exception;
 	
+	@Deprecated
 	public ID getTotalAccountNumbers(ID height) throws Exception;
 	
 	public SignHash getSignHash(ID id) throws Exception;
@@ -175,44 +184,19 @@ public interface EQCBlockChain {
 	
 	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception;
 	
-	// Filter relevant interface for H2
-	public boolean saveAccount(Account account, Mode mode) throws Exception;
-	
-	public Account getAccount(ID id, Mode mode) throws Exception;
-	
-	public Account getAccount(byte[] addressAI, Mode mode) throws Exception;
-	
-	public boolean clear(Mode mode) throws Exception;
-	
 	// Audit layer relevant interface for H2
-//	public ID isTransactionIndexExists(Transaction transaction, ID height, ID index) throws Exception;
-//	
-//	public boolean saveTransactionIndex(Transaction transaction, ID height, ID index, ID sn) throws Exception;
-//	
-//	public boolean deleteTransactionIndex(Transaction transaction, ID height, ID index) throws Exception;
-//	
-//	public boolean deleteTransactionIndexFrom(ID height) throws Exception;
-	
-//	public ID isTransactionExists(Transaction transaction) throws Exception;
-//	
-//	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn) throws Exception;
-//	
-//	public boolean deleteTransaction(Transaction transaction) throws Exception;
-//	
-//	public boolean deleteTransactionFrom(ID height) throws Exception;
-	
-//	public ID isTransactionIndexExists(Transaction transaction, ID height, ID index, Mode mode) throws Exception;
-//	
-//	public ID saveTransactionIndex(Transaction transaction, ID height, ID index, Mode mode) throws Exception;
-//	
-//	public boolean deleteTransactionIndex(Transaction transaction, ID height, ID index, Mode mode) throws Exception;
-	
 	public ID isTransactionExists(Transaction transaction, Mode mode) throws Exception;
 	
 	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn, Mode mode) throws Exception;
 	
+	public boolean saveTransactions(EQCSubchain eqcSubchain, ID height, Mode mode) throws Exception;
+	
 	public boolean deleteTransaction(Transaction transaction, Mode mode) throws Exception;
 	
 	public boolean deleteTransactionFrom(ID height, Mode mode) throws Exception;
+	
+	public boolean saveTransactions(EQCHive eqcHive, Mode mode) throws Exception;
+	
+	public ID getTotalTransactionNumbers(ID height, ID assetID, Mode mode) throws Exception;
 	
 }

@@ -49,7 +49,6 @@ import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.keystore.UserAccount;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.client.TransactionNetworkClient;
 import com.eqchains.util.Log;
@@ -74,7 +73,7 @@ public class TransactionTest {
 		txOut.setValue(500 * Util.ABC);
 		transaction.addTxOut(txOut);
 		try {
-			transaction.setNonce(Util.DB().getAccount(txIn.getPassport().getAddressAI())
+			transaction.setNonce(Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL)
 					.getAsset(Asset.EQCOIN).getNonce().getNextID());
 			byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
 			byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
@@ -96,7 +95,7 @@ public class TransactionTest {
 				e.printStackTrace();
 			}
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
-					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
+					Util.DB().getEQCBlockTailHeight(),
 					new Filter(Mode.MINING));
 			compressedPublickey.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
 			transaction.getTxIn().getPassport()

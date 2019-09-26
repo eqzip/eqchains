@@ -37,6 +37,7 @@ import org.apache.avro.AvroRemoteException;
 import com.eqchains.avro.O;
 import com.eqchains.avro.TransactionNetwork;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
@@ -127,7 +128,7 @@ public class TransactionNetworkServiceImpl implements TransactionNetwork {
 		O id = null;
 		Account account = null;
 		try {
-			account = Util.DB().getAccount(AddressTool.addressToAI(EQCType.bytesToASCIISting(readableAddress.getO().array())));
+			account = Util.DB().getAccount(AddressTool.addressToAI(EQCType.bytesToASCIISting(readableAddress.getO().array())), Mode.GLOBAL);
 			if(account != null) {
 				id = account.getID().getO();
 			}
@@ -147,7 +148,7 @@ public class TransactionNetworkServiceImpl implements TransactionNetwork {
 		O io = null;
 		Account account = null;
 		try {
-			account = Util.DB().getAccount(a.o.array());
+			account = Util.DB().getAccount(a.o.array(), Mode.GLOBAL);
 			if(account != null) {
 				io = account.getO();
 			}
@@ -202,7 +203,7 @@ public class TransactionNetworkServiceImpl implements TransactionNetwork {
 		O io = null;
 		byte[] signHash = null;
 		try {
-			signHash = Util.DB().getAccount(new ID(id)).getSignatureHash();
+			signHash = Util.DB().getAccount(new ID(id), Mode.GLOBAL).getSignatureHash();
 			if(signHash != null) {
 				io = new O(ByteBuffer.wrap(signHash));
 			}

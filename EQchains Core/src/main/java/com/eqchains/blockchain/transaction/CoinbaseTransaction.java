@@ -36,10 +36,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.Vector;
-
-import org.rocksdb.RocksDBException;
-import org.rocksdb.WriteBatch;
-
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
@@ -51,8 +47,6 @@ import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.subchain.EQcoinSubchain;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainH2.TRANSACTION_OP;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
-import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -177,7 +171,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 * AccountsMerkleTree)
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 		if(!isSanity(addressShape)) {
 			return false;
 		}
@@ -257,7 +251,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 	 * @see com.eqzip.eqcoin.blockchain.Transaction#prepare(com.eqzip.eqcoin.blockchain.AccountsMerkleTree, com.eqzip.eqcoin.util.ID)
 	 */
 	@Override
-	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
+	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID initID) throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 		// Update TxOut's Address' isNew status if need
 		for (TxOut txOut : txOutList) {
 			if (!accountsMerkleTree.isAccountExists(txOut.getPassport(), true)) {

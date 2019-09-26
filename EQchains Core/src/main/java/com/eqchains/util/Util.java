@@ -82,7 +82,7 @@ import org.apache.commons.net.ntp.TimeInfo;
 import org.apache.commons.net.ntp.TimeStamp;
 import org.bouncycastle.crypto.digests.RIPEMD128Digest;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
-import org.rocksdb.RocksDBException;
+
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
@@ -112,9 +112,7 @@ import com.eqchains.keystore.Keystore;
 import com.eqchains.keystore.Keystore.ECCTYPE;
 import com.eqchains.persistence.EQCBlockChain;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
-import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.IPList;
@@ -143,7 +141,7 @@ public final class Util {
 
 	public final static long MAX_EQC = 210000000000L * ABC;
 
-	public final static long MIN_EQC = 50L * ABC;
+	public final static long MIN_EQC = 51L * ABC;
 	
 //	public final static long SINGULARITY_TOTAL_SUPPLY = 16800000 * ABC;
 
@@ -412,7 +410,7 @@ public final class Util {
 	private Util() {
 	}
 
-	public static void init() throws RocksDBException, Exception {
+	public static void init() throws Exception {
 		System.setProperty("sun.net.client.defaultConnectTimeout", "3000");  
 		System.err.close();
 	    System.setErr(System.out);
@@ -590,7 +588,7 @@ public final class Util {
 		BigDecimal begin = new BigDecimal(new BigInteger(1, data));
 		MathContext mc = new MathContext(Util.THOUSANDPLUS, RoundingMode.HALF_EVEN);
 		BigDecimal a = null, b = null, c = null, d = null;
-		int bufferLen = 2000 * multiple;
+		int bufferLen = ((data.length+1)*2+417) * multiple;
 		ByteBuffer byteBuffer = ByteBuffer.allocate(bufferLen);
 		// Put the original raw data
 		byteBuffer.put(data);
@@ -601,7 +599,7 @@ public final class Util {
 			a = begin.divide(new BigDecimal(PRIME101[i - 1]), mc);
 			b = a.divide(new BigDecimal(FIBONACCI[2]), mc);
 			c = a.divide(new BigDecimal(FIBONACCI[10]), mc);
-			d = b.subtract(c).abs().multiply(new BigDecimal(PRIME101[i - 1]), mc);
+			d = b.subtract(c).abs().multiply(new BigDecimal(PRIME101[multiple - i]), mc);
 
 			begin = begin.add(a).add(b).add(c).add(d);
 //			Log.info("i: " + i + " " + begin.toPlainString());
@@ -612,12 +610,17 @@ public final class Util {
 				BigInteger f = new BigInteger(abc[1]);
 				byteBuffer.put(e.toByteArray());
 				byteBuffer.put(SINGULARITY);
+//				Log.info("F: " + f.toByteArray().length);
 				byteBuffer.put(f.toByteArray());
-				byteBuffer.put(SINGULARITY);
+				if(i < multiple) {
+					byteBuffer.put(SINGULARITY);
+				}
 			} else {
 				BigInteger e = new BigInteger(abc[0]);
 				byteBuffer.put(e.toByteArray());
-				byteBuffer.put(SINGULARITY);
+				if(i < multiple) {
+					byteBuffer.put(SINGULARITY);
+				}
 			}
 		}
 		byteBuffer.flip();
@@ -2258,8 +2261,8 @@ public final class Util {
 		TxOut eqzipTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		try {
-			eqcFoundationTxOut.setPassport(Util.DB().getAccount(ID.ONE).getPassport());
-			eqzipTxOut.setPassport(Util.DB().getAccount(ID.TWO).getPassport());
+			eqcFoundationTxOut.setPassport(Util.DB().getAccount(ID.ONE, Mode.GLOBAL).getPassport());
+			eqzipTxOut.setPassport(Util.DB().getAccount(ID.TWO, Mode.GLOBAL).getPassport());
 			minerTxOut.setPassport(passport);
 			
 			eqcFoundationTxOut.setValue(Util.EQC_FOUNDATION_COINBASE_REWARD);
@@ -2276,15 +2279,15 @@ public final class Util {
 		return transaction;
 	}
 
-	public static EQCHive recoverySingularityStatus() throws RocksDBException, Exception {
+	public static EQCHive recoverySingularityStatus() throws Exception {
 		EQCHive eqcHive = null;
 		// @echo off
 		// If exists old status need clear it
 		for(int i=1; i<=3; ++i) {
 			try {
-				Account account = Util.DB().getAccount(ID.valueOf(i));
+				Account account = Util.DB().getAccount(ID.valueOf(i), Mode.GLOBAL);
 				if(account != null) {
-					Util.DB().deleteAccount(ID.valueOf(i));
+					Util.DB().deleteAccount(ID.valueOf(i), Mode.GLOBAL);
 				}
 			}
 			catch (Exception e) {
@@ -2293,7 +2296,7 @@ public final class Util {
 		}
 		// Create AccountsMerkleTree
 		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO,
-				new Filter(Mode.MINING));
+				new Filter(Mode.GLOBAL));
 
 		// Create EQC block
 		eqcHive = new EQCHive();
@@ -2327,13 +2330,9 @@ public final class Util {
 		asset.setNonceUpdateHeight(ID.ZERO);
 		account.setAsset(asset);
 		
+		account.setFounderID(ID.ONE);
 		account.setLanguageType(LanguageType.JAVA);
-		account.setLeasePeriod(ID.ZERO);
-		account.setLeasePeriodUpdateHeight(ID.ZERO);
-		account.setState(State.ACTIVE);
-		account.setStateUpdateHeight(ID.ZERO);
 		
-		account.getAssetSubchainHeader().setFounderID(ID.ONE);
 		account.getAssetSubchainHeader().setDecimals("0.0001");
 		account.getAssetSubchainHeader().setIfCanBurn(false);
 		account.getAssetSubchainHeader().setIfCanChangeMaxSupply(false);
@@ -2407,7 +2406,7 @@ public final class Util {
 		transaction.setNonce(ID.ONE);
 		
 		transaction.prepareAccounting(accountsMerkleTree, ID.valueOf(eqcHive.getEQcoinSubchain().getNewPassportList().size()));
-		eqcHive.getEQcoinSubchain().addCoinbaseTransaction(transaction);
+		eqcHive.getEQcoinSubchain().addCoinbaseTransaction(transaction, accountsMerkleTree);
 		
 		// Set EQcoinSubchainHeader
 		eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().setID(Asset.EQCOIN);
@@ -2467,7 +2466,7 @@ public final class Util {
 		}
 	}
 
-	public static byte[] cypherTarget(ID height) throws RocksDBException, Exception {
+	public static byte[] cypherTarget(ID height) throws Exception {
 		byte[] target = null;
 		BigInteger oldDifficulty;
 		BigInteger newDifficulty;
@@ -2752,21 +2751,21 @@ public final class Util {
 		return intToBytes((int) (crc32c.getValue() & 0xFFFFFFFF));
 	}
 	
-	public static EQCBlockChain DB(PERSISTENCE persistence) throws RocksDBException, ClassNotFoundException, SQLException {
+	public static EQCBlockChain DB(PERSISTENCE persistence) throws ClassNotFoundException, SQLException {
 		EQCBlockChain eqcBlockChain = null;
 		switch (persistence) {
 		case H2:
 			eqcBlockChain = EQCBlockChainH2.getInstance();
 			break;
-		case ROCKSDB:
-		default:
-			eqcBlockChain = EQCBlockChainRocksDB.getInstance();
-			break;
+//		case ROCKSDB:
+//		default:
+//			eqcBlockChain = EQCBlockChainRocksDB.getInstance();
+//			break;
 		}
 		return eqcBlockChain;
 	}
 	
-	public static EQCBlockChain DB() throws RocksDBException, ClassNotFoundException, SQLException {
+	public static EQCBlockChain DB() throws ClassNotFoundException, SQLException {
 		return DB(PERSISTENCE.H2);
 	}
 	
@@ -2821,9 +2820,10 @@ public final class Util {
 		"\n}";
 	}
 	
-	public static void saveEQCBlockTailHeight(ID height) throws RocksDBException, ClassNotFoundException, SQLException {
+	@Deprecated
+	public static void saveEQCBlockTailHeight(ID height) throws ClassNotFoundException, SQLException {
 		EQCBlockChainH2.getInstance().saveEQCBlockTailHeight(height);
-		EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(height);
+//		EQCBlockChainRocksDB.getInstance().saveEQCBlockTailHeight(height);
 	}
 	
 	public static ID getMaxCoinbaseHeight(ID height){
@@ -2881,9 +2881,9 @@ public final class Util {
 		}
 	}
 	
-	public static void recoveryAccounts(ID height) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public static void recoveryAccounts(ID height) throws ClassNotFoundException, SQLException, Exception {
 		// From height to checkpoint verify if Block is valid
-		EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+		EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
 		if(height.compareTo(eQcoinSubchainAccount.getCheckPointHeight()) < 0) {
 			throw new IllegalStateException("Can't recovery to the height: " + height + " which below the check point: " + eQcoinSubchainAccount.getCheckPointHeight());
 		}
@@ -2923,9 +2923,9 @@ public final class Util {
 		EQCBlockChainH2.getInstance().deleteAccountSnapshotFrom(ID.valueOf(base), true);
 		
 		// Delete extra Account
-		EQcoinSubchainAccount eQcoinSubchainAccount2 = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+		EQcoinSubchainAccount eQcoinSubchainAccount2 = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
 		for (long i=eQcoinSubchainAccount2.getAssetSubchainHeader().getTotalAccountNumbers().getNextID().longValue(); i<=eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers().longValue(); ++i) {
-			Util.DB().deleteAccount(ID.valueOf(i));
+			Util.DB().deleteAccount(ID.valueOf(i), Mode.GLOBAL);
 		}
 		
 		// Delete extra EQCHive
@@ -2956,10 +2956,11 @@ public final class Util {
 //		}
 	}
 	
-	public static void regenerateAccountStatus() throws ClassNotFoundException, RocksDBException, SQLException, Exception {
-		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT));
-		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_AI));
-		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_HASH));
+	public static void regenerateAccountStatus() throws ClassNotFoundException, SQLException, Exception {
+		// If need here need do more job to support H2
+//		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT));
+//		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_AI));
+//		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_HASH));
 		Log.info("Delete all AccountSnapshot");
 		EQCBlockChainH2.getInstance().deleteAccountSnapshotFrom(ID.ZERO, true);
 		recoverySingularityStatus();
@@ -2997,20 +2998,20 @@ public final class Util {
 		
 	}
 	
-	public static void recoveryAccountsStatusTo(ID height) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public static void recoveryAccountsStatusTo(ID height) throws ClassNotFoundException, SQLException, Exception {
 		Log.info("Begin recoveryAccountsStatusTo " + height);
 		EQcoinSubchainHeader eQcoinSubchainHeader = Util.DB().getEQCHive(height, true).getEQcoinSubchain().getEQcoinSubchainHeader();
 		Account account = null;
 		ID id = null;
 		for(long i=1; i<=eQcoinSubchainHeader.getTotalAccountNumbers().longValue(); ++i) {
 			id = ID.valueOf(i);
-			account = Util.DB().getAccount(id);
+			account = Util.DB().getAccount(id, Mode.GLOBAL);
 			Objects.requireNonNull(account);
 			if(account.getUpdateHeight().compareTo(height) > 0) {
 				Log.info("Accounts table's No. " + i + "'s update height:" + account.getUpdateHeight() + " bigger than new tail base:" + height + " recovery it's current height's history state from snapshot");
 				account = EQCBlockChainH2.getInstance().getAccountSnapshot(id, height);
 				Objects.requireNonNull(account);
-				Util.DB().saveAccount(account);
+				Util.DB().saveAccount(account, Mode.GLOBAL);
 			}
 		}
 	}

@@ -32,11 +32,10 @@ package com.eqchains.misc;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.Test;
-import org.rocksdb.RocksDBException;
+
 
 import com.eqchains.configuration.Configuration;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.util.Util;
 
 /**
@@ -48,13 +47,13 @@ public class CleanUpTest {
 	
 	@Test
 	public void dropTable() {
-		try {
-			EQCBlockChainH2.getInstance().dropTable();
-			EQCBlockChainRocksDB.getInstance().dropTable();
-		} catch (ClassNotFoundException | SQLException | RocksDBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			EQCBlockChainH2.getInstance().dropTable();
+//			EQCBlockChainRocksDB.getInstance().dropTable();
+//		} catch (ClassNotFoundException | SQLException | RocksDBException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	@Test

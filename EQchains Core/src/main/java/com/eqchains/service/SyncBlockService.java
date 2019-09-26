@@ -231,7 +231,7 @@ public class SyncBlockService extends EQCService {
 			maxTailInfo = minerTailList.get(0);
 			Log.info("MaxTail: " + maxTailInfo.getHeight());
 			Log.info("LocalTail: " + Util.DB().getEQCBlockTailHeight());
-			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
 			if (maxTailInfo.getCheckPointHeight().compareTo(eQcoinSubchainAccount.getCheckPointHeight()) >= 0
 					&& maxTailInfo.getHeight().compareTo(Util.DB().getEQCBlockTailHeight()) > 0) {
 				isMaxTail = false;
@@ -339,7 +339,7 @@ public class SyncBlockService extends EQCService {
 				}
 				localTail = Util.DB().getEQCBlockTailHeight();
 				Log.info("LocalTail: " + localTail);
-				EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+				EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
 				long base = localTail.longValue();
 				// Check if it is valid chain
 				if (maxTailInfo.getHeight().compareTo(localTail) > 0 && maxTailInfo.getCheckPointHeight()
@@ -406,7 +406,7 @@ public class SyncBlockService extends EQCService {
 									+ eQcoinSubchainHeader.getTotalAccountNumbers().getNextID() + " to "
 									+ originalAccountNumbers);
 							for(long i=eQcoinSubchainHeader.getTotalAccountNumbers().getNextID().longValue(); i<=originalAccountNumbers.longValue(); ++i) {
-								Util.DB().deleteAccount(ID.valueOf(i));
+								Util.DB().deleteAccount(ID.valueOf(i), Mode.GLOBAL);
 							}
 						} else {
 							Log.info(

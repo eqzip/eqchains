@@ -74,10 +74,10 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 			AssetType assetType = null;
 			switch (ordinal) {
 			case 0:
-				assetType = AssetType.COIN;
+				assetType = AssetType.COIN; // Include EQcoin and all AssetSubchain for example ERC20 Token
 				break;
 			case 1:
-				assetType = AssetType.MISC;
+				assetType = AssetType.MISC;	// Need do more job to determine the type of MISC for example the unique artwork.
 				break;
 			default:
 				assetType = AssetType.INVALID;

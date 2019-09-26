@@ -43,10 +43,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.Vector;
-
-import org.rocksdb.RocksDBException;
-import org.rocksdb.WriteBatch;
-
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.Passport;
@@ -60,9 +56,7 @@ import com.eqchains.blockchain.subchain.EQcoinSubchain;
 import com.eqchains.blockchain.transaction.Transaction.TXFEE_RATE;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.persistence.EQCBlockChainH2.TRANSACTION_OP;
-import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -282,7 +276,7 @@ public class TransferTransaction extends Transaction {
 	 * @throws Exception
 	 */
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
-			throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
+			throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 
 		if (!isSanity(addressShape)) {
 			Log.Error("Sanity test failed");

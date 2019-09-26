@@ -30,6 +30,7 @@
 package com.eqchains.service;
 
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
@@ -77,7 +78,7 @@ public class PendingTransactionService extends EQCService {
 			Log.info("Received new Transaction");
 			pendingTransactionState = (PendingTransactionState) state;
 			transaction = Transaction.parseRPC(pendingTransactionState.getTransaction());
-			account = Util.DB().getAccount(transaction.getTxIn().getPassport().getAddressAI());
+			account = Util.DB().getAccount(transaction.getTxIn().getPassport().getAddressAI(), Mode.GLOBAL);
 			if(account == null) {
 				Log.info("Transaction with readable address " + transaction.getTxIn().getPassport().getReadableAddress() + "'s relevant Account doesn't exists just discard it");
 				return;

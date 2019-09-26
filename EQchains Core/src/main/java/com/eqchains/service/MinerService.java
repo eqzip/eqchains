@@ -61,9 +61,6 @@ package com.eqchains.service;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.rocksdb.RocksDBException;
-
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
@@ -71,7 +68,6 @@ import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.rpc.NewHive;
 import com.eqchains.service.state.EQCServiceState;
 import com.eqchains.service.state.EQCServiceState.State;
@@ -288,7 +284,7 @@ public final class MinerService extends EQCService {
 								try {
 									// Send new block to EQC Miner network
 									NewHiveState newBlockState = new NewHiveState(State.BROADCASTNEWHIVE);
-									EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+									EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
 									NewHive newBlock = new NewHive();
 									newBlock.setEqcHive(newEQCHive);
 									newBlock.setCheckPointHeight(eQcoinSubchainAccount.getCheckPointHeight());

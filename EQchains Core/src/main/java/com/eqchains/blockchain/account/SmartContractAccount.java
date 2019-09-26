@@ -56,13 +56,10 @@ public abstract class SmartContractAccount extends Account {
 	/**
 	 * Body field include LanguageType
 	 */
+	private ID founderID;
 	private LanguageType languageType;
-	private ID leasePeriod;
-	private ID leasePeriodUpdateHeight;
 	private long totalStateSize;
 	private ID totalStateSizeUpdateHeight;
-	private State state;
-	private ID stateUpdateHeight;
 	
 	public enum LanguageType {
 		JAVA, INTELLIGENT, MOVE, INVALID;
@@ -105,6 +102,7 @@ public abstract class SmartContractAccount extends Account {
 	 * After this all the full node doesn't need store it's state DB in local just keep the relevant Account's state.
 	 * When it become active again all the full node can recovery it's state DB from GitHub. 
 	 */
+	@Deprecated
 	public enum State {
 		ACTIVE, OVERDUE, INACTIVE, INVALID;
 		public static State get(int ordinal) {
@@ -200,17 +198,13 @@ public abstract class SmartContractAccount extends Account {
 		// Parse Super Body
 		super.parseBody(is);
 		// Parse Sub Body
+		// Parse FounderID
+		founderID = new ID(EQCType.parseEQCBits(is));
 		// Parse LanguageType
 		languageType = LanguageType.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));
-		// Parse leasePeriod
-		leasePeriod = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
-		leasePeriodUpdateHeight = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
 		// Parse TotalStateSize
 		totalStateSize = Util.bytesToLong(EQCType.parseBIN(is));
 		totalStateSizeUpdateHeight = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
-		// Parse State
-		state = State.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));
-		stateUpdateHeight = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
 	}
 
 	/* (non-Javadoc)
@@ -221,33 +215,16 @@ public abstract class SmartContractAccount extends Account {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(super.getBodyBytes());
+			os.write(founderID.getEQCBits());
 			os.write(languageType.getEQCBits());
-			os.write(leasePeriod.getEQCBits());
-			os.write(leasePeriodUpdateHeight.getEQCBits());
 			os.write(EQCType.bytesToBIN(Util.longToBytes(totalStateSize)));
 			os.write(totalStateSizeUpdateHeight.getEQCBits());
-			os.write(state.getEQCBits());
-			os.write(stateUpdateHeight.getEQCBits());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			Log.Error(e.getMessage());
 		}
 		return os.toByteArray();
-	}
-
-	/**
-	 * @return the leasePeriod
-	 */
-	public ID getLeasePeriod() {
-		return leasePeriod;
-	}
-
-	/**
-	 * @param leasePeriod the leasePeriod to set
-	 */
-	public void setLeasePeriod(ID leasePeriod) {
-		this.leasePeriod = leasePeriod;
 	}
 
 	/**
@@ -267,13 +244,10 @@ public abstract class SmartContractAccount extends Account {
 	public String toInnerJson() {
 		return 
 					super.toInnerJson() + ",\n" +
+					"\"FounderID\":" + "\"" + founderID + "\"" + ",\n" +
 					"\"LanguageType\":" + "\"" + languageType + "\"" + ",\n" +
-					"\"LeasePeriod\":" + "\"" + leasePeriod + "\"" + ",\n" +
-					"\"LeasePeriodUpdateHeight\":" + "\"" + leasePeriodUpdateHeight + "\"" + ",\n" +
 					"\"TotalStateSize\":" + "\"" + totalStateSize + "\"" + ",\n" +
-					"\"TotalStateSizeUpdateHeight\":" + "\"" + totalStateSizeUpdateHeight + "\"" + ",\n" +
-					"\"State\":" + "\"" + state + "\"" + ",\n" + 
-					"\"StateUpdateHeight\":" + "\"" + stateUpdateHeight + "\"" + ",\n";
+					"\"TotalStateSizeUpdateHeight\":" + "\"" + totalStateSizeUpdateHeight + "\"" + ",\n";
 	}
 
 	/* (non-Javadoc)
@@ -284,7 +258,11 @@ public abstract class SmartContractAccount extends Account {
 		if(!super.isSanity()) {
 			return false;
 		}
-		if(languageType == null || leasePeriod == null || totalStateSize <= 0 || state == null) {
+		if(founderID == null || languageType == null || totalStateSize <= 0) {
+			return false;
+		}
+		// Need do more job about language type
+		if(!founderID.isSanity()) {
 			return false;
 		}
 		return true;
@@ -306,34 +284,6 @@ public abstract class SmartContractAccount extends Account {
 	}
 
 	/**
-	 * @return the state
-	 */
-	public State getState() {
-		return state;
-	}
-
-	/**
-	 * @param state the state to set
-	 */
-	public void setState(State state) {
-		this.state = state;
-	}
-
-	/**
-	 * @return the leasePeriodUpdateHeight
-	 */
-	public ID getLeasePeriodUpdateHeight() {
-		return leasePeriodUpdateHeight;
-	}
-
-	/**
-	 * @param leasePeriodUpdateHeight the leasePeriodUpdateHeight to set
-	 */
-	public void setLeasePeriodUpdateHeight(ID leasePeriodUpdateHeight) {
-		this.leasePeriodUpdateHeight = leasePeriodUpdateHeight;
-	}
-
-	/**
 	 * @return the totalStateSizeUpdateHeight
 	 */
 	public ID getTotalStateSizeUpdateHeight() {
@@ -348,17 +298,17 @@ public abstract class SmartContractAccount extends Account {
 	}
 
 	/**
-	 * @return the stateUpdateHeight
+	 * @return the founderID
 	 */
-	public ID getStateUpdateHeight() {
-		return stateUpdateHeight;
+	public ID getFounderID() {
+		return founderID;
 	}
 
 	/**
-	 * @param stateUpdateHeight the stateUpdateHeight to set
+	 * @param founderID the founderID to set
 	 */
-	public void setStateUpdateHeight(ID stateUpdateHeight) {
-		this.stateUpdateHeight = stateUpdateHeight;
+	public void setFounderID(ID founderID) {
+		this.founderID = founderID;
 	}
 	
 }

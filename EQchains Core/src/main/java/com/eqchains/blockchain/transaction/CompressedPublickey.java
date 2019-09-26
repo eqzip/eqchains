@@ -36,7 +36,7 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-import org.rocksdb.RocksDBException;
+
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;

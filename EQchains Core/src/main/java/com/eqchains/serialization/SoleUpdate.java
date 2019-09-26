@@ -33,9 +33,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Vector;
-
-import org.rocksdb.RocksDBException;
-
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.util.ID;
 import com.eqchains.util.Util;
@@ -53,7 +50,7 @@ public class SoleUpdate {
 		soleReference = new Vector<>();
 	}
 	
-	public void update(ByteArrayOutputStream os, ID height) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public void update(ByteArrayOutputStream os, ID height) throws ClassNotFoundException, SQLException, Exception {
 		if(!soleReference.contains(height)) {
 			if(height.equals(ID.ZERO)) {
 				os.write(Util.MAGIC_HASH);

@@ -42,9 +42,6 @@ import java.util.Vector;
 
 import javax.naming.InitialContext;
 import javax.print.attribute.Size2DSyntax;
-
-import org.rocksdb.RocksDBException;
-
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.avro.O;
 import com.eqchains.blockchain.EQChains;
@@ -67,7 +64,6 @@ import com.eqchains.blockchain.transaction.operation.UpdateAddressOperation;
 import com.eqchains.crypto.MerkleTree;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -87,9 +83,6 @@ public class EQCHive implements EQCTypable {
 	private EQCRoot eqcRoot;
 	private Vector<EQCSubchain> subchainList;
 
-//	private EQChains transactions;
-//	private EQCSignatures signatures;
-	// private txReceipt;
 	// The min size of the EQCHeader's is 142 bytes.
 	private int size = 142;
 
@@ -136,7 +129,7 @@ public class EQCHive implements EQCTypable {
 		subchainList.add(new EQcoinSubchain());
 	}
 
-	public EQCHive(ID currentBlockHeight, byte[] previousBlockHeaderHash) throws RocksDBException, Exception {
+	public EQCHive(ID currentBlockHeight, byte[] previousBlockHeaderHash) throws Exception {
 		init();
 		// Create EQC block header
 		eqcHeader.setPreHash(previousBlockHeaderHash);
@@ -212,106 +205,18 @@ public class EQCHive implements EQCTypable {
 		 * Address to a new Address the more information you can reference to
 		 * https://github.com/eqzip/eqchains
 		 */
-
-		/**
-		 * Begin handle EQcoinSubchain
-		 */
+		
+		// Retrieve all transactions from transaction pool
 		Vector<Transaction> pendingTransactionList = new Vector<Transaction>();
-		EQcoinSubchain eQcoinSubchain = (EQcoinSubchain) subchainList.get(0);
-
-		if (accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight())) < 0) {
-			// Create CoinBase Transaction
-			Passport passport = new Passport();
-			passport.setReadableAddress(Util.SINGULARITY_C);
-			CoinbaseTransaction coinbaseTransaction = Util.generateCoinBaseTransaction(passport, accountsMerkleTree);
-			// Check if CoinBase isValid and update CoinBase's Account
-			coinbaseTransaction.prepareAccounting(accountsMerkleTree,
-					eQcoinSubchain.getNewPassportID(accountsMerkleTree));
-			if (!coinbaseTransaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
-				throw new IllegalStateException("CoinbaseTransaction is invalid: " + coinbaseTransaction);
-			} else {
-				coinbaseTransaction.update(accountsMerkleTree);
-			}
-			// Add CoinBase into EQcoinSubchainHeader
-			eQcoinSubchain.addCoinbaseTransaction(coinbaseTransaction);
-		}
-
 		// Get EQcoinSubchain Transaction list till now only handle this but in the
 		// future will handle all Transactions together to meet balance less
 		pendingTransactionList.addAll(EQCBlockChainH2.getInstance().getTransactionListInPool());
 		Log.info("Current have " + pendingTransactionList.size() + " pending Transactions.");
-
-		// Handle every pending Transaction
-		for (Transaction transaction : pendingTransactionList) {
-			// If Transaction's TxIn is null or TxIn doesn't exists in Accounts just
-			// continue
-			if (transaction.getTxIn() == null
-					|| !accountsMerkleTree.isAccountExists(transaction.getTxIn().getPassport(), false)) {
-				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-				Log.Error("TxIn is null or TxIn doesn't exist in Accounts this is invalid just discard it: "
-						+ transaction.toString());
-				continue;
-			}
-
-			// If Transaction already in the EQcoinSubchain just continue
-			if (eQcoinSubchain.isTransactionExists(transaction)) {
-				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-				Log.Error("Transaction already exists this is invalid just discard it: " + transaction.toString());
-				continue;
-			}
-
-			// Prepare Transaction
-			transaction.prepareAccounting(accountsMerkleTree, eQcoinSubchain.getNewPassportID(accountsMerkleTree));
-
-			// Check if Transaction is valid
-			if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
-				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
-				Log.Error("Transaction is invalid: " + transaction);
-				continue;
-			}
-
-			// Add Transaction into EQcoinSubchain
-			if ((eQcoinSubchain.getNewTransactionListLength()
-					+ transaction.getBin(AddressShape.ID).length) <= Util.MAX_BLOCK_SIZE) {
-				Log.info("Add new Transaction which TxFee is: " + transaction.getTxFee());
-				eQcoinSubchain.addTransaction(transaction);
-				// Update Transaction
-				transaction.update(accountsMerkleTree);
-				// Update the TxFee
-				eQcoinSubchain.getEQcoinSubchainHeader().depositTxFee(transaction.getTxFee());
-			} else {
-				Log.info("Exceed EQcoinSubchain's MAX_BLOCK_SIZE just stop accounting transaction");
-				break;
-			}
-		}
-
-		// Add audit layer at the following positions
-		
-		// Update EQcoinSubchain's Header
-		EQcoinSubchainHeader preEQcoinSubchainHeader = accountsMerkleTree.getEQCBlock(accountsMerkleTree.getHeight().getPreviousID(), true).getEQcoinSubchain().getEQcoinSubchainHeader();
-		eQcoinSubchain.getEQcoinSubchainHeader().setTotalAccountNumbers(preEQcoinSubchainHeader.getTotalAccountNumbers().add(ID.valueOf(eQcoinSubchain.getNewPassportList().size())));
-		eQcoinSubchain.getEQcoinSubchainHeader().setTotalTransactionNumbers(preEQcoinSubchainHeader.getTotalTransactionNumbers().add(ID.valueOf(eQcoinSubchain.getNewTransactionList().size())));
-		
-		// Update EQcoin AssetSubchainAccount's Header
-		AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE, true);
-		eqcoin.getAssetSubchainHeader().setTotalSupply(new ID(Util.cypherTotalSupply(eqcHeader.getHeight())));
-		eqcoin.getAssetSubchainHeader().setTotalAccountNumbers(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()
-				.add(BigInteger.valueOf(eQcoinSubchain.getNewPassportList().size())));
-		eqcoin.getAssetSubchainHeader().setTotalTransactionNumbers(eqcoin.getAssetSubchainHeader()
-				.getTotalTransactionNumbers().add(BigInteger.valueOf(eQcoinSubchain.getNewTransactionList().size())));
-		eqcoin.getAsset(Asset.EQCOIN).deposit(eQcoinSubchain.getEQcoinSubchainHeader().getTotalTxFee());
-		// Save EQcoin Subchain's Header
-		accountsMerkleTree.saveAccount(eqcoin);
-		
-		if (!eQcoinSubchain.getEQcoinSubchainHeader().getTotalAccountNumbers()
-				.equals(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers())) {
-			throw new IllegalStateException("TotalAccountNumbers is invalid");
-		}
-		
-		if (!eQcoinSubchain.getEQcoinSubchainHeader().getTotalTransactionNumbers()
-				.equals(eqcoin.getAssetSubchainHeader().getTotalTransactionNumbers())) {
-			throw new IllegalStateException("TotalTransactionNumbers is invalid");
-		}
+				
+		/**
+		 * Begin handle EQcoinSubchain
+		 */
+		subchainList.get(0).accountingTransaction(pendingTransactionList, accountsMerkleTree);
 
 		/**
 		 * Begin handle MiscSmartContractTransaction
@@ -320,7 +225,10 @@ public class EQCHive implements EQCTypable {
 		/**
 		 * Begin handle EQCSubchainTransaction
 		 */
-
+		
+		// Due to only have one unified global Account state so add audit layer at the following positions
+		Util.DB().saveTransactions(this, accountsMerkleTree.getFilter().getMode());
+		
 		// Check Statistics
 		Statistics statistics = accountsMerkleTree.getStatistics();
 		if (!statistics.isValid(accountsMerkleTree)) {
@@ -770,19 +678,5 @@ public class EQCHive implements EQCTypable {
 		}
 		return eqcSubchain;
 	}
-
-//	/**
-//	 * @return the transactions
-//	 */
-//	public EQChains getTransactions() {
-//		return transactions;
-//	}
-//
-//	/**
-//	 * @return the signatures
-//	 */
-//	public EQCSignatures getSignatures() {
-//		return signatures;
-//	}
 
 }

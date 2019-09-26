@@ -31,12 +31,10 @@ package com.eqchains.persistence;
 
 import java.sql.SQLException;
 import java.util.Vector;
-
-import org.rocksdb.RocksDBException;
-
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Balance;
@@ -76,7 +74,7 @@ public class EQCBlockChainRPC implements EQCBlockChain {
 		}
 	}
 	
-	public synchronized static EQCBlockChain getInstance() throws RocksDBException {
+	public synchronized static EQCBlockChain getInstance() {
 		if (instance == null) {
 			synchronized (EQCBlockChainH2.class) {
 				if (instance == null) {
@@ -85,43 +83,6 @@ public class EQCBlockChainRPC implements EQCBlockChain {
 			}
 		}
 		return instance;
-	}
-	
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.EQCBlockChain#saveAccount(com.eqchains.blockchain.account.Account)
-	 */
-	@Override
-	public boolean saveAccount(Account account) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.EQCBlockChain#getAccount(com.eqchains.util.ID)
-	 */
-	@Override
-	public Account getAccount(ID id) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.EQCBlockChain#getAccount(byte[])
-	 */
-	@Override
-	public Account getAccount(byte[] addressAI) throws Exception {
-		Account account = null;
-		account = TransactionNetworkClient.getAccount(addressAI, ip);
-		return account;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.EQCBlockChain#deleteAccount(com.eqchains.util.ID)
-	 */
-	@Override
-	public boolean deleteAccount(ID id) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 	/* (non-Javadoc)
@@ -565,6 +526,36 @@ public class EQCBlockChainRPC implements EQCBlockChain {
 	public boolean deleteTransactionFrom(ID height, Mode mode) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public boolean deleteAccount(ID id, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Account getAccount(ID id, ID height) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean saveTransactions(EQCSubchain eqcSubchain, ID height, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean saveTransactions(EQCHive eqcHive, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public ID getTotalTransactionNumbers(ID height, ID assetID, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

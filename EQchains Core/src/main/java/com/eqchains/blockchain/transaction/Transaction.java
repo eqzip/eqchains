@@ -48,7 +48,7 @@ import java.util.Comparator;
 import java.util.Objects;
 import java.util.Vector;
 
-import org.rocksdb.RocksDBException;
+
 
 import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.Account;
@@ -58,6 +58,7 @@ import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.account.Publickey;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.subchain.EQcoinSubchain;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
@@ -406,7 +407,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
-			throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
+			throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 		return false;
 	}
 
@@ -493,13 +494,13 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return transaction;
 	}
 
-	public boolean verifySignature() throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public boolean verifySignature() throws ClassNotFoundException, SQLException, Exception {
 		boolean isTransactionValid = false;
 		Signature signature = null;
 		Account account = null;
 		// Verify Signature
 		try {
-			account = Util.DB().getAccount(txIn.getPassport().getAddressAI());
+			account = Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL);
 			if(account == null) {
 				Log.Error("Invalid TxIn " + txIn.getPassport().getReadableAddress() + "'s ID doesn't exists");
 				return false;
@@ -525,9 +526,9 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return isTransactionValid;
 	}
 
-	public byte[] sign(Signature ecdsa) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public byte[] sign(Signature ecdsa) throws ClassNotFoundException, SQLException, Exception {
 		try {
-			Account account = Util.DB().getAccount(txIn.getPassport().getAddressAI());
+			Account account = Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL);
 			ecdsa.update(cypherM(account));
 			signature = ecdsa.sign();
 		} catch (SignatureException | IOException e) {
@@ -537,7 +538,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return signature;
 	}
 
-	public byte[] cypherM(Account account) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public byte[] cypherM(Account account) throws ClassNotFoundException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(getBytes(AddressShape.READABLE));
 		os.write(Util.SINGULARITY);
@@ -779,7 +780,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return transaction;
 	}
 
-	public boolean update() throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public boolean update() throws ClassNotFoundException, SQLException, Exception {
 		Account account = null;
 		ID maxNonce = null;
 		// Check if Publickey isn't null
@@ -787,7 +788,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			return false;
 		}
 		// Check if Account exists
-		account = Util.DB().getAccount(txIn.getPassport().getAddressAI());
+		account = Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL);
 		if (account == null) {
 			return false;
 		}

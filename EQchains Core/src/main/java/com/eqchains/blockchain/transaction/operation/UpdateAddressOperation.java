@@ -34,7 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.rocksdb.RocksDBException;
+
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;

@@ -38,10 +38,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Vector;
-
-import org.rocksdb.RocksDBException;
-import org.rocksdb.WriteBatch;
-
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
@@ -57,8 +53,6 @@ import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
-import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
@@ -620,59 +614,59 @@ public class EQChains implements EQCTypable {
 	}
 	
 	public boolean isnewCompressedPublickeyListValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		WriteBatch writeBatch = null;
-		if(newCompressedPublickeyList.size() > 0) {
-			writeBatch = new WriteBatch();
-		}
-		// Get the new Publickey's ID list from Transactions
-		Vector<ID> newPublickeys = new Vector<>();
-		for(int i=1; i<newTransactionList.size(); ++i) {
-			Account account = accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport().getID(), true);
-				if(!account.isPublickeyExists()) {
-					if(!newPublickeys.contains(newTransactionList.get(i).getTxIn().getPassport().getID())) {
-						newPublickeys.add(newTransactionList.get(i).getTxIn().getPassport().getID());
-					}
-				}
-		}
-		if(newCompressedPublickeyList.size() != newPublickeys.size()) {
-			return false;
-		}
-		for(CompressedPublickey compressedPublickey:newCompressedPublickeyList) {
-//			compressedPublickey.setID(accountsMerkleTree.getAccount(AddressTool.publickeyToAI(compressedPublickey.getCompressedPublickey())).getID());
-		}
-		for(int i=0; i<newCompressedPublickeyList.size(); ++i) {
-			if(!newCompressedPublickeyList.get(i).getID().equals(newPublickeys.get(i))) {
-				return false;
-			}
-		}
-		for(CompressedPublickey compressedPublickey : newCompressedPublickeyList) {
-			// Already do this check in previous op check the order of buddy
-//			if(!isPublickeyIDExistsInTransactions(publicKey.getID())) {
+//		WriteBatch writeBatch = null;
+//		if(newCompressedPublickeyList.size() > 0) {
+//			writeBatch = new WriteBatch();
+//		}
+//		// Get the new Publickey's ID list from Transactions
+//		Vector<ID> newPublickeys = new Vector<>();
+//		for(int i=1; i<newTransactionList.size(); ++i) {
+//			Account account = accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport().getID(), true);
+//				if(!account.isPublickeyExists()) {
+//					if(!newPublickeys.contains(newTransactionList.get(i).getTxIn().getPassport().getID())) {
+//						newPublickeys.add(newTransactionList.get(i).getTxIn().getPassport().getID());
+//					}
+//				}
+//		}
+//		if(newCompressedPublickeyList.size() != newPublickeys.size()) {
+//			return false;
+//		}
+//		for(CompressedPublickey compressedPublickey:newCompressedPublickeyList) {
+////			compressedPublickey.setID(accountsMerkleTree.getAccount(AddressTool.publickeyToAI(compressedPublickey.getCompressedPublickey())).getID());
+//		}
+//		for(int i=0; i<newCompressedPublickeyList.size(); ++i) {
+//			if(!newCompressedPublickeyList.get(i).getID().equals(newPublickeys.get(i))) {
 //				return false;
 //			}
-			if(false) {//accountsMerkleTree.isPublicKeyExists(compressedPublickey)) {
-				return false;
-			}
-			else {
-				Account account = accountsMerkleTree.getAccount(compressedPublickey.getID(), true);
-				if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), compressedPublickey.getCompressedPublickey())) {
-					return false;
-				}
-				else {
-					Publickey publickey1 = new Publickey();
-					publickey1.setCompressedPublickey(compressedPublickey.getCompressedPublickey());
-					publickey1.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
-					account.setPublickey(publickey1);
-//					writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(accountsMerkleTree.getFilter().getFilterTable(TABLE.ACCOUNT)), account.getID().getEQCBits(),
-//							account.getBytes());
-//					writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(accountsMerkleTree.getFilter().getFilterTable(TABLE.ACCOUNT_AI)),
-//							account.getPassport().getAddressAI(), account.getID().getEQCBits());
-				}
-			}
-		}
-//		if(writeBatch != null) {
-//			accountsMerkleTree.getFilter().batchUpdate(writeBatch);
 //		}
+//		for(CompressedPublickey compressedPublickey : newCompressedPublickeyList) {
+//			// Already do this check in previous op check the order of buddy
+////			if(!isPublickeyIDExistsInTransactions(publicKey.getID())) {
+////				return false;
+////			}
+//			if(false) {//accountsMerkleTree.isPublicKeyExists(compressedPublickey)) {
+//				return false;
+//			}
+//			else {
+//				Account account = accountsMerkleTree.getAccount(compressedPublickey.getID(), true);
+//				if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), compressedPublickey.getCompressedPublickey())) {
+//					return false;
+//				}
+//				else {
+//					Publickey publickey1 = new Publickey();
+//					publickey1.setCompressedPublickey(compressedPublickey.getCompressedPublickey());
+//					publickey1.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
+//					account.setPublickey(publickey1);
+////					writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(accountsMerkleTree.getFilter().getFilterTable(TABLE.ACCOUNT)), account.getID().getEQCBits(),
+////							account.getBytes());
+////					writeBatch.put(EQCBlockChainRocksDB.getInstance().getTableHandle(accountsMerkleTree.getFilter().getFilterTable(TABLE.ACCOUNT_AI)),
+////							account.getPassport().getAddressAI(), account.getID().getEQCBits());
+//				}
+//			}
+//		}
+////		if(writeBatch != null) {
+////			accountsMerkleTree.getFilter().batchUpdate(writeBatch);
+////		}
 		return true;
 	}
 	

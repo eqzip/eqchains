@@ -43,35 +43,29 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLType;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.Objects;
 import java.util.Vector;
 
-import org.h2.index.Index;
-import org.rocksdb.RocksDBException;
-
-import com.eqchains.blockchain.EQChains;
 import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
+import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Account.AccountType;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHeader;
 import com.eqchains.blockchain.hive.EQCHive;
-import com.eqchains.blockchain.hive.EQCRoot;
-import com.eqchains.blockchain.subchain.EQCSignatures;
+import com.eqchains.blockchain.subchain.EQCSubchain;
+import com.eqchains.blockchain.subchain.EQcoinSubchain;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
-import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.blockchain.transaction.operation.Operation;
 import com.eqchains.blockchain.transaction.operation.UpdateAddressOperation;
@@ -82,7 +76,6 @@ import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.MaxNonce;
 import com.eqchains.rpc.Nest;
 import com.eqchains.rpc.SignHash;
-import com.eqchains.rpc.TailInfo;
 import com.eqchains.rpc.TransactionIndex;
 import com.eqchains.rpc.TransactionIndexList;
 import com.eqchains.rpc.TransactionList;
@@ -90,7 +83,6 @@ import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
 import com.eqchains.util.Util;
-import com.eqchains.util.Util.AddressTool;
 
 /**
  * @author Xun Wang
@@ -109,12 +101,15 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	private static Statement statement;
 	private static EQCBlockChainH2 instance;
 	private static final int ONE_ROW = 1;
-	private static final String TRANSACTION = "TRANSACTION";
+	private static final String TRANSACTION_GLOBAL = "TRANSACTION_GLOBAL";
 	private static final String TRANSACTION_MINING = "TRANSACTION_MINING";
 	private static final String TRANSACTION_VALID = "TRANSACTION_VALID";
-	private static final String TRANSACTION_INDEX = "TRANSACTION_INDEX";
+	private static final String TRANSACTION_GLOBAL_INDEX = "TRANSACTION_GLOBAL_INDEX";
 	private static final String TRANSACTION_MINING_INDEX = "TRANSACTION_MINING_INDEX";
 	private static final String TRANSACTION_VALID_INDEX = "TRANSACTION_VALID_INDEX";
+	private static final String ACCOUNT_GLOBAL = "ACCOUNT_GLOBAL";
+	private static final String ACCOUNT_MINING = "ACCOUNT_MINING";
+	private static final String ACCOUNT_VALID = "ACCOUNT_VALID";
 	
 	public enum NODETYPE {
 		NONE, FULL, MINER
@@ -183,7 +178,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 				+ "sn BIGINT NOT NULL UNIQUE CHECK sn > 0,"
 				+ "type TINYINT NOT NULL CHECK type >= 0,"
 				+ "height BIGINT NOT NULL CHECK height >= 0,"
-				+ "index INT NOT NULL CHECK index >= 0,"
+				+ "index INT CHECK index >= 0,"
 				+ "asset_id BIGINT NOT NULL CHECK asset_id > 0,"
 				+ "nonce BIGINT NOT NULL CHECK nonce > 0"
 //				+ "FOREIGN KEY (sn) REFERENCES " + tableName.substring(0, tableName.lastIndexOf("_INDEX")) + " (sn) ON DELETE CASCADE ON UPDATE CASCADE"
@@ -225,13 +220,13 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	
 	private synchronized void createTable() throws SQLException {
 			// Create Account table. Each Account should be unique and it's Passport's ID should be one by one
-			boolean result = statement.execute(createAccountTable("ACCOUNT"));
+			boolean result = statement.execute(createAccountTable(getAccountTableName(Mode.GLOBAL)));
 			
-			 result = statement.execute(createAccountTable("ACCOUNT_MINING"));
+			 result = statement.execute(createAccountTable(getAccountTableName(Mode.MINING)));
 			 
-			 result = statement.execute(createAccountTable("ACCOUNT_VALID"));
+			 result = statement.execute(createAccountTable(getAccountTableName(Mode.VALID)));
 			 
-				// Create Account table update status table
+				// Create Global state relevant table's update status table
 				result = statement.execute("CREATE TABLE IF NOT EXISTS ACCOUNT_UPDATE_STATUS("
 						+ "height BIGINT NOT NULL CHECK height >= 0,"
 						+ "snapshot TINYINT NOT NULL,"
@@ -263,8 +258,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 					+ ")");
 			
 			// Create Transaction relevant table
-			statement.execute(createTransactionTable(TRANSACTION));
-			statement.execute(createTransactionIndexTable(TRANSACTION_INDEX));
+			statement.execute(createTransactionTable(TRANSACTION_GLOBAL));
+			statement.execute(createTransactionIndexTable(TRANSACTION_GLOBAL_INDEX));
 			
 			// Create Transaction mining table
 			statement.execute(createTransactionTable(TRANSACTION_MINING));
@@ -1097,7 +1092,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 
 	@Override
 	public synchronized ID getTotalAccountNumbers(ID height)
-			throws ClassNotFoundException, RocksDBException, Exception {
+			throws ClassNotFoundException, Exception {
 		EQCType.assertNotBigger(height, getEQCBlockTailHeight());
 		AssetSubchainAccount assetSubchainAccount = null;
 
@@ -1506,7 +1501,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 
 	@Override
 	public synchronized boolean deleteTransactionsInPool(EQCHive eqcBlock)
-			throws ClassNotFoundException, RocksDBException, Exception {
+			throws ClassNotFoundException, Exception {
 		int isSuccessful = 0;
 		for (Transaction transaction : eqcBlock.getEQcoinSubchain().getNewTransactionList()) {
 			if (deleteTransactionInPool(transaction)) {
@@ -1530,7 +1525,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return boolResult;
 	}
 
-	@Override
 	public boolean saveAccount(Account account) throws Exception {
 		int rowCounter = 0;
 		PreparedStatement preparedStatement = null;
@@ -1566,7 +1560,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return true;
 	}
 
-	@Override
 	public Account getAccount(ID id) throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
 		Account account = null;
 		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ACCOUNT WHERE id=?");
@@ -1577,23 +1570,21 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		}
 		return account;
 	}
-
-	@Override
-	public boolean deleteAccount(ID id) throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
+	
+	public boolean deleteAccount(ID id, Mode mode) throws Exception {
 		int rowCounter = 0;
 		PreparedStatement preparedStatement;
-		preparedStatement = connection.prepareStatement("DELETE FROM ACCOUNT WHERE id =?");
+		preparedStatement = connection.prepareStatement("DELETE FROM " + getAccountTableName(mode) + " WHERE id =?");
 		preparedStatement.setLong(1, id.longValue());
 		rowCounter = preparedStatement.executeUpdate();
 		Log.info("rowCounter: " + rowCounter);
 		EQCType.assertEqual(rowCounter, ONE_ROW);
-		if (getAccount(id) != null) {
+		if (getAccount(id, mode) != null) {
 			throw new IllegalStateException("deleteAccount No." + id + " failed Account still exists");
 		}
 		return true;
 	}
 
-	@Override
 	public Account getAccount(byte[] addressAI)
 			throws SQLException, NoSuchFieldException, IllegalStateException, IOException {
 		Account account = null;
@@ -1608,8 +1599,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 
 	@Override
 	public synchronized Account getAccountSnapshot(ID accountID, ID height)
-			throws ClassNotFoundException, RocksDBException, Exception {
-		EQCType.assertNotBigger(height, Util.DB().getEQCBlockTailHeight());
+			throws ClassNotFoundException, Exception {
+		EQCType.assertNotBigger(height, getEQCBlockTailHeight());
 		Account account = null;
 //		Account tailAccount = Util.DB().getAccount(accountID);
 //		if(tailAccount.getUpdateHeight().compareTo(height) <= 0) {
@@ -1635,10 +1626,10 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 
 	@Override
 	public synchronized Account getAccountSnapshot(byte[] addressAI, ID height)
-			throws ClassNotFoundException, RocksDBException, Exception {
-		EQCType.assertNotBigger(height, Util.DB().getEQCBlockTailHeight());
+			throws ClassNotFoundException, Exception {
+		EQCType.assertNotBigger(height, getEQCBlockTailHeight());
 		Account account = null;
-		Account tailAccount = Util.DB().getAccount(addressAI);
+		Account tailAccount = getAccount(addressAI, Mode.GLOBAL);
 		if (tailAccount.getUpdateHeight().compareTo(height) <= 0) {
 			account = tailAccount;
 		} else {
@@ -1768,7 +1759,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 
 	@Override
 	public synchronized MaxNonce getTransactionMaxNonce(Nest nest)
-			throws ClassNotFoundException, RocksDBException, Exception {
+			throws ClassNotFoundException, Exception {
 		MaxNonce maxNonce = null;
 //		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM TRANSACTION_MAX_NONCE WHERE id=? AND subchain_id=?");
 //		preparedStatement.setLong(1, nest.getID().longValue());
@@ -1782,7 +1773,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //			maxNonce = new MaxNonce();
 //			maxNonce.setNonce(Util.DB().getAccount(nest.getID()).getAsset(nest.getAssetID()).getNonce());
 //		}
-		ID currentNonce = Util.DB().getAccount(nest.getID()).getAsset(nest.getAssetID()).getNonce();
+		ID currentNonce = getAccount(nest.getID(), Mode.GLOBAL).getAsset(nest.getAssetID()).getNonce();
 		maxNonce = new MaxNonce(currentNonce);
 		Vector<Transaction> transactions = getPendingTransactionListInPool(nest);
 		if (!transactions.isEmpty()) {
@@ -1875,7 +1866,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	@Override
 	public Balance getBalance(Nest nest) throws SQLException, Exception {
 		Balance balance = new Balance();
-		balance.deposit(Util.DB().getAccount(nest.getID()).getAsset(nest.getAssetID()).getBalance());
+		balance.deposit(getAccount(nest.getID(), Mode.GLOBAL).getAsset(nest.getAssetID()).getBalance());
 		PreparedStatement preparedStatement = connection
 				.prepareStatement("SELECT * FROM TRANSACTION_POOL WHERE txin_id=? AND record_status=?");
 		preparedStatement.setLong(1, nest.getID().longValue());
@@ -2151,7 +2142,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		PreparedStatement preparedStatement = null;
 		if (getAccount(account.getID(), mode) != null) {
 			preparedStatement = connection.prepareStatement("UPDATE "
-					+ ((mode == Mode.MINING) ? "ACCOUNT_MINING" : "ACCOUNT_VALID")
+					+ getAccountTableName(mode)
 					+ " SET id = ?, address_ai = ?,  create_height = ?, hash = ?, update_height = ?, bytes = ? WHERE id = ?");
 			preparedStatement.setLong(1, account.getID().longValue());
 			preparedStatement.setBytes(2, account.getPassport().getAddressAI());
@@ -2165,7 +2156,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 //					Log.info("UPDATE: " + rowCounter);
 		} else {
 			preparedStatement = connection
-					.prepareStatement("INSERT INTO " + ((mode == Mode.MINING) ? "ACCOUNT_MINING" : "ACCOUNT_VALID")
+					.prepareStatement("INSERT INTO " + getAccountTableName(mode)
 							+ " (id, address_ai, create_height, hash, update_height, bytes) VALUES (?, ?, ?, ?, ?, ?)");
 			preparedStatement.setLong(1, account.getID().longValue());
 			preparedStatement.setBytes(2, account.getPassport().getAddressAI());
@@ -2187,7 +2178,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public Account getAccount(ID id, Mode mode) throws Exception {
 		Account account = null;
 		PreparedStatement preparedStatement = connection.prepareStatement(
-				"SELECT * FROM " + ((mode == Mode.MINING) ? "ACCOUNT_MINING" : "ACCOUNT_VALID") + " WHERE id=?");
+				"SELECT * FROM " + getAccountTableName(mode) + " WHERE id=?");
 		preparedStatement.setLong(1, id.longValue());
 		ResultSet resultSet = preparedStatement.executeQuery();
 		if (resultSet.next()) {
@@ -2195,18 +2186,39 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		}
 		return account;
 	}
+	
+	@Override
+	public Account getAccount(ID id, ID height) throws Exception {
+		Account account = null;
+		if (height.equals(getEQCBlockTailHeight())) {
+			PreparedStatement preparedStatement = connection
+					.prepareStatement("SELECT * FROM " + ACCOUNT_GLOBAL + " WHERE id=?");
+			preparedStatement.setLong(1, id.longValue());
+			ResultSet resultSet = preparedStatement.executeQuery();
+			if (resultSet.next()) {
+				account = Account.parseAccount(resultSet.getBytes("bytes"));
+			}
+		} else {
+			account = getAccountSnapshot(id, height);
+		}
+		return account;
+	}
 
+	/* (non-Javadoc)
+	 * Here only need clear ACCOUNT_MINING or ACCOUNT_VALID
+	 * @see com.eqchains.persistence.EQCBlockChain#clear(com.eqchains.blockchain.accountsmerkletree.Filter.Mode)
+	 */
 	@Override
 	public boolean clear(Mode mode) throws Exception {
 		PreparedStatement preparedStatement;
 		preparedStatement = connection
-				.prepareStatement("DELETE FROM " + ((mode == Mode.MINING) ? "ACCOUNT_MINING" : "ACCOUNT_VALID"));
+				.prepareStatement("DELETE FROM " + getAccountTableName(mode));
 		preparedStatement.executeUpdate();
 		preparedStatement = connection
-				.prepareStatement("SELECT * FROM " + ((mode == Mode.MINING) ? "ACCOUNT_MINING" : "ACCOUNT_VALID"));
+				.prepareStatement("SELECT * FROM " + getAccountTableName(mode));
 		ResultSet resultSet = preparedStatement.executeQuery();
 		if (resultSet.next()) {
-			throw new IllegalStateException("Clear " + ((mode == Mode.MINING) ? "ACCOUNT_MINING" : "ACCOUNT_VALID")
+			throw new IllegalStateException("Clear " + getAccountTableName(mode)
 					+ " failed still have items in it");
 		}
 		return true;
@@ -2216,7 +2228,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public Account getAccount(byte[] addressAI, Mode mode) throws Exception {
 		Account account = null;
 		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM "
-				+ ((mode == Mode.MINING) ? "ACCOUNT_MINING" : "ACCOUNT_VALID") + " WHERE address_ai = ?");
+				+ getAccountTableName(mode) + " WHERE address_ai = ?");
 		preparedStatement.setBytes(1, addressAI);
 		;
 		ResultSet resultSet = preparedStatement.executeQuery();
@@ -2226,17 +2238,21 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return account;
 	}
 
+	/* (non-Javadoc)
+	 * Here only need merge from ACCOUNT_MINING or ACCOUNT_VALID to ACCOUNT
+	 * @see com.eqchains.persistence.EQCBlockChain#merge(com.eqchains.blockchain.accountsmerkletree.Filter.Mode)
+	 */
 	@Override
 	public boolean merge(Mode mode) throws SQLException, Exception {
 		Account account = null;
 		PreparedStatement preparedStatement = connection
-				.prepareStatement("SELECT * FROM " + ((mode == Mode.MINING) ? "ACCOUNT_MINING" : "ACCOUNT_VALID"));
+				.prepareStatement("SELECT * FROM " + getAccountTableName(mode));
 		ResultSet resultSet = preparedStatement.executeQuery();
 		while (resultSet.next()) {
 			account = Account.parseAccount(resultSet.getBytes("bytes"));
 			account.setHash(resultSet.getBytes("hash"));
 			account.setSaveHash(true);
-			saveAccount(account);
+			saveAccount(account, Mode.GLOBAL);
 		}
 		return true;
 	}
@@ -2409,7 +2425,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			throw new IllegalStateException(
 					"Result set " + transaction + " at height: " + height + " index: " + index + " shouldn't exists");
 		}
-		preparedStatement = connection.prepareStatement("INSERT INTO " + TRANSACTION_INDEX
+		preparedStatement = connection.prepareStatement("INSERT INTO " + TRANSACTION_GLOBAL_INDEX
 				+ " (sn, type, height, index, asset_id, nonce) VALUES (?, ?, ?, ?, ?, ?)");
 		preparedStatement.setLong(1, sn.longValue());
 		preparedStatement.setByte(2, (byte) transaction.getTransactionType().ordinal());
@@ -2427,7 +2443,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	public boolean deleteTransactionIndex(Transaction transaction, ID height, ID index) throws Exception {
 		int rowCounter = 0;
 		PreparedStatement preparedStatement;
-		preparedStatement = connection.prepareStatement("DELETE FROM " + TRANSACTION_INDEX + " WHERE asset_id=? AND height=? AND index=?");
+		preparedStatement = connection.prepareStatement("DELETE FROM " + TRANSACTION_GLOBAL_INDEX + " WHERE asset_id=? AND height=? AND index=?");
 		preparedStatement.setLong(1, transaction.getAssetID().longValue());
 		preparedStatement.setLong(2, height.longValue());
 		preparedStatement.setLong(3, index.longValue());
@@ -2441,10 +2457,24 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return true;
 	}
 	
+	private String getAccountTableName(Mode mode) {
+		String table = null;
+		if(mode == Mode.GLOBAL) {
+			table = ACCOUNT_GLOBAL;
+		}
+		else if(mode == Mode.MINING) {
+			table = ACCOUNT_MINING;
+		}
+		else if(mode == Mode.VALID) {
+			table = ACCOUNT_VALID;
+		}
+		return table;
+	}
+	
 	private String getTransactionTableName(Mode mode) {
 		String table = null;
 		if(mode == Mode.GLOBAL) {
-			table = TRANSACTION;
+			table = TRANSACTION_GLOBAL;
 		}
 		else if(mode == Mode.MINING) {
 			table = TRANSACTION_MINING;
@@ -2458,7 +2488,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	private String getTransactionIndexTableName(Mode mode) {
 		String table = null;
 		if(mode == Mode.GLOBAL) {
-			table = TRANSACTION_INDEX;
+			table = TRANSACTION_GLOBAL_INDEX;
 		}
 		else if(mode == Mode.MINING) {
 			table = TRANSACTION_MINING_INDEX;
@@ -2576,7 +2606,12 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		preparedStatement.setLong(1, sn.longValue());
 		preparedStatement.setByte(2, (byte) transaction.getTransactionType().ordinal());
 		preparedStatement.setLong(3, height.longValue());
-		preparedStatement.setInt(4, index.intValue());
+		if(index == null) {
+			preparedStatement.setNull(4, Types.INTEGER);
+		}
+		else {
+			preparedStatement.setInt(4, index.intValue());
+		}
 		preparedStatement.setLong(5, transaction.getAssetID().longValue());
 		preparedStatement.setLong(6, transaction.getNonce().longValue());
 		preparedStatement.executeUpdate();
@@ -2705,7 +2740,7 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		Transaction transaction2 = Transaction.parseTransaction(resultSet, transaction.getTransactionType());
 		transaction2.setNonce(nonce);
 		if(!transaction2.compare(transaction)) {
-			throw new IllegalStateException("After saveTransaction with SN:" + sn + " transaction index should exists");
+			throw new IllegalStateException("After saveTransaction with SN:" + sn + " transaction should exists");
 		}
 		preparedStatement.close();
 		
@@ -2788,6 +2823,38 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		}
 		preparedStatement.close();
 		return true;
+	}
+
+	@Override
+	public boolean saveTransactions(EQCHive eqcHive, Mode mode) throws Exception {
+		 getAccount(Asset.EQCOIN, eqcHive.getHeight());
+		
+		for(EQCSubchain eqcSubchain:eqcHive.getSubchainList()) {
+//			saveTransaction(eqcSubchain, eqcHive.getHeight(), index, sn, mode)
+		}
+		return true;
+	}
+
+	@Override
+	public boolean saveTransactions(EQCSubchain eqcSubchain, ID height, Mode mode) throws Exception {
+		EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) getAccount(Asset.EQCOIN, height.getPreviousID());
+		ID sn = eQcoinSubchainAccount.getAssetSubchainHeader().getTotalTransactionNumbers().getNextID();
+		if(eqcSubchain instanceof EQcoinSubchain) {
+			saveTransaction(((EQcoinSubchain) eqcSubchain).getEQcoinSubchainHeader().getCoinbaseTransaction(), height, null, sn, mode);
+		}
+		
+		for(int i=0; i<eqcSubchain.getNewTransactionList().size(); ++i) {
+			saveTransaction(eqcSubchain.getNewTransactionList().get(i), height, ID.valueOf(i), sn, mode);
+			sn = sn.getNextID();
+		}
+		
+		return false;
+	}
+
+	@Override
+	public ID getTotalTransactionNumbers(ID height, ID assetID, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

@@ -35,30 +35,21 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Vector;
-
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.CompressionType;
-import org.rocksdb.MutableColumnFamilyOptions;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksIterator;
-import org.rocksdb.WriteBatch;
-import org.rocksdb.WriteOptions;
-
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.blockchain.account.AssetSubchainHeader;
+import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.configuration.Configuration;
 import com.eqchains.crypto.MerkleTree;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
-import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -90,26 +81,29 @@ public class AccountsMerkleTree {
 
 	public AccountsMerkleTree(ID height, Filter filter) throws Exception {
 		super();
-		AssetSubchainAccount assetSubchainAccount = null;
+		EQcoinSubchainAccount eQcoinSubchainAccount = null;
 		
 		filter.setAccountsMerkleTree(this);
 		this.height = height;
 		// When recoverySingularityStatus the No.0 EQCHive doesn't exist so here need special operation
-		if (height.equals(ID.ZERO)) {
-			try {
-				assetSubchainAccount = (AssetSubchainAccount) Util.DB().getAccount(ID.ONE);
-			}
-			catch (Exception e) {
-				Log.info("Height is zero and Account No.1 doesn't exists: " + e.getMessage());
-			}
-			if (assetSubchainAccount != null) {
-				totalAccountNumbers = Util.DB().getTotalAccountNumbers(height);
-			} else {
-				totalAccountNumbers = ID.ZERO;
-			}
+//		if (height.equals(ID.ZERO)) {
+//			try {
+//				eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, height);
+//			}
+//			catch (Exception e) {
+//				Log.info("Height is zero and Account No.1 doesn't exists: " + e.getMessage());
+//			}
+//		} else {
+//			totalAccountNumbers = Util.DB().getTotalAccountNumbers(height.getPreviousID());
+//		}
+		
+		eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, height);
+		if (eQcoinSubchainAccount != null) {
+			totalAccountNumbers = eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers();
 		} else {
-			totalAccountNumbers = Util.DB().getTotalAccountNumbers(height.getPreviousID());
+			totalAccountNumbers = ID.ZERO;
 		}
+		
 		previousTotalAccountNumbers = totalAccountNumbers;
 		this.filter = filter;
 		accountsMerkleTreeRootList = new Vector<>();
@@ -139,7 +133,7 @@ public class AccountsMerkleTree {
 			isExists = true;
 		}
 		else {
-			Account account = Util.DB().getAccount(passport.getAddressAI());
+			Account account = Util.DB().getAccount(passport.getAddressAI(), Mode.GLOBAL);
 			if(account != null && account.getCreateHeight().compareTo(height) < 0 && account.getLockCreateHeight().compareTo(height) < 0 && account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
 				isExists = true;
 			}
@@ -436,6 +430,15 @@ public class AccountsMerkleTree {
 		takeSnapshot();
 		merge();
 		clear();
+	}
+	
+	public ID getTotalCoinbaseTransactionNumbers() {
+		if (height.compareTo(Util.getMaxCoinbaseHeight(height)) < 0) {
+			return height.getNextID();
+		}
+		else {
+			return Util.getMaxCoinbaseHeight(height);
+		}
 	}
 	
 }

@@ -39,12 +39,11 @@ import java.util.Arrays;
 
 import javax.print.attribute.standard.RequestingUserName;
 
-import org.rocksdb.RocksDBException;
+
 
 import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.Passport.AddressShape;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -312,7 +311,7 @@ public class EQCHeader implements EQCTypable {
 		return true;
 	}
 
-	public boolean isDifficultyValid(AccountsMerkleTree accountsMerkleTree) throws RocksDBException, Exception {
+	public boolean isDifficultyValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
 		if (!Arrays.equals(target, Util.cypherTarget(accountsMerkleTree.getHeight()))) {
 			return false;
 		}
@@ -329,7 +328,7 @@ public class EQCHeader implements EQCTypable {
 		return (new BigInteger(1, getHash()).compareTo(Util.targetBytesToBigInteger(target)) <= 0);
 	}
 	
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, byte[] rootHash) throws RocksDBException, Exception {
+	public boolean isValid(AccountsMerkleTree accountsMerkleTree, byte[] rootHash) throws Exception {
 		if(!isSanity()) {
 			Log.info("Sanity test failed.");
 			return false;

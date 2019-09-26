@@ -56,19 +56,8 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
-
 import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.CompressionType;
-import org.rocksdb.DBOptions;
-import org.rocksdb.MutableColumnFamilyOptions;
-import org.rocksdb.Options;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-
 import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.blockchain.EQChains;
@@ -99,8 +88,6 @@ import com.eqchains.keystore.UserAccount;
 import com.eqchains.persistence.EQCBlockChain;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainRPC;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
-import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.IPList;
@@ -166,7 +153,7 @@ public class Test {
 		header.setTimestamp(new ID(System.currentTimeMillis()));
 		Log.info(header.toString());
 		long c0 = System.currentTimeMillis();
-		int n = 10000;
+		int n = 100;
 		for (int i = 0; i < n; ++i) {
 //			Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(header.getBytes(), Util.HUNDRED_THOUSAND);
 			Util.EQCCHA_MULTIPLE_DUAL_MIX(header.getBytes(), Util.HUNDREDPULS, true, false);
@@ -174,6 +161,14 @@ public class Test {
 		}
 		long c1 = System.currentTimeMillis();
 		Log.info("total time: " + (c1 - c0) + " average time:" + (double) (c1 - c0) / n);
+	}
+	
+	public static void test999Len() {
+		StringBuilder sb = new StringBuilder();
+		for(int i=0; i<1001; ++i) {
+			sb.append("9");
+		}
+		Log.info("Len:" + new BigInteger(sb.toString()).toByteArray().length);
 	}
 
 	public static void testMultiExtendTime() {
@@ -215,8 +210,9 @@ public class Test {
 //			asdf[i] = (byte) 0xFF;
 //		}
 		long c0 = System.currentTimeMillis();
-		int n = 100;
+		int n = 100000;
 		for (int i = 0; i < n; ++i) {
+			asdf = Util.getSecureRandomBytes();
 			Util.multipleExtendMix(asdf, Util.HUNDREDPULS);
 //			Util.EQCCHA_MULTIPLE(header.getBytes(), Util.HUNDRED_THOUSAND, true);
 		}
@@ -1195,84 +1191,84 @@ public class Test {
 	}
 
 	public static void testRocksDB() {
-		try {
-			System.gc();
-			byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE);
-			long begin = System.currentTimeMillis();
-			Log.info("" + begin);
-			for (int i = 0; i < 10000000; ++i) {
-				EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT, new ID(BigInteger.valueOf(i)).getEQCBits(), bytes);
-			}
-			long end = System.currentTimeMillis();
-			Log.info("Total put time: " + (end - begin) + " ms");
-			begin = System.currentTimeMillis();
-			Log.info("" + Util.dumpBytes(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, ID.ZERO.getEQCBits()), 16));
-			Log.info("" + begin);
-			for (int i = 0; i < 10000000; ++i) {
-				EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, new ID(BigInteger.valueOf(i)).getEQCBits());
-			}
-			end = System.currentTimeMillis();
-			Log.info("Total get time: " + (end - begin) + " ms");
-			EQCBlockChainRocksDB.getInstance().getInstance().close();
-		} catch (RocksDBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			System.gc();
+//			byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE);
+//			long begin = System.currentTimeMillis();
+//			Log.info("" + begin);
+//			for (int i = 0; i < 10000000; ++i) {
+//				EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT, new ID(BigInteger.valueOf(i)).getEQCBits(), bytes);
+//			}
+//			long end = System.currentTimeMillis();
+//			Log.info("Total put time: " + (end - begin) + " ms");
+//			begin = System.currentTimeMillis();
+//			Log.info("" + Util.dumpBytes(EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, ID.ZERO.getEQCBits()), 16));
+//			Log.info("" + begin);
+//			for (int i = 0; i < 10000000; ++i) {
+//				EQCBlockChainRocksDB.getInstance().get(TABLE.ACCOUNT, new ID(BigInteger.valueOf(i)).getEQCBits());
+//			}
+//			end = System.currentTimeMillis();
+//			Log.info("Total get time: " + (end - begin) + " ms");
+//			EQCBlockChainRocksDB.getInstance().getInstance().close();
+//		} catch (RocksDBException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	public static void testRocksDB1() {
-		System.gc();
-		final DBOptions dbOptions = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(false);
-		org.rocksdb.Options options = new Options().setCompressionType(CompressionType.NO_COMPRESSION)
-				.setCreateIfMissing(true);
-		ColumnFamilyHandle columnFamilyHandle;
-		try {
-			RocksDB.destroyDB(Util.ROCKSDB_PATH, new Options());
-			RocksDB rocksDB = RocksDB.open(options, Util.ROCKSDB_PATH);
-			final ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions()
-					.setCompressionType(CompressionType.NO_COMPRESSION);
-			final List<ColumnFamilyDescriptor> columnFamilyDescriptors = Arrays.asList(
-					new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions),
-					new ColumnFamilyDescriptor(TABLE.EQCBLOCK.name().getBytes(), columnFamilyOptions),
-					new ColumnFamilyDescriptor(TABLE.ACCOUNT.name().getBytes(), columnFamilyOptions),
-					new ColumnFamilyDescriptor(TABLE.ACCOUNT_MINERING.name().getBytes(), columnFamilyOptions),
-					new ColumnFamilyDescriptor(EQCBlockChainRocksDB.getInstance().MISC_TABLE, columnFamilyOptions));
-
-			columnFamilyHandle = rocksDB.createColumnFamily(columnFamilyDescriptors.get(1));
-			rocksDB.setOptions(columnFamilyHandle,
-					MutableColumnFamilyOptions.builder().setCompressionType(CompressionType.NO_COMPRESSION).build());
-
-			byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE);
-			long begin = System.currentTimeMillis();
-			Log.info("" + begin);
-			for (int i = 0; i < 10000000; ++i) {
-				rocksDB.put(columnFamilyHandle, new ID(BigInteger.valueOf(i)).getEQCBits(), bytes);
-
-			}
-			long end = System.currentTimeMillis();
-			Log.info("Total put time: " + (end - begin) + " ms");
-			begin = System.currentTimeMillis();
-//				Log.info("" + Util.dumpBytes(rocksDB.get(columnFamilyHandles.get(1), SerialNumber.ZERO.getEQCBits()), 16));
-			Log.info("" + begin);
-			for (int i = 0; i < 10000000; ++i) {
-				rocksDB.get(columnFamilyHandle, new ID(BigInteger.valueOf(i)).getEQCBits());
-			}
-			end = System.currentTimeMillis();
-			rocksDB.close();
-			Log.info("Total get time: " + (end - begin) + " ms");
-		} catch (RocksDBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		System.gc();
+//		final DBOptions dbOptions = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(false);
+//		org.rocksdb.Options options = new Options().setCompressionType(CompressionType.NO_COMPRESSION)
+//				.setCreateIfMissing(true);
+//		ColumnFamilyHandle columnFamilyHandle;
+//		try {
+//			RocksDB.destroyDB(Util.ROCKSDB_PATH, new Options());
+//			RocksDB rocksDB = RocksDB.open(options, Util.ROCKSDB_PATH);
+//			final ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions()
+//					.setCompressionType(CompressionType.NO_COMPRESSION);
+//			final List<ColumnFamilyDescriptor> columnFamilyDescriptors = Arrays.asList(
+//					new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions),
+//					new ColumnFamilyDescriptor(TABLE.EQCBLOCK.name().getBytes(), columnFamilyOptions),
+//					new ColumnFamilyDescriptor(TABLE.ACCOUNT.name().getBytes(), columnFamilyOptions),
+//					new ColumnFamilyDescriptor(TABLE.ACCOUNT_MINERING.name().getBytes(), columnFamilyOptions),
+//					new ColumnFamilyDescriptor(EQCBlockChainRocksDB.getInstance().MISC_TABLE, columnFamilyOptions));
+//
+//			columnFamilyHandle = rocksDB.createColumnFamily(columnFamilyDescriptors.get(1));
+//			rocksDB.setOptions(columnFamilyHandle,
+//					MutableColumnFamilyOptions.builder().setCompressionType(CompressionType.NO_COMPRESSION).build());
+//
+//			byte[] bytes = Util.EQCCHA_MULTIPLE_FIBONACCI_MERKEL(Util.getSecureRandomBytes(), Util.ONE);
+//			long begin = System.currentTimeMillis();
+//			Log.info("" + begin);
+//			for (int i = 0; i < 10000000; ++i) {
+//				rocksDB.put(columnFamilyHandle, new ID(BigInteger.valueOf(i)).getEQCBits(), bytes);
+//
+//			}
+//			long end = System.currentTimeMillis();
+//			Log.info("Total put time: " + (end - begin) + " ms");
+//			begin = System.currentTimeMillis();
+////				Log.info("" + Util.dumpBytes(rocksDB.get(columnFamilyHandles.get(1), SerialNumber.ZERO.getEQCBits()), 16));
+//			Log.info("" + begin);
+//			for (int i = 0; i < 10000000; ++i) {
+//				rocksDB.get(columnFamilyHandle, new ID(BigInteger.valueOf(i)).getEQCBits());
+//			}
+//			end = System.currentTimeMillis();
+//			rocksDB.close();
+//			Log.info("Total get time: " + (end - begin) + " ms");
+//		} catch (RocksDBException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	public static void destoryRocksDB() {
-		try {
-			RocksDB.destroyDB(Util.ROCKSDB_PATH, new Options());
-		} catch (RocksDBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			RocksDB.destroyDB(Util.ROCKSDB_PATH, new Options());
+//		} catch (RocksDBException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	public static void testTimestamp() {
@@ -1285,23 +1281,23 @@ public class Test {
 	}
 
 	public static void testRocksDBAccount() {
-		Account account = new AssetAccount();
-		Passport passport = new Passport();
-		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
-		passport.setID(ID.TWO);
-		account.setPassport(passport);
-		account.setLockCreateHeight(ID.ZERO);
-		Asset asset = new CoinAsset();
-		asset.deposit(new ID(500000));
-		account.setAsset(asset);
-		try {
-			EQCBlockChainRocksDB.getInstance().getInstance().saveAccount(account);
-			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(ID.TWO);
-			Log.info(account.getPassport().toString());
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		Account account = new AssetAccount();
+//		Passport passport = new Passport();
+//		passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+//		passport.setID(ID.TWO);
+//		account.setPassport(passport);
+//		account.setLockCreateHeight(ID.ZERO);
+//		Asset asset = new CoinAsset();
+//		asset.deposit(new ID(500000));
+//		account.setAsset(asset);
+//		try {
+//			EQCBlockChainRocksDB.getInstance().getInstance().saveAccount(account);
+//			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(ID.TWO);
+//			Log.info(account.getPassport().toString());
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 
 //		RocksIterator rocksIterator = EQCBlockChainRocksDB.getInstance().getInstance().getRocksDB().newIterator(EQCBlockChainRocksDB.getInstance().getInstance().getTableHandle(TABLE.ACCOUNT));
 //		rocksIterator.seekToFirst();
@@ -1319,40 +1315,40 @@ public class Test {
 	}
 
 	public static void testDisplayAccount() {
-		Account account;
-		try {
-			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(ID.TWO);
-			Log.info(account.getPassport().toString());
-			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(new ID(3));
-			Log.info(account.getPassport().toString());
-		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		Account account;
+//		try {
+//			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(ID.TWO);
+//			Log.info(account.getPassport().toString());
+//			account = EQCBlockChainRocksDB.getInstance().getInstance().getAccount(new ID(3));
+//			Log.info(account.getPassport().toString());
+//		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	public static void testDisplayEQCBlock(ID height) {
-		try {
-			Log.info(EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(height, false).getRoot().toString());
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			Log.info(EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(height, false).getRoot().toString());
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	public static void testDisplayAllAccount() throws Exception {
-		BigInteger serialNumber;
-		try {
-			serialNumber = EQCBlockChainRocksDB.getInstance().getInstance()
-					.getTotalAccountNumbers(EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight());
-			for (int i = Util.INIT_ADDRESS_SERIAL_NUMBER; i < serialNumber.longValue()
-					+ Util.INIT_ADDRESS_SERIAL_NUMBER; ++i) {
-				Log.info(EQCBlockChainRocksDB.getInstance().getInstance().getAccount(new ID(i)).toString());
-			}
-		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException | ClassNotFoundException | SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		BigInteger serialNumber;
+//		try {
+//			serialNumber = EQCBlockChainRocksDB.getInstance().getInstance()
+//					.getTotalAccountNumbers(EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight());
+//			for (int i = Util.INIT_ADDRESS_SERIAL_NUMBER; i < serialNumber.longValue()
+//					+ Util.INIT_ADDRESS_SERIAL_NUMBER; ++i) {
+//				Log.info(EQCBlockChainRocksDB.getInstance().getInstance().getAccount(new ID(i)).toString());
+//			}
+//		} catch (NoSuchFieldException | IllegalStateException | RocksDBException | IOException | ClassNotFoundException | SQLException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	public static void testMisc() {
@@ -1387,19 +1383,19 @@ public class Test {
 	}
 
 	public static void testSingularBlockBytes() {
-		Configuration.getInstance().updateIsInitSingularityBlock(false);
-		EQCHive eqcBlock;
-		try {
-			eqcBlock = Util.recoverySingularityStatus();
-			Log.info(eqcBlock.toString());
-			EQCBlockChainH2.getInstance().saveEQCHive(eqcBlock);
-			EQCBlockChainRocksDB.getInstance().getInstance().saveEQCHive(eqcBlock);
-			eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(eqcBlock.getHeight(), false);
-			Log.info(eqcBlock.toString());
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		Configuration.getInstance().updateIsInitSingularityBlock(false);
+//		EQCHive eqcBlock;
+//		try {
+//			eqcBlock = Util.recoverySingularityStatus();
+//			Log.info(eqcBlock.toString());
+//			EQCBlockChainH2.getInstance().saveEQCHive(eqcBlock);
+//			EQCBlockChainRocksDB.getInstance().getInstance().saveEQCHive(eqcBlock);
+//			eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(eqcBlock.getHeight(), false);
+//			Log.info(eqcBlock.toString());
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	public static void testVerifyAddress() {
@@ -1460,8 +1456,8 @@ public class Test {
 	}
 
 	public static void testCF2() {
-		ColumnFamilyDescriptor columnFamilyDescriptor = new ColumnFamilyDescriptor("abc".getBytes());
-		String data;
+//		ColumnFamilyDescriptor columnFamilyDescriptor = new ColumnFamilyDescriptor("abc".getBytes());
+//		String data;
 //		try {
 //			data = "a";
 //			EQCBlockChainRocksDB.getInstance().put(TABLE.ACCOUNT_MINERING, data.getBytes(), data.getBytes());
@@ -1522,7 +1518,7 @@ public class Test {
 //		}
 	}
 
-	public static void testTakeSnapshot() throws RocksDBException, Exception {
+	public static void testTakeSnapshot() throws Exception {
 		Account account = new AssetAccount();
 		Passport passport = new Passport();
 		passport.setID(ID.ZERO);
@@ -1579,7 +1575,7 @@ public class Test {
 		txOut.setValue(500 * Util.ABC);
 		transaction.addTxOut(txOut);
 		try {
-			transaction.setNonce(Util.DB().getAccount(txIn.getPassport().getAddressAI())
+			transaction.setNonce(Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL)
 					.getAsset(Asset.EQCOIN).getNonce().getNextID());
 			byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
 			byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
@@ -1601,7 +1597,7 @@ public class Test {
 				e.printStackTrace();
 			}
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
-					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
+					Util.DB().getEQCBlockTailHeight(),
 					new Filter(Mode.MINING));
 			publicKey2.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
 			transaction.getTxIn().getPassport()
@@ -1649,15 +1645,15 @@ public class Test {
 		operationTransaction.setOperation(updateAddressOperation);
 		operationTransaction.setTxIn(txIn);
 		try {
-			operationTransaction.setNonce(EQCBlockChainRocksDB.getInstance().getInstance()
-					.getAccount(txIn.getPassport().getAddressAI()).getAsset(Asset.EQCOIN).getNonce().getNextID());
+			operationTransaction.setNonce(Util.DB()
+					.getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL).getAsset(Asset.EQCOIN).getNonce().getNextID());
 			operationTransaction.cypherTxInValue(TXFEE_RATE.POSTPONE0);
 			Log.info("getMaxBillingSize: " + operationTransaction.getMaxBillingLength());
 			Log.info("getTxFeeLimit: " + operationTransaction.getTxFeeLimit());
 			Log.info("getQosRate: " + operationTransaction.getQosRate());
 			Log.info("getQos: " + operationTransaction.getQos());
 			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
-					EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight(),
+					Util.DB().getEQCBlockTailHeight(),
 					new Filter(Mode.MINING));
 			operationTransaction.sign(ecdsa);
 			EQCBlockChainH2.getInstance().saveTransactionInPool(operationTransaction);
@@ -1810,11 +1806,11 @@ public class Test {
 	public static void testVerifyBlock() {
 		ID id;
 		try {
-			id = EQCBlockChainRocksDB.getInstance().getInstance().getEQCBlockTailHeight();
+			id = Util.DB().getEQCBlockTailHeight();
 			for (int i = 1; i < id.intValue(); ++i) {
 				AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i),
 						new Filter(Mode.MINING));
-				EQCHive eqcBlock = EQCBlockChainRocksDB.getInstance().getInstance().getEQCHive(new ID(i), true);
+				EQCHive eqcBlock = Util.DB().getEQCHive(new ID(i), true);
 				try {
 					eqcBlock.isValid(accountsMerkleTree);
 				} catch (Exception e) {
@@ -2009,7 +2005,7 @@ public class Test {
 		TxIn txIn = new TxIn();
 		txIn.setPassport(new Passport(userAccount.getReadableAddress()));
 		try {
-			txIn.getPassport().setID(EQCBlockChainRPC.getInstance().getAccount(txIn.getPassport().getAddressAI()).getID());
+			txIn.getPassport().setID(EQCBlockChainRPC.getInstance().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL).getID());
 		} catch (Exception e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();

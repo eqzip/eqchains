@@ -47,8 +47,6 @@ import com.eqchains.configuration.Configuration;
 import com.eqchains.crypto.MerkleTree;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
-import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.rpc.IPList;
 import com.eqchains.rpc.NewHive;
 import com.eqchains.rpc.TailInfo;
@@ -183,10 +181,10 @@ public class Singularity {
 //			Log.info("" + Util.DB().getEQCHive(ID.valueOf(1969), false).toString());
 //			Log.info("" + Util.cypherTotalSupply(ID.THREE));
 //			Log.info(SyncblockNetworkClient.getBlock(ID.valueOf(410), Util.SINGULARITY_IP).toString());
-			SyncBlockService.getInstance().setMode(MODE.FULL);
+//			SyncBlockService.getInstance().setMode(MODE.FULL);
 //			Util.DB().saveEQCBlockTailHeight(ID.ZERO);
 //			ID id = Util.DB().getEQCBlockTailHeight();
-			SyncBlockService.getInstance().start();
+//			SyncBlockService.getInstance().start();
 //			MinerService.getInstance().start();
 //			Thread.sleep(5000);
 //			MinerService.getInstance().stopMining();
@@ -376,6 +374,7 @@ public class Singularity {
 //		for(int i=1; i<=1001; ++i)
 //		Log.info(i+  " : " + Util.fibonacci(i));
 //		Test.testHashTime();
+//		Test.test999Len();
 //		Log.info(Keystore.getInstance().getUserAccounts().get(1).getAddress() + " Len: " + Keystore.getInstance().getUserAccounts().get(1).getAddress().length());
 //		Log.info(EQCType.bytesToASCIISting(EQCType.stringToASCIIBytes(Keystore.getInstance().getUserAccounts().get(1).getAddress())));
 //		Log.info(Util.dumpBytes(EQCType.stringToASCIIBytes(Keystore.getInstance().getUserAccounts().get(1).getAddress()), 16) + " Len: " + EQCType.stringToASCIIBytes(Keystore.getInstance().getUserAccounts().get(1).getAddress()).length);
@@ -523,7 +522,7 @@ public class Singularity {
 //		Log.info(beginBigDecimal.divide(new BigDecimal("1234567890"), mathContext).toPlainString());
 //		Test.testHashTime();
 //		Test.testEQCCHA_MULTIPLETime();
-//		Test.testMultiExtendTimeMix();
+		Test.testMultiExtendTimeMix();
 //		Test.testCreateAddressTime();
 //		Test.testVerrifyAddressTime();
 //		byte[] array = new byte[64];

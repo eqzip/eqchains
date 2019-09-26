@@ -34,7 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.rocksdb.RocksDBException;
+
 
 import com.eqchains.blockchain.account.Account.AccountType;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
@@ -217,7 +217,7 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	}
 
 	@Override
-	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(passport.getBytes());
@@ -238,7 +238,7 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	}
 
 	@Override
-	public byte[] getHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public byte[] getHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(getBodyHashBytes(soleUpdate));

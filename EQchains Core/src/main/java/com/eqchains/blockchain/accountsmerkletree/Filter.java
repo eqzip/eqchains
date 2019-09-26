@@ -34,21 +34,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Vector;
-
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksIterator;
-import org.rocksdb.WriteBatch;
-import org.rocksdb.WriteOptions;
-
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Passport;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.persistence.EQCBlockChainRocksDB;
-import com.eqchains.persistence.EQCBlockChainRocksDB.TABLE;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -119,7 +110,7 @@ public class Filter {
 			if (accountsMerkleTree.getHeight().compareTo(ID.ZERO) > 0) {
 				ID tailHeight = Util.DB().getEQCBlockTailHeight();
 				if (accountsMerkleTree.getHeight().isNextID(tailHeight)) {
-					account = Util.DB().getAccount(id);
+					account = Util.DB().getAccount(id, Mode.GLOBAL);
 					if(!(account != null && account.getCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getLockCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) <= 0)) {
 						Log.Error("Account exists but doesn't valid" + account);
 						account = null;
@@ -168,7 +159,7 @@ public class Filter {
 			if (accountsMerkleTree.getHeight().compareTo(ID.ZERO) > 0) {
 				ID tailHeight = Util.DB().getEQCBlockTailHeight();
 				if (accountsMerkleTree.getHeight().isNextID(tailHeight)) {
-					account = Util.DB().getAccount(passport.getAddressAI());
+					account = Util.DB().getAccount(passport.getAddressAI(), Mode.GLOBAL);
 					if(!(account != null && account.getCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getLockCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) <= 0)) {
 						Log.Error("Account exists but doesn't valid" + account);
 						account = null;
@@ -249,6 +240,13 @@ public class Filter {
 	 */
 	public void setAccountsMerkleTree(AccountsMerkleTree accountsMerkleTree) {
 		this.accountsMerkleTree = accountsMerkleTree;
+	}
+
+	/**
+	 * @return the mode
+	 */
+	public Mode getMode() {
+		return mode;
 	}
 
 }

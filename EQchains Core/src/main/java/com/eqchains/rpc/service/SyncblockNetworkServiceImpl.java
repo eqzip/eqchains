@@ -38,6 +38,7 @@ import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
+import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHeader;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.persistence.EQCBlockChainH2;
@@ -110,7 +111,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 		try {
 			europa = new TailInfo();
 			europa.setHeight(Util.DB().getEQCBlockTailHeight());
-			eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE);
+			eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
 			europa.setCheckPointHeight(eQcoinSubchainAccount.getCheckPointHeight());
 			europa.setBlockTailProof(Util.DB().getEQCHive(europa.getHeight(), true).getEqcHeader().getProof());
 			io = europa.getO();

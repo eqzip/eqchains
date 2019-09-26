@@ -38,7 +38,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Vector;
 
-import org.rocksdb.RocksDBException;
+
 
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
@@ -217,7 +217,7 @@ public class OperationTransaction extends TransferTransaction {
 	 */
 	@Override
 	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
-			throws NoSuchFieldException, IllegalStateException, RocksDBException, IOException, Exception {
+			throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 		if(!operation.isMeetPreconditions(this, accountsMerkleTree)) {
 			Log.Error("Operation " + operation + " doesn't meet preconditions.");
 			return false;

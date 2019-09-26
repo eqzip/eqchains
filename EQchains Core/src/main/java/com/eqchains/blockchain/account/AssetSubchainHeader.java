@@ -48,7 +48,6 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
-	private ID founderID;
 	private ID subchainID;
 	private String subchainName;
 	private String symbol;
@@ -259,23 +258,7 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 		
 	}
 
-	/**
-	 * @return the founderID
-	 */
-	public ID getFounderID() {
-		return founderID;
-	}
-
-	/**
-	 * @param founderID the founderID to set
-	 */
-	public void setFounderID(ID founderID) {
-		this.founderID = founderID;
-	}
-
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		// parse FounderID
-		founderID = new ID(EQCType.parseEQCBits(is));
 		// Parse SubchainID
 		subchainID = new ID(EQCType.parseEQCBits(is));
 		// Parse subchainName
@@ -318,7 +301,6 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	public byte[] getBodyBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(founderID.getEQCBits());
 			os.write(subchainID.getEQCBits());
 			os.write(EQCType.stringToBIN(subchainName));
 			os.write(EQCType.stringToBIN(symbol));
@@ -346,11 +328,12 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 
 	@Override
 	public boolean isSanity() {
-		if(founderID == null || subchainID == null || subchainName == null || symbol == null || decimals == null || maxSupply == null || maxSupplyUpdateHeight == null ||
+		if(subchainID == null || subchainName == null || symbol == null || decimals == null || maxSupply == null || maxSupplyUpdateHeight == null ||
 				totalSupply == null || totalSupplyUpdateHeight == null || totalAccountNumbers == null || totalAccountNumbersUpdateHeight == null || totalTransactionNumbers == null || totalTransactionNumbersUpdateHeight == null) {
 			return false;
 		}
-		if(!founderID.isSanity() || !subchainID.isSanity() || !(subchainName.length() > 0) || !(symbol.length() > 0) || !(decimals.length() > 0) ||
+		// Here need do more job about symbol for example all letter of symbol must be upper letter and which length must bigger than 3 and less than 6. Need implement one specific for this
+		if(!subchainID.isSanity() || !(subchainName.length() > 0) || !(symbol.length() > 0) || !(decimals.length() > 0) ||
 				!maxSupply.isSanity() || !maxSupplyUpdateHeight.isSanity() || !totalSupply.isSanity() || !totalSupplyUpdateHeight.isSanity() ||
 				!totalAccountNumbers.isSanity() || !totalAccountNumbersUpdateHeight.isSanity() || !totalTransactionNumbers.isSanity() || !totalTransactionNumbersUpdateHeight.isSanity()) {
 			return false;
@@ -378,7 +361,6 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 		return 
 				"\"AssetSubchainHeader\":" + 
 				"\n{\n" +
-					"\"FounderID\":" + "\"" + founderID + "\"" + ",\n" +
 					"\"SubchainID\":" + "\"" + subchainID + "\"" + ",\n" +
 					"\"SubchainName\":" + "\"" + subchainName + "\"" + ",\n" +
 					"\"Symbol\":" + "\"" + symbol + "\"" + ",\n" +

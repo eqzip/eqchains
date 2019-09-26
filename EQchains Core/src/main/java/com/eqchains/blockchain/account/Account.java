@@ -39,9 +39,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
-
-import org.rocksdb.RocksDBException;
-
 import com.eqchains.avro.O;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
@@ -610,7 +607,7 @@ public abstract class Account implements EQCHashTypable, EQCHashInheritable {
 	}
 
 	@Override
-	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, RocksDBException, SQLException, Exception {
+	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(passport.getBytes());
