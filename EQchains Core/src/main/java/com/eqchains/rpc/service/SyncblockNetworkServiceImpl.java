@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -68,7 +68,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 			possibleNode.setNodeType(NODETYPE.FULL);
 			possibleNode.setTime(System.currentTimeMillis());
 			PossibleNodeService.getInstance().offerNode(possibleNode);
-			info = Util.getDefaultInfo().getO();
+			info = Util.getDefaultInfo().getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -81,7 +81,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 	public O getMinerList() {
 		O minerList = null;
 		try {
-			minerList = EQCBlockChainH2.getInstance().getMinerList().getO();
+			minerList = EQCBlockChainH2.getInstance().getMinerList().getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -94,7 +94,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 	public O getFullNodeList() {
 		O fullNodeList = null;
 		try {
-			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getO();
+			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -106,7 +106,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 	@Override
 	public O getBlockTail() {
 		O io = null;
-		TailInfo europa = null;
+		TailInfo<O> europa = null;
 		EQcoinSubchainAccount eQcoinSubchainAccount = null;
 		try {
 			europa = new TailInfo();
@@ -114,7 +114,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 			eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
 			europa.setCheckPointHeight(eQcoinSubchainAccount.getCheckPointHeight());
 			europa.setBlockTailProof(Util.DB().getEQCHive(europa.getHeight(), true).getEqcHeader().getProof());
-			io = europa.getO();
+			io = europa.getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -128,9 +128,9 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 		O block = null;
 		EQCHive eqcHive = null;
 		try {
-			eqcHive = Util.DB().getEQCHive(new ID(height), false);
+			eqcHive = Util.DB().getEQCHive(new ID(height.getO().array()), false);
 			if(eqcHive != null) {
-				block = eqcHive.getO();
+				block = Util.bytes2O(eqcHive.getBytes());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -144,7 +144,7 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 		O eqcHeaderHash = null;
 		byte[] eqcHeaderHash1 = null;
 		try {
-			eqcHeaderHash1 = Util.DB().getEQCHeaderHash(new ID(height));
+			eqcHeaderHash1 = Util.DB().getEQCHeaderHash(new ID(height.getO().array()));
 			if(eqcHeaderHash1 != null) {
 				eqcHeaderHash = new O(ByteBuffer.wrap(eqcHeaderHash1));
 			}
@@ -160,9 +160,9 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 		O eqcHeader = null;
 		EQCHeader eqcHeader1 = null;
 		try {
-			eqcHeader1 = Util.DB().getEQCHive(new ID(height), true).getEqcHeader();
+			eqcHeader1 = Util.DB().getEQCHive(new ID(height.getO().array()), true).getEqcHeader();
 			if(eqcHeader1 != null) {
-				eqcHeader = eqcHeader1.getO();
+				eqcHeader = Util.bytes2O(eqcHeader1.getBytes());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

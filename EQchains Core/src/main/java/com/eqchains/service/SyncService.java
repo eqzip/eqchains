@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -31,6 +31,7 @@ package com.eqchains.service;
 
 import java.util.Vector;
 
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
@@ -83,11 +84,11 @@ public class SyncService extends EQCService {
 //			}
 			
 			// Sync Transaction
-			IPList ipList = EQCBlockChainH2.getInstance().getMinerList();
+			IPList<O> ipList = EQCBlockChainH2.getInstance().getMinerList();
 			ipList.addIP(Util.SINGULARITY_IP);
-			TransactionIndexList transactionIndexList = null;
-			TransactionIndexList needSyncList = null;
-			TransactionList transactionList = null;
+			TransactionIndexList<O> transactionIndexList = null;
+			TransactionIndexList<O> needSyncList = null;
+			TransactionList<O> transactionList = null;
 			Transaction transaction = null;
 			for(String ip:ipList.getIpList()) {
 				Log.info("Begin get Transaction list");
@@ -95,7 +96,7 @@ public class SyncService extends EQCService {
 				needSyncList = new TransactionIndexList();
 				if(transactionIndexList != null) {
 					Log.info("Begin sync Transaction");
-					for(TransactionIndex transactionIndex:transactionIndexList.getTransactionIndexList()) {
+					for(TransactionIndex<O> transactionIndex:transactionIndexList.getTransactionIndexList()) {
 						if(!EQCBlockChainH2.getInstance().isTransactionExistsInPool(transactionIndex)) {
 							needSyncList.addTransactionIndex(transactionIndex);
 						}

@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -38,6 +38,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 
 import org.h2.util.IntIntHashMap;
 
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
@@ -153,7 +154,7 @@ public class SyncBlockService extends EQCService {
 	}
 
 	private void onFind(EQCServiceState state) {
-		IPList minerList = null;
+		IPList<O> minerList = null;
 		String maxTail = null;
 		TailInfo minerTailInfo = null;
 		TailInfo maxTailInfo = null;
@@ -178,7 +179,7 @@ public class SyncBlockService extends EQCService {
 			}
 			
 			Log.info("MinerList's size: " + minerList.getIpList().size());
-			Vector<TailInfo> minerTailList = new Vector<>();
+			Vector<TailInfo<O>> minerTailList = new Vector<>();
 			for (String ip : minerList.getIpList()) {
 				try {
 					// Doesn't need include current Node's ip

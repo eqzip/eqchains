@@ -9,16 +9,16 @@ import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
 
-public class TransactionList extends AvroO {
+public class TransactionList<T> extends IO<T> {
 	private Vector<byte[]> transactionList;
 	
 	public TransactionList() {
 		transactionList = new Vector<>();
 	}
 	
-	public TransactionList(O io) throws Exception {
+	public TransactionList(T type) throws Exception {
 		transactionList = new Vector<>();
-		parse(io);
+		parse(type);
 	}
 	
 	@Override

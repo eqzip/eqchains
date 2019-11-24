@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -56,7 +56,7 @@ import com.eqchains.util.Util;
  */
 public class SyncblockNetworkClient extends EQCRPCClient {
 
-	public static Info ping(Cookie cookie, String ip) throws Exception {
+	public static Info ping(Cookie<O> cookie, String ip) throws Exception {
 		Info info = null;
 		NettyTransceiver nettyTransceiver = null;
 		SyncblockNetwork client = null;
@@ -66,7 +66,7 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
-			info = new Info(client.ping(cookie.getO()));
+			info = new Info(client.ping(cookie.getProtocol()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -167,7 +167,7 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
-			eqcHive = new EQCHive(client.getBlock(height.getO()), false);
+			eqcHive = new EQCHive(client.getBlock(Util.bytes2O(height.getEQCBits())).getO().array(), false);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -192,7 +192,7 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
-			eqcHeaderHash = client.getEQCHeaderHash(height.getO()).o.array();
+			eqcHeaderHash = client.getEQCHeaderHash(Util.bytes2O(height.getEQCBits())).getO().array();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -217,7 +217,7 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(SyncblockNetwork.class, nettyTransceiver);
-			eqcHeader = new EQCHeader(client.getEQCHeader(height.getO()));
+			eqcHeader = new EQCHeader(client.getEQCHeader(Util.bytes2O(height.getEQCBits())).getO().array());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -241,7 +241,7 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 					new InetSocketAddress(InetAddress.getByName(remoteIP), Util.SYNCBLOCK_NETWORK_PORT), new OioClientSocketChannelFactory(
 			                Executors.newCachedThreadPool()), Util.DEFAULT_TIMEOUT);
 			proxy = SpecificRequestor.getClient(SyncblockNetwork.class, client);
-			proxy.ping(cookie.getO());
+			proxy.ping(Util.getCookie().getProtocol());
 			time = System.currentTimeMillis() - time;
 		} catch (Exception e) {
 			Log.Error(e.getMessage());
@@ -254,7 +254,7 @@ public class SyncblockNetworkClient extends EQCRPCClient {
 		return time;
 	}
 
-	public static String getFastestServer(IPList ipList) {
+	public static String getFastestServer(IPList<O> ipList) {
 		String fastestServer = null;
 		long time = 0;
 		long maxTime = 0;

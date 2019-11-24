@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -43,24 +43,43 @@ import com.eqchains.serialization.EQCType;
  * @date Jun 25, 2019
  * @email 10509759@qq.com
  */
-public abstract class AvroO implements EQCTypable, EQCInheritable {
+public abstract class IO<T> implements EQCTypable, EQCInheritable {
+	public IO() {}
 	
-	public AvroO() {}
-	
-	public AvroO(ByteArrayInputStream is) throws Exception {
+	public IO(ByteArrayInputStream is) throws Exception {
 		parseBody(is);
 	}
 	
-	protected void parse(O o) throws Exception {
-		byte[] bytes = o.getO().array();
+	protected void parse(T type) throws Exception {
+		byte[] bytes = null;
+		if(type instanceof O) {
+			bytes = ((O) type).getO().array();
+		}
+		else {
+			throw new IllegalStateException("Invalid IO type");
+		}
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseBody(is);
 		EQCType.assertNoRedundantData(is);
 	}
 	
-	public O getO() throws Exception {
-		return new O(ByteBuffer.wrap(getBytes()));
+	public T getProtocol() throws Exception {
+		T type = null;
+		if (type instanceof O) {
+			type = (T) new O(ByteBuffer.wrap(getBytes()));
+		}
+		else {
+			throw new IllegalStateException("Invalid IO type");
+		}
+		return type;
 	}
+	
+//	public O getProtocol() throws Exception {
+////		if(type instanceof O) {
+////			return (T) new O(ByteBuffer.wrap(getBytes()));
+////		}
+//		return new O(ByteBuffer.wrap(getBytes()));
+//	}
 
 	public byte[] getBytes() throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();

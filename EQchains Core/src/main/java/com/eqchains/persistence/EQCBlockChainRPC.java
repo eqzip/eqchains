@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -31,6 +31,8 @@ package com.eqchains.persistence;
 
 import java.sql.SQLException;
 import java.util.Vector;
+
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
@@ -56,7 +58,7 @@ import com.eqchains.util.Util;
  * @date Jul 29, 2019
  * @email 10509759@qq.com
  */
-public class EQCBlockChainRPC implements EQCBlockChain {
+public class EQCBlockChainRPC implements EQCBlockChain<O> {
 	private static EQCBlockChainRPC instance;
 	// Current fastest Miner Server
 	private String ip;

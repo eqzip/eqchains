@@ -8,12 +8,12 @@ import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 
-public class Nest extends AvroO {
+public class Nest<T> extends IO<T> {
 	private ID id;
 	private ID assetID;
 	
-	public Nest(O io) throws Exception {
-		parse(io);
+	public Nest(T type) throws Exception {
+		parse(type);
 	}
 	
 	public Nest() {

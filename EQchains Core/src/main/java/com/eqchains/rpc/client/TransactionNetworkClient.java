@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -62,7 +62,7 @@ import com.eqchains.util.Util;
  */
 public class TransactionNetworkClient extends EQCRPCClient {
 
-	public static Info ping(Cookie cookie, String ip) throws Exception {
+	public static Info ping(Cookie<O> cookie, String ip) throws Exception {
 		Info info = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
@@ -72,7 +72,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			info = new Info(client.ping(cookie.getO()));
+			info = new Info(client.ping(cookie.getProtocol()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -123,7 +123,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			info = new Info(client.sendTransaction(transaction.getO()));
+			info = new Info(client.sendTransaction(Util.bytes2O(transaction.getRPCBytes())));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -148,7 +148,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			id = new ID(client.getID(new O(ByteBuffer.wrap(addressAI))));
+			id = new ID(client.getID(new O(ByteBuffer.wrap(addressAI))).getO().array());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -173,7 +173,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			account = Account.parseAccount(client.getAccount(new O(ByteBuffer.wrap(addressAI))));
+			account = Account.parseAccount(client.getAccount(Util.bytes2O(addressAI)).getO().array());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -188,7 +188,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		return account;
 	}
 
-	public static MaxNonce getMaxNonce(Nest nest, String ip) throws Exception {
+	public static MaxNonce getMaxNonce(Nest<O> nest, String ip) throws Exception {
 		MaxNonce maxNonce = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
@@ -198,7 +198,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			maxNonce = new MaxNonce(client.getMaxNonce(nest.getO()));
+			maxNonce = new MaxNonce(client.getMaxNonce(nest.getProtocol()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -213,7 +213,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		return maxNonce;
 	}
 
-	public static Balance getBalance(Nest nest, String ip) throws Exception {
+	public static Balance getBalance(Nest<O> nest, String ip) throws Exception {
 		Balance balance = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
@@ -223,7 +223,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			balance = new Balance(client.getBalance(nest.getO()));
+			balance = new Balance(client.getBalance(nest.getProtocol()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -248,7 +248,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			signHash = new SignHash(client.getSignHash(id.getO()));
+			signHash = new SignHash(client.getSignHash(Util.bytes2O(id.getEQCBits())));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -273,7 +273,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			transactionList = new TransactionList(client.getPendingTransactionList(id.getO()));
+			transactionList = new TransactionList(client.getPendingTransactionList(Util.bytes2O(id.getEQCBits())));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -298,7 +298,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			proxy = SpecificRequestor.getClient(TransactionNetwork.class, client);
-			proxy.ping(cookie.getO());
+			proxy.ping(Util.getCookie().getProtocol());
 			time = System.currentTimeMillis() - time;
 		} catch (Exception e) {
 			Log.Error(e.getMessage());

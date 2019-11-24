@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -31,6 +31,7 @@ package com.eqchains.service;
 
 import java.io.IOException;
 
+import com.eqchains.avro.O;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.rpc.IPList;
@@ -84,7 +85,7 @@ public class BroadcastNewHiveService extends EQCService {
 					Log.Error(e.getMessage());
 				}
 			}
-			IPList minerList = EQCBlockChainH2.getInstance().getMinerList();
+			IPList<O> minerList = EQCBlockChainH2.getInstance().getMinerList();
 			if(!minerList.isEmpty()) {
 				for(String ip:minerList.getIpList()) {
 					if(!Util.IP.equals(ip)) {

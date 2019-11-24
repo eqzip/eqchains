@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -29,6 +29,7 @@
  */
 package com.eqchains.rpc.client;
 
+import com.eqchains.avro.O;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
 import com.eqchains.rpc.Info;
@@ -39,30 +40,29 @@ import com.eqchains.util.Util;
  * @date Jun 29, 2019
  * @email 10509759@qq.com
  */
-public abstract class EQCRPCClient {
-	protected static Cookie cookie;
+public abstract class EQCRPCClient<T> {
+	protected  Cookie<T> cookie;
 	protected Info info;
-	static {
-		cookie = new Cookie();
-		cookie.setIp(Util.IP);
-		cookie.setVersion(Util.PROTOCOL_VERSION);
-	}
+	
 	public EQCRPCClient() {
 		info = new Info();
 		info.setCode(Code.OK);
+		cookie = new Cookie<T>();
+		cookie.setIp(Util.IP);
+		cookie.setVersion(Util.PROTOCOL_VERSION);
 		info.setCookie(cookie);
 	}
 	
 	/**
 	 * @return the cookie
 	 */
-	public Cookie getCookie() {
+	public Cookie<T> getCookie() {
 		return cookie;
 	}
 	/**
 	 * @param cookie the cookie to set
 	 */
-	public void setCookie(Cookie cookie) {
+	public void setCookie(Cookie<T> cookie) {
 		this.cookie = cookie;
 	}
 	/**

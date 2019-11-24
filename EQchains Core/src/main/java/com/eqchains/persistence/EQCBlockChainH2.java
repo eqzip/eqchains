@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -50,6 +50,7 @@ import java.util.Comparator;
 import java.util.Objects;
 import java.util.Vector;
 
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetSubchainAccount;
@@ -89,7 +90,7 @@ import com.eqchains.util.Util;
  * @date Oct 6, 2018
  * @email 10509759@qq.com
  */
-public class EQCBlockChainH2 implements EQCBlockChain {
+public class EQCBlockChainH2 implements EQCBlockChain<O> {
 	private static final String JDBC_URL = "jdbc:h2:" + Util.H2_DATABASE_NAME;
 	private static final String USER = "W3C SGML";
 	/**
@@ -1942,8 +1943,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public IPList getMinerList() throws SQLException, Exception {
-		IPList ipList = new IPList();
+	public IPList<O> getMinerList() throws SQLException, Exception {
+		IPList<O> ipList = new IPList();
 		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM NETWORK WHERE type=?");
 		preparedStatement.setInt(1, NODETYPE.MINER.ordinal());
 		ResultSet resultSet = preparedStatement.executeQuery();
@@ -1978,8 +1979,8 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 	}
 
 	@Override
-	public IPList getFullNodeList() throws SQLException, Exception {
-		IPList ipList = new IPList();
+	public IPList<O> getFullNodeList() throws SQLException, Exception {
+		IPList<O> ipList = new IPList();
 		PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM NETWORK WHERE type=?");
 		preparedStatement.setInt(1, NODETYPE.FULL.ordinal());
 		ResultSet resultSet = preparedStatement.executeQuery();
@@ -2025,16 +2026,6 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 			transactionIndexList.addTransactionIndex(transactionIndex);
 		}
 		return transactionIndexList;
-	}
-
-	@Override
-	public TransactionList getTransactionListInPool(TransactionIndexList transactionIndexList)
-			throws SQLException, Exception {
-		TransactionList transactionList = new TransactionList();
-		for (TransactionIndex transactionIndex : transactionIndexList.getTransactionIndexList()) {
-			transactionList.addTransaction(getTransactionInPool(transactionIndex));
-		}
-		return transactionList;
 	}
 
 	private Transaction getTransactionInPool(TransactionIndex transactionIndex) throws SQLException, Exception {
@@ -2857,4 +2848,14 @@ public class EQCBlockChainH2 implements EQCBlockChain {
 		return null;
 	}
 
+	@Override
+	public  TransactionList<byte[]> getTransactionListInPool(TransactionIndexList<byte[]> transactionIndexList)
+			throws SQLException, Exception {
+		TransactionList<byte[]> transactionList = new TransactionList();
+		for (TransactionIndex<byte[]> transactionIndex : transactionIndexList.getTransactionIndexList()) {
+			transactionList.addTransaction(getTransactionInPool(transactionIndex));
+		}
+		return transactionList;
+	}
+	
 }

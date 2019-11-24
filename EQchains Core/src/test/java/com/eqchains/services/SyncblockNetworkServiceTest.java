@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -36,6 +36,7 @@ import org.apache.avro.ipc.netty.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.junit.jupiter.api.Test;
 
+import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;
@@ -55,7 +56,7 @@ public class SyncblockNetworkServiceTest {
     	NettyTransceiver client = null;
     	try {
 //    		Util.init();
-    		Cookie cookie = new Cookie();
+    		Cookie<O> cookie = new Cookie();
     		cookie.setIp("14.221.177.1918");
     		cookie.setVersion(Util.PROTOCOL_VERSION);
     		Info info = new Info();
@@ -71,7 +72,7 @@ public class SyncblockNetworkServiceTest {
 //            cookie.setIp(Util.getCookie().getIp().toString());
 //            cookie.setVersion("0.01");
             System.out.println("Calling proxy.send with message:  " + cookie);
-            System.out.println("Result: " + proxy.ping(cookie.getO()));
+            System.out.println("Result: " + proxy.ping(cookie.getProtocol()));
 
 //            // cleanup
 //            client.close();

@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -62,7 +62,7 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 	 */
 	@Override
 	public O ping(O cookie) {
-		Info info = null;
+		Info<O> info = null;
 		O o = null;
 		Cookie cookie1 = null;
 		try {
@@ -78,7 +78,7 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 			} else {
 				info = Util.getInfo(Code.WRONGPROTOCOL, null);
 			}
-			o = info.getO();
+			o = info.getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -95,7 +95,7 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 	public O getMinerList() {
 		O minerList = null;
 		try {
-			minerList = EQCBlockChainH2.getInstance().getMinerList().getO();
+			minerList = EQCBlockChainH2.getInstance().getMinerList().getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -111,7 +111,7 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 	public O getFullNodeList() {
 		O fullNodeList = null;
 		try {
-			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getO();
+			fullNodeList = EQCBlockChainH2.getInstance().getFullNodeList().getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -132,14 +132,14 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 			newBlock = new NewHive(block);
 			Log.info("MinerNetworkServiceImpl received new block");
 			if(newBlock.getCookie().isSanity()) {
-				info = Util.getDefaultInfo().getO();
+				info = Util.getDefaultInfo().getProtocol();
 				newBlockState = new NewHiveState(State.PENDINGNEWBLOCK);
 				newBlockState.setNewBlock(newBlock);
 				PendingNewHiveService.getInstance().offerNewBlockState(newBlockState);
 				Log.info("Call PendingNewBlockService handle the new block");
 			}
 			else {
-				info = Util.getInfo(Code.WRONGPROTOCOL, null).getO();
+				info = Util.getInfo(Code.WRONGPROTOCOL, null).getProtocol();
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -156,10 +156,10 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 	public O getTransactionIndexList(O synctime) {
 		O io = null;
 		long syncTime = Util.bytesToLong(synctime.getO().array());
-		TransactionIndexList transactionIndexList = null;
+		TransactionIndexList<O> transactionIndexList = null;
 		try {
 			transactionIndexList = EQCBlockChainH2.getInstance().getTransactionIndexListInPool(syncTime, System.currentTimeMillis());
-			io = transactionIndexList.getO();
+			io = transactionIndexList.getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -175,10 +175,10 @@ public class MinerNetworkServiceImpl implements MinerNetwork {
 	@Override
 	public O getTransactionList(O transactionIndexList) {
 		O io = null;
-		TransactionList transactionList = null;
+		TransactionList<O> transactionList = null;
 		try {
 			transactionList = EQCBlockChainH2.getInstance().getTransactionListInPool(new TransactionIndexList(transactionIndexList));
-			io = transactionList.getO();
+			io = transactionList.getProtocol();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

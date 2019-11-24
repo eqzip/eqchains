@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -83,7 +83,7 @@ import org.apache.commons.net.ntp.TimeStamp;
 import org.bouncycastle.crypto.digests.RIPEMD128Digest;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 
-
+import com.eqchains.avro.O;
 import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.account.AssetAccount;
@@ -183,7 +183,7 @@ public final class Util {
 	
 	public final static int F01 = 401;
 	
-	public final static int THOUSANDPLUS = 1001;
+	public final static int THOUSANDPLUS = 101;//1001;
 
 	public final static int HUNDRED_THOUSAND = 100000;
 
@@ -277,9 +277,9 @@ public final class Util {
 	
 	public final static ID PROTOCOL_VERSION = DEFAULT_PROTOCOL_VERSION;
 	
-	private static Cookie cookie = null;
+	private static Cookie<O> cookie = null;
 
-	private static Info info = null;
+	private static Info<O> info = null;
 	
 	public static final long DEFAULT_TIMEOUT = 3000;
 	
@@ -459,9 +459,9 @@ public final class Util {
 //		Util.IP = getIP();
 		cookie.setIp(IP);//cookie.setIp(getIP());
 		cookie.setVersion(PROTOCOL_VERSION);
-		info = new Info();
-		info.setCode(Code.OK);
-		info.setCookie(cookie);
+//		info = new Info();
+//		info.setCode(Code.OK);
+//		info.setCookie(cookie);
 //		syncMinerList(); // For light node need design a way to sync miner list
 	}
 
@@ -594,15 +594,30 @@ public final class Util {
 		byteBuffer.put(data);
 		byteBuffer.put(SINGULARITY);
 		// Put the multiple extended data
+		BigInteger random;
+		byte[] randomBytes, partOfRandomBytes;
 		for (int i = 1; i <= multiple; ++i) {
 //			Log.info("Begin: " + begin.toPlainString());
-			a = begin.divide(new BigDecimal(PRIME101[i - 1]), mc);
+			random = begin.toBigInteger();
+			randomBytes = random.toByteArray();
+			partOfRandomBytes = new byte[(random.toByteArray().length/2)];
+			if(random.mod(ID.TWO).equals(ID.ZERO)) {
+				for(int j=0;j<partOfRandomBytes.length;++j) {
+					partOfRandomBytes[j] = randomBytes[2*j];
+				}
+			}
+			else {
+				for(int j=0;j<partOfRandomBytes.length;++j) {
+					partOfRandomBytes[j] = randomBytes[2*j+1];
+				}
+			}
+			a = begin.divide(new BigDecimal(new BigInteger(1, partOfRandomBytes)), mc);
 			b = a.divide(new BigDecimal(FIBONACCI[2]), mc);
 			c = a.divide(new BigDecimal(FIBONACCI[10]), mc);
-			d = b.subtract(c).abs().multiply(new BigDecimal(PRIME101[multiple - i]), mc);
+			d = b.subtract(c).abs().multiply(new BigDecimal(PRIME101[(multiple - i)%HUNDREDPULS]), mc);
 
 			begin = begin.add(a).add(b).add(c).add(d);
-//			Log.info("i: " + i + " " + begin.toPlainString());
+			Log.info("i: " + i + " " + begin.toPlainString());
 			String[] abc = begin.toPlainString().split("\\.");
 			if (abc.length == 2) {
 //				Log.info("...");
@@ -2669,20 +2684,20 @@ public final class Util {
 		return ip;
 	}
 
-	public static Cookie getCookie() {
+	public static Cookie<O> getCookie() {
 		return cookie;
 	}
 
-	public static void updateCookie() {
-		cookie.setIp(getIP());
-	}
+//	public static void updateCookie() {
+//		cookie.setIp(getIP());
+//	}
 
-	public static Info getDefaultInfo() {
+	public static Info<O> getDefaultInfo() {
 		return info;
 	}
 
-	public static Info getInfo(Code code, String message) {
-		Info info = new Info();
+	public static Info<O> getInfo(Code code, String message) {
+		Info<O> info = new Info();
 		info.setCookie(cookie);
 		info.setCode(code);
 		info.setMessage(message);
@@ -2842,8 +2857,8 @@ public final class Util {
 	}
 	
 	public static void syncMinerList() throws ClassNotFoundException, SQLException, Exception {
-		IPList ipList = EQCBlockChainH2.getInstance().getMinerList();
-		IPList ipList2 = null;
+		IPList<O> ipList = EQCBlockChainH2.getInstance().getMinerList();
+		IPList<O> ipList2 = null;
 		if (ipList.isEmpty()) {
 			if (IP.equals(SINGULARITY_IP)) {
 				return;
@@ -3035,6 +3050,10 @@ public final class Util {
 		} catch (Exception e) {
 			Log.Error(e.getMessage());
 		}
+	}
+	
+	public static O bytes2O(byte[] bytes) {
+		return new O(ByteBuffer.wrap(bytes));
 	}
 
 }

@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Foundation's EQchains core library
- * @copyright 2018-present EQchains Foundation All rights reserved...
- * Copyright of all works released by EQchains Foundation or jointly released by
- * EQchains Foundation with cooperative partners are owned by EQchains Foundation
+ * EQchains core - EQchains Federation's EQchains core library
+ * @copyright 2018-present EQchains Federation All rights reserved...
+ * Copyright of all works released by EQchains Federation or jointly released by
+ * EQchains Federation with cooperative partners are owned by EQchains Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,7 +10,7 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Foundation reserves all rights to
+ * or without prior written permission, EQchains Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
  * https://www.eqchains.com
@@ -148,8 +148,11 @@ public class Singularity {
 //		System.out.println("Begin testKeystore");
 		try {
 //			Configuration.getInstance().updateIsInitSingularityBlock(false);
-			Util.IP = args[0];
-			Util.init();
+//			Util.IP = args[0];
+//			Util.init();
+//			Test.testMultiExtendTime();
+			Test.testMultiExtendTimeMix();
+//			Test.testHashTime();
 //			Account account = Util.DB().getAccount(Asset.EQCOIN);
 //			Vector<Account> accounts = new Vector<>();
 //			for(int i=0; i<100000; ++i) {
@@ -255,7 +258,7 @@ public class Singularity {
 //			NewBlock newBlock = new NewBlock();
 //			newBlock.setEqcHive(Util.DB().getEQCBlock(Util.DB().getEQCBlockTailHeight(), false));
 //			newBlock.setCookie(Util.getCookie());
-//			NewBlock newBlock2 = new NewBlock(newBlock.getO());
+//			NewBlock newBlock2 = new NewBlock(newBlock.getProtocol());
 //			MinerNetworkClient.broadcastNewBlock(newBlock, Util.IP);
 //			MinerNetworkClient.broadcastNewBlock(newBlock, Util.IP);
 //			MinerNetworkClient.broadcastNewBlock(newBlock, Util.IP);
@@ -522,7 +525,7 @@ public class Singularity {
 //		Log.info(beginBigDecimal.divide(new BigDecimal("1234567890"), mathContext).toPlainString());
 //		Test.testHashTime();
 //		Test.testEQCCHA_MULTIPLETime();
-		Test.testMultiExtendTimeMix();
+//		Test.testMultiExtendTimeMix();
 //		Test.testCreateAddressTime();
 //		Test.testVerrifyAddressTime();
 //		byte[] array = new byte[64];
