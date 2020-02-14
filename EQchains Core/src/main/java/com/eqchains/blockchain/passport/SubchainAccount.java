@@ -1,3 +1,4 @@
+package com.eqchains.blockchain.passport;
 ///**
 // * EQchains core - EQchains Federation's EQchains core library
 // * @copyright 2018-present EQchains Federation All rights reserved...

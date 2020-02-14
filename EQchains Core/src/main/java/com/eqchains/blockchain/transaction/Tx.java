@@ -34,11 +34,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Comparator;
 
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.serialization.EQCAddressShapeInheritable;
-import com.eqchains.serialization.EQCAddressShapeTypable;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Lock.LockShape;
+import com.eqchains.serialization.EQCLockShapeInheritable;
+import com.eqchains.serialization.EQCLockShapeTypable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -51,37 +51,37 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @date Mar 27, 2019
  * @email 10509759@qq.com
  */
-public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypable, EQCAddressShapeInheritable {
-	protected Passport passport;
+public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCLockShapeTypable, EQCLockShapeInheritable {
+	protected Lock key;
 	protected long value;
 	
 	public Tx() {
-		passport = new Passport();
+		key = new Lock();
 	}
 
-	public Tx(byte[] bytes, Passport.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+	public Tx(byte[] bytes, Lock.LockShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseBody(is, addressShape);
 		EQCType.assertNoRedundantData(is);
 	}
 
-	public Tx(ByteArrayInputStream is, Passport.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+	public Tx(ByteArrayInputStream is, Lock.LockShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		parseBody(is, addressShape);
 	}
 	
 	/**
 	 * @return the Passport
 	 */
-	public Passport getPassport() {
-		return passport;
+	public Lock getKey() {
+		return key;
 	}
 
 	/**
-	 * @param Passport the Passport to set
+	 * @param Lock the Passport to set
 	 */
-	public void setPassport(Passport passport) {
-		this.passport = passport;
+	public void setKey(Lock passport) {
+		this.key = key;
 	}
 
 	/**
@@ -114,7 +114,7 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 	 * 
 	 * @return byte[]
 	 */
-	public byte[] getBytes(AddressShape addressShape) {
+	public byte[] getBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(getBodyBytes(addressShape));
@@ -164,10 +164,10 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 //	}
 
 	@Override
-	public byte[] getBin(AddressShape addressShape) {
+	public byte[] getBin(LockShape addressShape) {
 		byte[] bin = null;
 		// Due to the EQCBits itself is embedded in the key-value pair so here need use getBytes
-		if(addressShape == AddressShape.ID) {
+		if(addressShape == LockShape.ID) {
 			bin = getBytes(addressShape);
 		}
 		else {
@@ -177,18 +177,18 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 	}
 	
 	@Override
-	public boolean isSanity(AddressShape addressShape) {
-		if(passport == null) {
+	public boolean isSanity(LockShape addressShape) {
+		if(key == null) {
 			return false;
 		}
 //		if(value < Util.MIN_EQC) {
 //			return false;
 //		}
-		if(!passport.isSanity(addressShape)) {
+		if(!key.isSanity(addressShape)) {
 			return false;
 		}
 		else {
-			if(!passport.isGood()) {
+			if(!key.isGood()) {
 				return false;
 			}
 		}
@@ -198,24 +198,24 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 	@Override
 	public int compareTo(Tx o) {
 		// TODO Auto-generated method stub
-		return passport.getReadableAddress().compareTo(o.getPassport().getReadableAddress());
+		return key.getReadableLock().compareTo(o.getKey().getReadableLock());
 	}
 
 	@Override
 	public int compare(Tx o1, Tx o2) {
 		// TODO Auto-generated method stub
-		return o1.getPassport().getReadableAddress().compareTo(o2.getPassport().getReadableAddress());
+		return o1.getKey().getReadableLock().compareTo(o2.getKey().getReadableLock());
 	}
 
 	@Override
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+	public void parseBody(ByteArrayInputStream is, LockShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		// Parse Address
-		if(addressShape == Passport.AddressShape.READABLE) {
-			passport = new Passport(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
+		if(addressShape == Lock.LockShape.READABLE) {
+			key = new Lock(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
 		}
-		else if(addressShape == Passport.AddressShape.ID) {
-			passport = new Passport();
-			passport.setID(new ID(EQCType.parseEQCBits(is)));
+		else if(addressShape == Lock.LockShape.ID) {
+			key = new Lock();
+			key.setID(new ID(EQCType.parseEQCBits(is)));
 		}
 		
 		// Parse Value
@@ -223,16 +223,16 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 	}
 
 	@Override
-	public byte[] getHeaderBytes(AddressShape addressShape) {
+	public byte[] getHeaderBytes(LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public byte[] getBodyBytes(AddressShape addressShape) {
+	public byte[] getBodyBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(passport.getBin(addressShape));
+			os.write(key.getBin(addressShape));
 			os.write(EQCType.longToEQCBits(value));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -243,20 +243,20 @@ public class Tx implements Comparator<Tx>, Comparable<Tx>, EQCAddressShapeTypabl
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree, LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape)
+	public void parseHeader(ByteArrayInputStream is, LockShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
 		// TODO Auto-generated method stub
 		
 	}
 
 	public boolean compare(Tx tx) {
-		if(!passport.compare(tx.getPassport())) {
+		if(!key.compare(tx.getKey())) {
 			return false;
 		}
 		if(value != tx.getValue()) {

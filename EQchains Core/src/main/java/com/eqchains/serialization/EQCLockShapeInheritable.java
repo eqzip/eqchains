@@ -27,32 +27,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.serialization;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.util.Util;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 
 /**
  * @author Xun Wang
- * @date May 11, 2019
+ * @date May 18, 2019
  * @email 10509759@qq.com
  */
-public class AssetAccount extends Account {
-
-	public AssetAccount() {
-		super(AccountType.ASSET);
-	}
-
-	public AssetAccount(byte[] bytes) throws NoSuchFieldException, IOException {
-		super(bytes);
-	}
-	
-	public String toInnerJson() {
-		return "\"AssetAccount\":" + "{\n" + 
-				super.toInnerJson() +
-				"\n}";
-	}
-
+public interface EQCLockShapeInheritable {
+	public void parseHeader(ByteArrayInputStream is, LockShape keyShape)  throws Exception;
+	public void parseBody(ByteArrayInputStream is, LockShape keyShape)  throws Exception;
+	public byte[] getHeaderBytes(LockShape keyShape) throws Exception;
+	public byte[] getBodyBytes(LockShape keyShape) throws Exception;
 }

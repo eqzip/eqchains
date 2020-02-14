@@ -42,8 +42,8 @@ import javax.print.attribute.standard.RequestingUserName;
 
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -311,7 +311,7 @@ public class EQCHeader implements EQCTypable {
 		return true;
 	}
 
-	public boolean isDifficultyValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isDifficultyValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		if (!Arrays.equals(target, Util.cypherTarget(accountsMerkleTree.getHeight()))) {
 			return false;
 		}
@@ -328,7 +328,7 @@ public class EQCHeader implements EQCTypable {
 		return (new BigInteger(1, getHash()).compareTo(Util.targetBytesToBigInteger(target)) <= 0);
 	}
 	
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, byte[] rootHash) throws Exception {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree, byte[] rootHash) throws Exception {
 		if(!isSanity()) {
 			Log.info("Sanity test failed.");
 			return false;
@@ -371,7 +371,7 @@ public class EQCHeader implements EQCTypable {
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
 	}

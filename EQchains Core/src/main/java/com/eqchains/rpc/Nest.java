@@ -4,7 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 
@@ -31,7 +31,7 @@ public class Nest<T> extends IO<T> {
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}

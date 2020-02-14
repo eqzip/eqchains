@@ -42,14 +42,15 @@ import java.util.Vector;
 
 import javax.naming.InitialContext;
 import javax.print.attribute.Size2DSyntax;
-import com.eqchains.blockchain.account.Passport;
+
 import com.eqchains.avro.O;
 import com.eqchains.blockchain.EQChains;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.AssetSubchainAccount;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree.Statistics;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree.Statistics;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetSubchainPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.subchain.EQCSignatures;
 import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.subchain.EQcoinSubchain;
@@ -199,7 +200,7 @@ public class EQCHive implements EQCTypable {
 		return tx;
 	}
 
-	public void accountingEQCHive(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public void accountingEQCHive(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		/**
 		 * Heal Protocol If height equal to a specific height then update the ID No.1's
 		 * Address to a new Address the more information you can reference to
@@ -249,7 +250,7 @@ public class EQCHive implements EQCTypable {
 
 	public boolean isMeetPreconditions(Object... objects) throws Exception {
 		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
-		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
+		PassportsMerkleTree accountsMerkleTree = (PassportsMerkleTree) objects[1];
 		if (operationTransaction.getOperation() instanceof UpdateAddressOperation) {
 			if (!operationTransaction.getOperation().isMeetPreconditions(accountsMerkleTree)) {
 				return false;
@@ -545,7 +546,7 @@ public class EQCHive implements EQCTypable {
 	 * @throws Exception
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		try {
 
 			/**

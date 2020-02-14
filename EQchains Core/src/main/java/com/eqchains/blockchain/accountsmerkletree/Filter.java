@@ -34,11 +34,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Vector;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
+
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.AssetSubchainPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
-import com.eqchains.blockchain.account.AssetSubchainAccount;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -51,7 +52,7 @@ import com.eqchains.util.Util;
  * @email 10509759@qq.com
  */
 public class Filter {
-	private AccountsMerkleTree accountsMerkleTree;
+	private PassportsMerkleTree accountsMerkleTree;
 	private Mode mode;
 
 	public enum Mode {
@@ -79,30 +80,30 @@ public class Filter {
 	 * For security issue only support search address via AddressAI
 	 * <p>
 	 * 
-	 * @param passport
+	 * @param key
 	 * @return
 	 * @throws Exception 
 	 * @throws SQLException 
 	 * @throws ClassNotFoundException 
 	 */
-	public boolean isAccountExists(Passport passport) throws ClassNotFoundException, SQLException, Exception {
+	public boolean isAccountExists(Lock key) throws ClassNotFoundException, SQLException, Exception {
 		boolean isSucc = false;
 		// For security issue only support search address via AddressAI
-		if (Util.DB().getAccount(passport.getAddressAI(), mode) != null) {
+		if (Util.DB().getPassport(key.getAddressAI(), mode) != null) {
 			isSucc = true;
 		}
 		return isSucc;
 	}
 
-	public void saveAccount(Account account) throws ClassNotFoundException, SQLException, Exception {
-		Util.DB().saveAccount(account, mode);
+	public void savePassport(Passport account) throws ClassNotFoundException, SQLException, Exception {
+		Util.DB().savePassport(account, mode);
 	}
 
-	public Account getAccount(ID id, boolean isFiltering) throws Exception {
-		Account account = null;
+	public Passport getPassport(ID id, boolean isFiltering) throws Exception {
+		Passport account = null;
 		// Check if Account already loading in filter
 		if(isFiltering) {
-			account = Util.DB().getAccount(id, mode);
+			account = Util.DB().getPassport(id, mode);
 		}
 		if (account == null)  {
 			// The first time loading account need loading the previous block's snapshot but
@@ -110,21 +111,21 @@ public class Filter {
 			if (accountsMerkleTree.getHeight().compareTo(ID.ZERO) > 0) {
 				ID tailHeight = Util.DB().getEQCBlockTailHeight();
 				if (accountsMerkleTree.getHeight().isNextID(tailHeight)) {
-					account = Util.DB().getAccount(id, Mode.GLOBAL);
+					account = Util.DB().getPassport(id, Mode.GLOBAL);
 					if(!(account != null && account.getCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getLockCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) <= 0)) {
 						Log.Error("Account exists but doesn't valid" + account);
 						account = null;
 					}
 				} else if (accountsMerkleTree.getHeight().compareTo(tailHeight) <= 0) {
 					// Load relevant Account from snapshot
-					account = EQCBlockChainH2.getInstance().getAccountSnapshot(new ID(id),
+					account = EQCBlockChainH2.getInstance().getPassportSnapshot(new ID(id),
 							accountsMerkleTree.getHeight().getPreviousID());
 				} else {
 					throw new IllegalStateException("Wrong height " + accountsMerkleTree.getHeight() + " tail height "
 							+ Util.DB().getEQCBlockTailHeight());
 				}
 			} else {
-				account = EQCBlockChainH2.getInstance().getAccountSnapshot(new ID(id), ID.ZERO);
+				account = EQCBlockChainH2.getInstance().getPassportSnapshot(new ID(id), ID.ZERO);
 			}
 //			if (accountsMerkleTree.getHeight()
 //					.compareTo(Util.DB().getEQCBlockTailHeight()) < 0) {
@@ -147,11 +148,11 @@ public class Filter {
 		return account;
 	}
 	
-	public Account getAccount(Passport passport, boolean isFiltering) throws Exception {
-		Account account = null;
+	public Passport getPassport(Lock key, boolean isFiltering) throws Exception {
+		Passport account = null;
 		// Check if Account already loading in filter
 		if(isFiltering) {
-			account = Util.DB().getAccount(passport.getAddressAI(), mode);
+			account = Util.DB().getPassport(key.getAddressAI(), mode);
 		}
 		if (account == null)  {
 			// The first time loading account need loading the previous block's snapshot but
@@ -159,21 +160,21 @@ public class Filter {
 			if (accountsMerkleTree.getHeight().compareTo(ID.ZERO) > 0) {
 				ID tailHeight = Util.DB().getEQCBlockTailHeight();
 				if (accountsMerkleTree.getHeight().isNextID(tailHeight)) {
-					account = Util.DB().getAccount(passport.getAddressAI(), Mode.GLOBAL);
+					account = Util.DB().getPassport(key.getAddressAI(), Mode.GLOBAL);
 					if(!(account != null && account.getCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getLockCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) <= 0)) {
 						Log.Error("Account exists but doesn't valid" + account);
 						account = null;
 					}
 				} else if (accountsMerkleTree.getHeight().compareTo(tailHeight) <= 0) {
 					// Load relevant Account from snapshot
-					account = EQCBlockChainH2.getInstance().getAccountSnapshot(passport.getAddressAI(),
+					account = EQCBlockChainH2.getInstance().getPassportSnapshot(key.getAddressAI(),
 							accountsMerkleTree.getHeight().getPreviousID());
 				} else {
 					throw new IllegalStateException("Wrong height " + accountsMerkleTree.getHeight() + " tail height "
 							+ Util.DB().getEQCBlockTailHeight());
 				}
 			} else {
-				account = EQCBlockChainH2.getInstance().getAccountSnapshot(passport.getAddressAI(), ID.ZERO);
+				account = EQCBlockChainH2.getInstance().getPassportSnapshot(key.getAddressAI(), ID.ZERO);
 			}
 //			if (accountsMerkleTree.getHeight()
 //					.compareTo(Util.DB().getEQCBlockTailHeight()) < 0) {
@@ -197,11 +198,11 @@ public class Filter {
 	}
 
 	public void merge() throws Exception {
-		Util.DB().merge(mode);
+		Util.DB().mergePassport(mode);
 	}
 
 	public void takeSnapshot() throws Exception {
-		Util.DB().takeSnapshot(mode, accountsMerkleTree.getHeight());
+		Util.DB().takePassportSnapshot(mode, accountsMerkleTree.getHeight());
 	}
 
 //	/**
@@ -232,13 +233,13 @@ public class Filter {
 //	}
 
 	public void clear() throws ClassNotFoundException, SQLException, Exception {
-		Util.DB().clear(mode);
+		Util.DB().clearPassport(mode);
 	}
 
 	/**
 	 * @param accountsMerkleTree the accountsMerkleTree to set
 	 */
-	public void setAccountsMerkleTree(AccountsMerkleTree accountsMerkleTree) {
+	public void setAccountsMerkleTree(PassportsMerkleTree accountsMerkleTree) {
 		this.accountsMerkleTree = accountsMerkleTree;
 	}
 

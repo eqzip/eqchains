@@ -36,12 +36,10 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-
-
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -211,10 +209,10 @@ public class CompressedPublickey implements EQCTypable {
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
-		Account account = accountsMerkleTree.getAccount(new Passport(AddressTool.AIToAddress(AddressTool.publickeyToAI(compressedPublickey))), true);
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
+		Passport account = accountsMerkleTree.getPassport(new Lock(AddressTool.AIToAddress(AddressTool.publickeyToAI(compressedPublickey))), true);
 		if(!account.isPublickeyExists()) {
-			if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), compressedPublickey)) {
+			if(!AddressTool.verifyAddressPublickey(account.getKey().getReadableLock(), compressedPublickey)) {
 				return false;
 			}
 		}

@@ -40,14 +40,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.keystore.UserAccount;
 import com.eqchains.persistence.EQCBlockChainH2;
@@ -93,9 +94,9 @@ public class MiscTest {
 	   
 	   @Test
 	   void snapshot() throws Exception {
-		   Account account;
+		   Passport account;
 		try {
-			account = EQCBlockChainH2.getInstance().getAccountSnapshot(ID.TWO.getNextID(), ID.ONE);
+			account = EQCBlockChainH2.getInstance().getPassportSnapshot(ID.TWO.getNextID(), ID.ONE);
 //			 assertEquals(account.getAsset(Asset.EQCOIN).getBalanceUpdateHeight(), ID.ONE);
 		} catch (NoSuchFieldException | IllegalStateException | ClassNotFoundException | SQLException | IOException e) {
 			// TODO Auto-generated catch block
@@ -132,7 +133,7 @@ public class MiscTest {
 			id = Util.DB().getEQCBlockTailHeight();
 			Log.info("" + id);
 			 for(int i=1; i<=id.intValue(); ++i) {
-			   AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(new ID(i), new Filter(Mode.MINING));
+			   PassportsMerkleTree accountsMerkleTree = new PassportsMerkleTree(new ID(i), new Filter(Mode.MINING));
 			   EQCHive eqcBlock = Util.DB().getEQCHive(new ID(i), false);
 //			   Log.info(eqcBlock.toString());
 				assertTrue(eqcBlock.isValid(accountsMerkleTree));
@@ -151,7 +152,7 @@ public class MiscTest {
 		   byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
 		   Log.info("" + publickey.length);
 		   String readableAddress = AddressTool.generateAddress(publickey, AddressTool.getAddressType(publickey));
-		   assertEquals(readableAddress, userAccount.getReadableAddress());
+		   assertEquals(readableAddress, userAccount.getReadableLock());
 	   }
 	   
 	   @Test
@@ -186,8 +187,8 @@ public class MiscTest {
 					long begin = System.currentTimeMillis();
 					Log.info("" + begin);
 					for (int i = 0; i < 100000; ++i) {
-						Account account = Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
-						EQCBlockChainH2.getInstance().saveAccountSnapshot(account, ID.ZERO);
+						Passport account = Util.DB().getPassport(ID.ONE, Mode.GLOBAL);
+						EQCBlockChainH2.getInstance().savePassportSnapshot(account, ID.ZERO);
 					}
 					long end = System.currentTimeMillis();
 					Log.info("Total put time: " + (end - begin) + " ms");
@@ -195,7 +196,7 @@ public class MiscTest {
 //						Log.info("" + Util.dumpBytes(rocksDB.get(columnFamilyHandles.get(1), SerialNumber.ZERO.getEQCBits()), 16));
 					Log.info("" + begin);
 					for (int i = 0; i < 100000; ++i) {
-						EQCBlockChainH2.getInstance().getAccountSnapshot(ID.ONE, ID.ZERO);
+						EQCBlockChainH2.getInstance().getPassportSnapshot(ID.ONE, ID.ZERO);
 					}
 					end = System.currentTimeMillis();
 					Log.info("Total get time: " + (end - begin) + " ms");

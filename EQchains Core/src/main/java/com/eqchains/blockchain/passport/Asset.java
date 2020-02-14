@@ -27,16 +27,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Comparator;
 
-import com.eqchains.blockchain.account.Account.AccountType;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
+import com.eqchains.blockchain.passport.Passport.AccountType;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -302,7 +302,7 @@ public abstract class Asset implements EQCTypable, EQCInheritable, Comparator<As
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
 	}

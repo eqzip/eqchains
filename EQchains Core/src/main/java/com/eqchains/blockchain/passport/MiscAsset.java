@@ -27,21 +27,88 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.serialization;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.passport.Asset.AssetType;
+import com.eqchains.serialization.EQCType;
+import com.eqchains.util.ID;
+import com.eqchains.util.Log;
+import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date May 18, 2019
+ * @date Jun 6, 2019
  * @email 10509759@qq.com
  */
-public interface EQCAddressShapeInheritable {
-	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape)  throws Exception;
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)  throws Exception;
-	public byte[] getHeaderBytes(AddressShape addressShape) throws Exception;
-	public byte[] getBodyBytes(AddressShape addressShape) throws Exception;
+public class MiscAsset extends Asset {
+
+	public MiscAsset() {
+		super(AssetType.MISC);
+	}
+	
+	public MiscAsset(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+		super(AssetType.MISC);
+		parseHeader(is);
+		parseBody(is);
+	}
+
+	@Override
+	public boolean isSanity() {
+		if(assetType == null || version == null || assetID == null || nonce == null) {
+			return false;
+		}
+		if(balance != null) {
+			return false;
+		}
+		if(!version.isSanity() || !assetID.isSanity() || !nonce.isSanity()) {
+			return false;
+		}
+		if(assetType != AssetType.MISC) {
+			return false;
+		}
+		return true;
+	}
+	@Override
+	public String toInnerJson() {
+		return 
+				"\"MiscAsset\":" + 
+				"\n{\n" +
+					"\"AssetID\":" + "\"" + assetID + "\"" + ",\n" +
+					"\"Nonce\":" + "\"" + nonce + "\"" + "\n" +
+				"}";
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.account.Asset#parseBody(java.io.ByteArrayInputStream)
+	 */
+	@Override
+	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+		// Parse AssetID
+		assetID = new ID(EQCType.parseEQCBits(is));
+		
+		// Parse Nonce
+		nonce = new ID(EQCType.parseEQCBits(is));
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.account.Asset#getBodyBytes()
+	 */
+	@Override
+	public byte[] getBodyBytes() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(assetID.getEQCBits());
+			os.write(nonce.getEQCBits());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Log.Error(e.getMessage());
+		}
+		return os.toByteArray();
+	}
+
 }

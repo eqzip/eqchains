@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import com.eqchains.blockchain.account.Passport;
+import com.eqchains.blockchain.passport.Lock;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.util.Base58;
 import com.eqchains.util.Log;
@@ -51,7 +51,7 @@ import com.eqchains.util.Util.AddressTool.AddressType;
 public class AddressTest {
 	 @Test
 	    void verifyAddressCRC32C() {
-		   String readableAddress = Keystore.getInstance().getUserAccounts().get(0).getReadableAddress();
+		   String readableAddress = Keystore.getInstance().getUserAccounts().get(0).getReadableLock();
 		   Log.info(readableAddress);
 	        assertTrue(AddressTool.verifyAddressCRC32C(readableAddress));
 	    }
@@ -75,16 +75,16 @@ public class AddressTest {
 		   byte[] publickey =  Util.AESDecrypt(Keystore.getInstance().getUserAccounts().get(1).getPublicKey(), "abc");
 		   String address = AddressTool.generateAddress(publickey, AddressType.T1);
 		   Log.info(address);
-		   assertTrue(AddressTool.verifyAddressPublickey(Keystore.getInstance().getUserAccounts().get(1).getReadableAddress(), publickey));
+		   assertTrue(AddressTool.verifyAddressPublickey(Keystore.getInstance().getUserAccounts().get(1).getReadableLock(), publickey));
 		   assertTrue(AddressTool.verifyAddressPublickey(address, publickey));
 	   }
 	   
 	   @Test
 	   void verifyAI2Address() {
-		   Passport passport = new Passport();
-		   passport.setReadableAddress(Keystore.getInstance().getUserAccounts().get(0).getReadableAddress());
+		   Lock key = new Lock();
+		   key.setReadableLock(Keystore.getInstance().getUserAccounts().get(0).getReadableLock());
 		   try {
-			assertEquals(AddressTool.AIToAddress(passport.getAddressAI()), passport.getReadableAddress());
+			assertEquals(AddressTool.AIToAddress(key.getAddressAI()), key.getReadableLock());
 		} catch (NoSuchFieldException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

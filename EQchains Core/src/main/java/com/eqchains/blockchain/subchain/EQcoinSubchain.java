@@ -36,17 +36,18 @@ import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Vector;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.AssetSubchainAccount;
-import com.eqchains.blockchain.account.CoinAsset;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Publickey;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree.Statistics;
+
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree.Statistics;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetPassport;
+import com.eqchains.blockchain.passport.AssetSubchainPassport;
+import com.eqchains.blockchain.passport.CoinAsset;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Publickey;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.transaction.OperationTransaction;
@@ -67,7 +68,7 @@ import com.eqchains.util.Util.AddressTool;
  * @email 10509759@qq.com
  */
 public class EQcoinSubchain extends EQCSubchain {
-	private Vector<Passport> newPassportList;
+	private Vector<Lock> newPassportList;
 	private Vector<CompressedPublickey> newCompressedPublickeyList;
 	
 	/* (non-Javadoc)
@@ -89,10 +90,10 @@ public class EQcoinSubchain extends EQCSubchain {
 		super(bytes, isSegwit);
 	}
 
-	public void addTransaction(Transaction transaction, AccountsMerkleTree accountsMerkleTree, ID index) throws ClassNotFoundException, SQLException, Exception {
+	public void addTransaction(Transaction transaction, PassportsMerkleTree accountsMerkleTree, ID index) throws ClassNotFoundException, SQLException, Exception {
 			// Add Transaction
 			newTransactionList.add(transaction);
-			newTransactionListLength += transaction.getBytes(AddressShape.ID).length;
+			newTransactionListLength += transaction.getBytes(LockShape.ID).length;
 			// Add Signature
 			newSignatureList.add(transaction.getSignature());
 			// Add Publickey
@@ -102,20 +103,20 @@ public class EQcoinSubchain extends EQCSubchain {
 			// Add new Address
 			for (TxOut txOut : transaction.getTxOutList()) {
 				if (txOut.isNew()) {
-					newPassportList.add(txOut.getPassport());
+					newPassportList.add(txOut.getKey());
 				}
 			}
 //			// Add Transactions
 //			Util.DB().saveTransaction(transaction, accountsMerkleTree.getHeight(), index, getSN(accountsMerkleTree), accountsMerkleTree.getFilter().getMode());
 	}
 	
-	public void addCoinbaseTransaction(CoinbaseTransaction coinbaseTransaction, AccountsMerkleTree accountsMerkleTree) throws ClassNotFoundException, SQLException, Exception {
+	public void addCoinbaseTransaction(CoinbaseTransaction coinbaseTransaction, PassportsMerkleTree accountsMerkleTree) throws ClassNotFoundException, SQLException, Exception {
 		// Add Coinbase Transaction
 		((EQcoinSubchainHeader) subchainHeader).setCoinbaseTransaction(coinbaseTransaction);
 		// Add new Address
 		for (TxOut txOut : coinbaseTransaction.getTxOutList()) {
 			if (txOut.isNew()) {
-				newPassportList.add(txOut.getPassport());
+				newPassportList.add(txOut.getKey());
 			}
 		}
 //		// Add Transactions
@@ -126,7 +127,7 @@ public class EQcoinSubchain extends EQCSubchain {
 		return (EQcoinSubchainHeader) subchainHeader;
 	}
 	
-	public ID getNewPassportID(AccountsMerkleTree accountsMerkleTree) {
+	public ID getNewPassportID(PassportsMerkleTree accountsMerkleTree) {
 		ID initID = null;
 		if (newPassportList.size() == 0) {
 			initID = new ID(accountsMerkleTree.getPreviousTotalAccountNumbers()
@@ -137,15 +138,15 @@ public class EQcoinSubchain extends EQCSubchain {
 		return initID;
 	}
 	
-	public Passport getPassport(ID id) {
-		Passport passport = null;
-		for(Passport passport2:newPassportList) {
-			if(passport2.getID().equals(id)) {
-				passport = passport2;
+	public Lock getPassport(ID id) {
+		Lock key = null;
+		for(Lock key2:newPassportList) {
+			if(key2.getID().equals(id)) {
+				key = key2;
 				break;
 			}
 		}
-		return passport;
+		return key;
 	}
 	
 	public CompressedPublickey getCompressedPublickey(ID id) {
@@ -162,14 +163,14 @@ public class EQcoinSubchain extends EQCSubchain {
 	/**
 	 * @return the newPassportList
 	 */
-	public Vector<Passport> getNewPassportList() {
+	public Vector<Lock> getNewPassportList() {
 		return newPassportList;
 	}
 
 	/**
 	 * @param newPassportList the newPassportList to set
 	 */
-	public void setNewPassportList(Vector<Passport> newPassportList) {
+	public void setNewPassportList(Vector<Lock> newPassportList) {
 		this.newPassportList = newPassportList;
 	}
 
@@ -210,9 +211,9 @@ public class EQcoinSubchain extends EQCSubchain {
 //	}
 	
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		try {
-			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(Asset.EQCOIN, accountsMerkleTree.getHeight().getPreviousID());
+			EQcoinSubchainPassport eQcoinSubchainAccount = (EQcoinSubchainPassport) Util.DB().getPassport(Asset.EQCOIN, accountsMerkleTree.getHeight().getPreviousID());
 			ID sn = eQcoinSubchainAccount.getAssetSubchainHeader().getTotalTransactionNumbers().getNextID();
 			// Check if Transactions' size < 1 MB
 			if (newTransactionListLength > Util.ONE_MB) {
@@ -242,7 +243,7 @@ public class EQcoinSubchain extends EQCSubchain {
 			// Here need check if need exist CoinbaseTransaction
 			CoinbaseTransaction coinbaseTransaction = getEQcoinSubchainHeader().getCoinbaseTransaction();
 			coinbaseTransaction.prepareVerify(accountsMerkleTree, this);
-			if (!coinbaseTransaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+			if (!coinbaseTransaction.isValid(accountsMerkleTree, LockShape.READABLE)) {
 				Log.info("CoinBaseTransaction is invalid: " + coinbaseTransaction);
 				return false;
 			}
@@ -260,7 +261,7 @@ public class EQcoinSubchain extends EQCSubchain {
 				transaction.setSignature(newSignatureList.get(i));
 				
 				// Check if TxIn exists in previous block
-				if(transaction.getTxIn().getPassport().getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
+				if(transaction.getTxIn().getKey().getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
 					Log.Error("Transaction Account doesn't exist in previous block have to exit");
 					return false;
 				}
@@ -282,7 +283,7 @@ public class EQcoinSubchain extends EQCSubchain {
 					return false;
 				}
 
-				if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+				if (!transaction.isValid(accountsMerkleTree, LockShape.READABLE)) {
 					Log.info("Transaction is invalid: " + transaction);
 					return false;
 				} else {
@@ -297,7 +298,7 @@ public class EQcoinSubchain extends EQCSubchain {
 			// Add 
 
 			// Update EQcoinSubchainAccount
-			eQcoinSubchainAccount = (EQcoinSubchainAccount) accountsMerkleTree.getAccount(ID.ONE, true);
+			eQcoinSubchainAccount = (EQcoinSubchainPassport) accountsMerkleTree.getPassport(ID.ONE, true);
 			// Verify TxFee
 			if(subchainHeader.getTotalTxFee().longValue() != totalTxFee) {
 				Log.Error("Total TxFee is invalid.");
@@ -308,12 +309,12 @@ public class EQcoinSubchain extends EQCSubchain {
 			}
 			// Update EQcoin Subchain's Header
 			eQcoinSubchainAccount.getAssetSubchainHeader().setTotalSupply(ID.valueOf(Util.cypherTotalSupply(accountsMerkleTree.getHeight())));
-			eQcoinSubchainAccount.getAssetSubchainHeader().setTotalAccountNumbers(eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers()
+			eQcoinSubchainAccount.getAssetSubchainHeader().setTotalPassportNumbers(eQcoinSubchainAccount.getAssetSubchainHeader().getTotalPassportNumbers()
 					.add(ID.valueOf(newPassportList.size())));
 			eQcoinSubchainAccount.getAssetSubchainHeader().setTotalTransactionNumbers(eQcoinSubchainAccount.getAssetSubchainHeader()
 					.getTotalTransactionNumbers().add(ID.valueOf(newTransactionList.size())));
 			// Save EQcoin Subchain's Header
-			accountsMerkleTree.saveAccount(eQcoinSubchainAccount);
+			accountsMerkleTree.savePassport(eQcoinSubchainAccount);
 			
 			// Add audit layer at the following positions
 			
@@ -325,7 +326,7 @@ public class EQcoinSubchain extends EQCSubchain {
 		return true;
 	}
 	
-	public boolean isNewPassportListValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isNewPassportListValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 //		if(newPassportList.size() == 0) {
 //			// Here exists one bug need check if current Transactions contain any new Passport
 //			return true;
@@ -338,9 +339,9 @@ public class EQcoinSubchain extends EQCSubchain {
 		Vector<ID> newPassports = new Vector<>();
 		for (Transaction transaction : newTransactionList) {
 			for (TxOut txOut : transaction.getTxOutList()) {
-				if (txOut.getPassport().getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
-					if (!newPassports.contains(txOut.getPassport().getID())) {
-						newPassports.add(txOut.getPassport().getID());
+				if (txOut.getKey().getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
+					if (!newPassports.contains(txOut.getKey().getID())) {
+						newPassports.add(txOut.getKey().getID());
 					}
 				}
 			}
@@ -355,7 +356,7 @@ public class EQcoinSubchain extends EQCSubchain {
 		}
 		for (int i = 0; i < newPassportList.size(); ++i) {
 			// Check if Address already exists and if exists duplicate Address in newPassportList
-			if (accountsMerkleTree.isAccountExists(newPassportList.get(i), true)) {
+			if (accountsMerkleTree.isPassportExists(newPassportList.get(i), true)) {
 				return false;
 			} else {
 				// Check if ID is valid
@@ -391,14 +392,14 @@ public class EQcoinSubchain extends EQCSubchain {
 		return true;
 	}
 	
-	public boolean isNewCompressedPublickeyListValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isNewCompressedPublickeyListValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// Get the new Publickey's ID list from Transactions
 		Vector<ID> newPublickeys = new Vector<>();
 		for(Transaction transaction:newTransactionList) {
-			Account account = accountsMerkleTree.getAccount(transaction.getTxIn().getPassport().getID(), true);
+			Passport account = accountsMerkleTree.getPassport(transaction.getTxIn().getKey().getID(), true);
 				if(!account.isPublickeyExists()) {
-					if(!newPublickeys.contains(transaction.getTxIn().getPassport().getID())) {
-						newPublickeys.add(transaction.getTxIn().getPassport().getID());
+					if(!newPublickeys.contains(transaction.getTxIn().getKey().getID())) {
+						newPublickeys.add(transaction.getTxIn().getKey().getID());
 					}
 				}
 		}
@@ -406,10 +407,10 @@ public class EQcoinSubchain extends EQCSubchain {
 			Log.Error("Publickey's size doesn't equal");
 			return false;
 		}
-		Passport passport = null;
+		Lock key = null;
 		for(int i=0; i<newCompressedPublickeyList.size(); ++i) {
-			passport = new Passport(AddressTool.generateAddress(newCompressedPublickeyList.get(i).getCompressedPublickey(), AddressTool.getAddressType(newCompressedPublickeyList.get(i).getCompressedPublickey())));
-			newCompressedPublickeyList.get(i).setID(accountsMerkleTree.getAccount(passport, true).getID());
+			key = new Lock(AddressTool.generateAddress(newCompressedPublickeyList.get(i).getCompressedPublickey(), AddressTool.getAddressType(newCompressedPublickeyList.get(i).getCompressedPublickey())));
+			newCompressedPublickeyList.get(i).setID(accountsMerkleTree.getPassport(key, true).getID());
 			if(!newCompressedPublickeyList.get(i).getID().equals(newPublickeys.get(i))) {
 				Log.Error("Publickey's ID doesn't equal");
 				return false;
@@ -422,12 +423,12 @@ public class EQcoinSubchain extends EQCSubchain {
 				}
 			}
 			// Check if it is valid
-			Account account = accountsMerkleTree.getAccount(newCompressedPublickeyList.get(i).getID(), true);
+			Passport account = accountsMerkleTree.getPassport(newCompressedPublickeyList.get(i).getID(), true);
 			if(account.isPublickeyExists()) {
 				return false;
 			}
 			else {
-				if(!AddressTool.verifyAddressPublickey(account.getPassport().getReadableAddress(), newCompressedPublickeyList.get(i).getCompressedPublickey())) {
+				if(!AddressTool.verifyAddressPublickey(account.getKey().getReadableLock(), newCompressedPublickeyList.get(i).getCompressedPublickey())) {
 					return false;
 				}
 			}
@@ -453,12 +454,12 @@ public class EQcoinSubchain extends EQCSubchain {
 		// Parse NewPassportList
 		ARRAY passports = null;
 		passports = EQCType.parseARRAY(is);
-		Passport passport = null;
+		Lock key = null;
 		if (!passports.isNULL()) {
 			ByteArrayInputStream is1 = new ByteArrayInputStream(passports.elements);
 			while (!EQCType.isInputStreamEnd(is1)) {
-				passport = new Passport(is1);
-				newPassportList.add(passport);
+				key = new Lock(is1);
+				newPassportList.add(key);
 			}
 			EQCType.assertEqual(passports.size, newPassportList.size());
 		}
@@ -507,7 +508,7 @@ public class EQcoinSubchain extends EQCSubchain {
 		}
 		long newTransactionListLength = 0;
 		for(Transaction transaction:newTransactionList) {
-			newTransactionListLength += transaction.getBin(AddressShape.ID).length;
+			newTransactionListLength += transaction.getBin(LockShape.ID).length;
 		}
 		if(this.newTransactionListLength != newTransactionListLength) {
 			return false;
@@ -520,8 +521,8 @@ public class EQcoinSubchain extends EQCSubchain {
 			return EQCType.NULL_ARRAY;
 		} else {
 			Vector<byte[]> passports = new Vector<byte[]>();
-			for (Passport passport : newPassportList) {
-				passports.add(passport.getBytes());
+			for (Lock key : newPassportList) {
+				passports.add(key.getBytes());
 			}
 			return EQCType.bytesArrayToARRAY(passports);
 		}
@@ -603,15 +604,15 @@ public class EQcoinSubchain extends EQCSubchain {
 	 * @see com.eqchains.blockchain.subchain.EQCSubchain#accountingTransaction(java.util.Vector)
 	 */
 	@Override
-	public void accountingTransaction(Vector<Transaction> transactionList, AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, IOException, Exception {
+	public void accountingTransaction(Vector<Transaction> transactionList, PassportsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 		if (accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight())) < 0) {
 			// Create CoinBase Transaction
-			Passport passport = new Passport();
-			passport.setReadableAddress(Util.SINGULARITY_C);
-			CoinbaseTransaction coinbaseTransaction = Util.generateCoinBaseTransaction(passport, accountsMerkleTree);
+			Lock key = new Lock();
+			key.setReadableLock(Util.SINGULARITY_C);
+			CoinbaseTransaction coinbaseTransaction = Util.generateCoinBaseTransaction(key, accountsMerkleTree);
 			// Check if CoinBase isValid and update CoinBase's Account
 			coinbaseTransaction.prepareAccounting(accountsMerkleTree, getNewPassportID(accountsMerkleTree));
-			if (!coinbaseTransaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+			if (!coinbaseTransaction.isValid(accountsMerkleTree, LockShape.READABLE)) {
 				throw new IllegalStateException("CoinbaseTransaction is invalid: " + coinbaseTransaction);
 			} else {
 				coinbaseTransaction.update(accountsMerkleTree);
@@ -626,7 +627,7 @@ public class EQcoinSubchain extends EQCSubchain {
 			// If Transaction's TxIn is null or TxIn doesn't exists in Accounts just
 			// continue
 			if (transaction.getTxIn() == null
-					|| !accountsMerkleTree.isAccountExists(transaction.getTxIn().getPassport(), false)) {
+					|| !accountsMerkleTree.isPassportExists(transaction.getTxIn().getKey(), false)) {
 				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
 				Log.Error("TxIn is null or TxIn doesn't exist in Accounts this is invalid just discard it: "
 						+ transaction.toString());
@@ -644,7 +645,7 @@ public class EQcoinSubchain extends EQCSubchain {
 			transaction.prepareAccounting(accountsMerkleTree, getNewPassportID(accountsMerkleTree));
 
 			// Check if Transaction is valid
-			if (!transaction.isValid(accountsMerkleTree, AddressShape.READABLE)) {
+			if (!transaction.isValid(accountsMerkleTree, LockShape.READABLE)) {
 				EQCBlockChainH2.getInstance().deleteTransactionInPool(transaction);
 				Log.Error("Transaction is invalid: " + transaction);
 				continue;
@@ -652,7 +653,7 @@ public class EQcoinSubchain extends EQCSubchain {
 
 			// Add Transaction into EQcoinSubchain
 			if ((getNewTransactionListLength()
-					+ transaction.getBin(AddressShape.ID).length) <= Util.MAX_BLOCK_SIZE) {
+					+ transaction.getBin(LockShape.ID).length) <= Util.MAX_BLOCK_SIZE) {
 				Log.info("Add new Transaction which TxFee is: " + transaction.getTxFee());
 				addTransaction(transaction, accountsMerkleTree, index);
 				index = index.getNextID();
@@ -668,22 +669,22 @@ public class EQcoinSubchain extends EQCSubchain {
 		
 				// Update EQcoinSubchain's Header
 				EQcoinSubchainHeader preEQcoinSubchainHeader = accountsMerkleTree.getEQCBlock(accountsMerkleTree.getHeight().getPreviousID(), true).getEQcoinSubchain().getEQcoinSubchainHeader();
-				getEQcoinSubchainHeader().setTotalAccountNumbers(preEQcoinSubchainHeader.getTotalAccountNumbers().add(ID.valueOf(newPassportList.size())));
+				getEQcoinSubchainHeader().setTotalPassportNumbers(preEQcoinSubchainHeader.getTotalPassportNumbers().add(ID.valueOf(newPassportList.size())));
 				getEQcoinSubchainHeader().setTotalTransactionNumbers(preEQcoinSubchainHeader.getTotalTransactionNumbers().add(ID.valueOf(newTransactionList.size())));
 				
 				// Update EQcoin AssetSubchainAccount's Header
-				AssetSubchainAccount eqcoin = (AssetSubchainAccount) accountsMerkleTree.getAccount(ID.ONE, true);
+				AssetSubchainPassport eqcoin = (AssetSubchainPassport) accountsMerkleTree.getPassport(ID.ONE, true);
 				eqcoin.getAssetSubchainHeader().setTotalSupply(new ID(Util.cypherTotalSupply(accountsMerkleTree.getHeight())));
-				eqcoin.getAssetSubchainHeader().setTotalAccountNumbers(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers()
+				eqcoin.getAssetSubchainHeader().setTotalPassportNumbers(eqcoin.getAssetSubchainHeader().getTotalPassportNumbers()
 						.add(BigInteger.valueOf(newPassportList.size())));
 				eqcoin.getAssetSubchainHeader().setTotalTransactionNumbers(eqcoin.getAssetSubchainHeader()
 						.getTotalTransactionNumbers().add(BigInteger.valueOf(newTransactionList.size())));
 				eqcoin.getAsset(Asset.EQCOIN).deposit(getEQcoinSubchainHeader().getTotalTxFee());
 				// Save EQcoin Subchain's Header
-				accountsMerkleTree.saveAccount(eqcoin);
+				accountsMerkleTree.savePassport(eqcoin);
 				
-				if (!getEQcoinSubchainHeader().getTotalAccountNumbers()
-						.equals(eqcoin.getAssetSubchainHeader().getTotalAccountNumbers())) {
+				if (!getEQcoinSubchainHeader().getTotalPassportNumbers()
+						.equals(eqcoin.getAssetSubchainHeader().getTotalPassportNumbers())) {
 					throw new IllegalStateException("TotalAccountNumbers is invalid");
 				}
 				

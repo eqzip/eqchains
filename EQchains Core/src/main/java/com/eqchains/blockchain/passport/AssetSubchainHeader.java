@@ -27,14 +27,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -59,8 +59,8 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	private ID totalSupplyUpdateHeight;
 	private boolean ifCanChangeTotalSupply;
 	private boolean ifCanBurn;
-	private ID totalAccountNumbers;
-	private ID totalAccountNumbersUpdateHeight;
+	private ID totalPassportNumbers;
+	private ID totalPassportNumbersUpdateHeight;
 	private ID totalTransactionNumbers;
 	private ID totalTransactionNumbersUpdateHeight;
 	// Need do more job to use full regression check the url's format if is valid
@@ -212,17 +212,17 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	}
 
 	/**
-	 * @return the totalAccountNumbers
+	 * @return the totalPassportNumbers
 	 */
-	public ID getTotalAccountNumbers() {
-		return totalAccountNumbers;
+	public ID getTotalPassportNumbers() {
+		return totalPassportNumbers;
 	}
 
 	/**
-	 * @param totalAccountNumbers the totalAccountNumbers to set
+	 * @param totalPassportNumbers the totalPassportNumbers to set
 	 */
-	public void setTotalAccountNumbers(ID totalAccountNumbers) {
-		this.totalAccountNumbers = totalAccountNumbers;
+	public void setTotalPassportNumbers(ID totalPassportNumbers) {
+		this.totalPassportNumbers = totalPassportNumbers;
 	}
 
 	/**
@@ -280,8 +280,8 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 		// Parse ifCanBurn
 		ifCanBurn = EQCType.eqcBitsToBoolean(EQCType.parseEQCBits(is));
 		// Parse totalAccountNumbers
-		totalAccountNumbers = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
-		totalAccountNumbersUpdateHeight = EQCType.parseID(is);
+		totalPassportNumbers = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
+		totalPassportNumbersUpdateHeight = EQCType.parseID(is);
 		// Parse totalTransactionNumbers
 		totalTransactionNumbers = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
 		totalTransactionNumbersUpdateHeight = EQCType.parseID(is);
@@ -312,8 +312,8 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 			os.write(totalSupplyUpdateHeight.getEQCBits());
 			os.write(EQCType.booleanToEQCBits(ifCanChangeTotalSupply));
 			os.write(EQCType.booleanToEQCBits(ifCanBurn));
-			os.write(totalAccountNumbers.getEQCBits());
-			os.write(totalAccountNumbersUpdateHeight.getEQCBits());
+			os.write(totalPassportNumbers.getEQCBits());
+			os.write(totalPassportNumbersUpdateHeight.getEQCBits());
 			os.write(totalTransactionNumbers.getEQCBits());
 			os.write(totalTransactionNumbersUpdateHeight.getEQCBits());
 			os.write(EQCType.stringToBIN(url));
@@ -329,20 +329,20 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	@Override
 	public boolean isSanity() {
 		if(subchainID == null || subchainName == null || symbol == null || decimals == null || maxSupply == null || maxSupplyUpdateHeight == null ||
-				totalSupply == null || totalSupplyUpdateHeight == null || totalAccountNumbers == null || totalAccountNumbersUpdateHeight == null || totalTransactionNumbers == null || totalTransactionNumbersUpdateHeight == null) {
+				totalSupply == null || totalSupplyUpdateHeight == null || totalPassportNumbers == null || totalPassportNumbersUpdateHeight == null || totalTransactionNumbers == null || totalTransactionNumbersUpdateHeight == null) {
 			return false;
 		}
 		// Here need do more job about symbol for example all letter of symbol must be upper letter and which length must bigger than 3 and less than 6. Need implement one specific for this
 		if(!subchainID.isSanity() || !(subchainName.length() > 0) || !(symbol.length() > 0) || !(decimals.length() > 0) ||
 				!maxSupply.isSanity() || !maxSupplyUpdateHeight.isSanity() || !totalSupply.isSanity() || !totalSupplyUpdateHeight.isSanity() ||
-				!totalAccountNumbers.isSanity() || !totalAccountNumbersUpdateHeight.isSanity() || !totalTransactionNumbers.isSanity() || !totalTransactionNumbersUpdateHeight.isSanity()) {
+				!totalPassportNumbers.isSanity() || !totalPassportNumbersUpdateHeight.isSanity() || !totalTransactionNumbers.isSanity() || !totalTransactionNumbersUpdateHeight.isSanity()) {
 			return false;
 		}
 		return true;
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -372,8 +372,8 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 					"\"TotalSupplyUpdateHeight\":" + "\"" + totalSupplyUpdateHeight + "\"" + ",\n" +
 					"\"IfCanChangeTotalSupply\":" + "\"" + ifCanChangeTotalSupply + "\"" + ",\n" +
 					"\"IfCanBurn\":" + "\"" + ifCanBurn + "\"" + ",\n" +
-					"\"TotalAccountNumbers\":" + "\"" + totalAccountNumbers + "\"" + ",\n" +
-					"\"TotalAccountNumbersUpdateHeight\":" + "\"" + totalAccountNumbersUpdateHeight + "\"" + ",\n" +
+					"\"TotalAccountNumbers\":" + "\"" + totalPassportNumbers + "\"" + ",\n" +
+					"\"TotalAccountNumbersUpdateHeight\":" + "\"" + totalPassportNumbersUpdateHeight + "\"" + ",\n" +
 					"\"TotalTransactionNumbers\":" + "\"" + totalTransactionNumbers + "\"" + ",\n" +
 					"\"TotalTransactionNumbersUpdateHeight\":" + "\"" + totalTransactionNumbersUpdateHeight + "\"" + ",\n" +
 					"\"URL\":" + "\"" + url + "\"" + ",\n" +
@@ -440,14 +440,14 @@ public class AssetSubchainHeader implements EQCTypable, EQCInheritable {
 	 * @return the totalAccountNumbersUpdateHeight
 	 */
 	public ID getTotalAccountNumbersUpdateHeight() {
-		return totalAccountNumbersUpdateHeight;
+		return totalPassportNumbersUpdateHeight;
 	}
 
 	/**
 	 * @param totalAccountNumbersUpdateHeight the totalAccountNumbersUpdateHeight to set
 	 */
 	public void setTotalAccountNumbersUpdateHeight(ID totalAccountNumbersUpdateHeight) {
-		this.totalAccountNumbersUpdateHeight = totalAccountNumbersUpdateHeight;
+		this.totalPassportNumbersUpdateHeight = totalAccountNumbersUpdateHeight;
 	}
 
 	/**

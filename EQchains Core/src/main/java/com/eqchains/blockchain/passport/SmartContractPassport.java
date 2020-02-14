@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -37,8 +37,8 @@ import java.util.Collections;
 
 import org.apache.avro.io.parsing.Symbol;
 
-import com.eqchains.blockchain.account.Account.AccountType;
-import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.passport.Lock.LockShape;
+import com.eqchains.blockchain.passport.Passport.AccountType;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -52,7 +52,7 @@ import com.eqchains.util.Util;
  * @date May 13, 2019
  * @email 10509759@qq.com
  */
-public abstract class SmartContractAccount extends Account {
+public abstract class SmartContractPassport extends Passport {
 	/**
 	 * Body field include LanguageType
 	 */
@@ -102,7 +102,6 @@ public abstract class SmartContractAccount extends Account {
 	 * After this all the full node doesn't need store it's state DB in local just keep the relevant Account's state.
 	 * When it become active again all the full node can recovery it's state DB from GitHub. 
 	 */
-	@Deprecated
 	public enum State {
 		ACTIVE, OVERDUE, INACTIVE, INVALID;
 		public static State get(int ordinal) {
@@ -162,7 +161,7 @@ public abstract class SmartContractAccount extends Account {
 //		}
 //	}
 	
-	protected SmartContractAccount(AccountType accountType) {
+	protected SmartContractPassport(AccountType accountType) {
 		super(accountType);
 	}
 	
@@ -186,7 +185,7 @@ public abstract class SmartContractAccount extends Account {
 //		return subchainType;
 //	}
 
-	public SmartContractAccount(byte[] bytes) throws NoSuchFieldException, IOException {
+	public SmartContractPassport(byte[] bytes) throws NoSuchFieldException, IOException {
 		super(bytes);
 	}
 

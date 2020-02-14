@@ -33,9 +33,10 @@ import java.sql.SQLException;
 import java.util.Vector;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
@@ -397,44 +398,11 @@ public class EQCBlockChainRPC implements EQCBlockChain<O> {
 		return false;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.EQCBlockChain#getAccountSnapshot(com.eqchains.util.ID, com.eqchains.util.ID)
-	 */
-	@Override
-	public Account getAccountSnapshot(ID accountID, ID height) throws SQLException, Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.EQCBlockChain#saveAccountSnapshot(com.eqchains.blockchain.account.Account, com.eqchains.util.ID)
-	 */
-	@Override
-	public boolean saveAccountSnapshot(Account account, ID height) throws SQLException, Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.EQCBlockChain#deleteAccountSnapshotFrom(com.eqchains.util.ID, boolean)
-	 */
-	@Override
-	public boolean deleteAccountSnapshotFrom(ID height, boolean isForward) throws SQLException, Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
 	@Override
 	public SignHash getSignHash(ID id) throws Exception {
 		SignHash signHash = null;
 		signHash = TransactionNetworkClient.getSignHash(id, ip);
 		return signHash;
-	}
-
-	@Override
-	public Account getAccountSnapshot(byte[] addressAI, ID height) throws SQLException, Exception {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -465,37 +433,37 @@ public class EQCBlockChainRPC implements EQCBlockChain<O> {
 	}
 
 	@Override
-	public boolean saveAccount(Account account, Mode mode) throws Exception {
+	public boolean savePassport(Passport account, Mode mode) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public Account getAccount(ID id, Mode mode) throws Exception {
+	public Passport getPassport(ID id, Mode mode) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean clear(Mode mode) throws Exception {
+	public boolean clearPassport(Mode mode) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public Account getAccount(byte[] addressAI, Mode mode) throws Exception {
+	public Passport getPassport(byte[] addressAI, Mode mode) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean merge(Mode mode) throws SQLException, Exception {
+	public boolean mergePassport(Mode mode) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception {
+	public boolean takePassportSnapshot(Mode mode, ID height) throws SQLException, Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -531,13 +499,7 @@ public class EQCBlockChainRPC implements EQCBlockChain<O> {
 	}
 
 	@Override
-	public boolean deleteAccount(ID id, Mode mode) throws Exception {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public Account getAccount(ID id, ID height) throws Exception {
+	public Passport getPassport(ID id, ID height) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -558,6 +520,108 @@ public class EQCBlockChainRPC implements EQCBlockChain<O> {
 	public ID getTotalTransactionNumbers(ID height, ID assetID, Mode mode) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public boolean deletePassport(ID id, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean saveLock(Lock lock, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Lock getLock(ID id, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Lock getLock(ID id, ID height) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Lock getLock(String readableLock, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean deleteLock(ID id, Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean clearLock(Mode mode) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Passport getPassportSnapshot(ID accountID, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Passport getPassportSnapshot(byte[] addressAI, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean savePassportSnapshot(Passport account, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deletePassportSnapshotFrom(ID height, boolean isForward) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Passport getLockSnapshot(ID lockID, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Passport getLockSnapshot(byte[] addressAI, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean saveLockSnapshot(Lock lock, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteLockSnapshotFrom(ID height, boolean isForward) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean mergeLock(Mode mode) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean takeLockSnapshot(Mode mode, ID height) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

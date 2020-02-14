@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,10 +35,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-
-
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.serialization.EQCHashInheritable;
 import com.eqchains.serialization.EQCHashTypable;
 import com.eqchains.serialization.EQCInheritable;
@@ -204,7 +202,7 @@ public class Publickey implements EQCHashTypable, EQCHashInheritable {
 		}
 	}
 
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
 	}

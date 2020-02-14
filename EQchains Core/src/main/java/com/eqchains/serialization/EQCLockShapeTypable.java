@@ -30,17 +30,18 @@
 package com.eqchains.serialization;
 
 import java.io.IOException;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 
 /**
  * @author Xun Wang
  * @date May 19, 2019
  * @email 10509759@qq.com
  */
-public interface EQCAddressShapeTypable {
-	public byte[] getBytes(AddressShape addressShape) throws Exception;
-	public byte[] getBin(AddressShape addressShape) throws Exception;
-	public boolean isSanity(AddressShape addressShape);
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) throws Exception;
+public interface EQCLockShapeTypable {
+	public byte[] getBytes(LockShape keyShape) throws Exception;
+	public byte[] getBin(LockShape keyShape) throws Exception;
+	public boolean isSanity(LockShape keyShape);
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree, LockShape keyShape) throws Exception;
 }

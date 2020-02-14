@@ -36,8 +36,8 @@ import org.apache.avro.AvroRemoteException;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.TransactionNetwork;
-import com.eqchains.blockchain.account.Account;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
@@ -126,9 +126,9 @@ public class TransactionNetworkServiceImpl implements TransactionNetwork {
 	@Override
 	public O getID(O readableAddress) {
 		O id = null;
-		Account account = null;
+		Passport account = null;
 		try {
-			account = Util.DB().getAccount(AddressTool.addressToAI(EQCType.bytesToASCIISting(readableAddress.getO().array())), Mode.GLOBAL);
+			account = Util.DB().getPassport(AddressTool.addressToAI(EQCType.bytesToASCIISting(readableAddress.getO().array())), Mode.GLOBAL);
 			if(account != null) {
 				id = Util.bytes2O(account.getID().getEQCBits());
 			}
@@ -146,9 +146,9 @@ public class TransactionNetworkServiceImpl implements TransactionNetwork {
 	@Override
 	public O getAccount(O a) {
 		O io = null;
-		Account account = null;
+		Passport account = null;
 		try {
-			account = Util.DB().getAccount(a.o.array(), Mode.GLOBAL);
+			account = Util.DB().getPassport(a.o.array(), Mode.GLOBAL);
 			if(account != null) {
 				io = Util.bytes2O(account.getBytes());
 			}
@@ -203,7 +203,7 @@ public class TransactionNetworkServiceImpl implements TransactionNetwork {
 		O io = null;
 		byte[] signHash = null;
 		try {
-			signHash = Util.DB().getAccount(new ID(id.getO().array()), Mode.GLOBAL).getSignatureHash();
+			signHash = Util.DB().getPassport(new ID(id.getO().array()), Mode.GLOBAL).getSignatureHash();
 			if(signHash != null) {
 				io = Util.bytes2O(signHash);
 			}

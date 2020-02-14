@@ -34,7 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -78,7 +78,7 @@ public class Cookie<T> extends IO<T> {
 	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		return false;
 	}
 

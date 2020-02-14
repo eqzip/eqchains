@@ -27,17 +27,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
-
-
-import com.eqchains.blockchain.account.Account.AccountType;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Passport.AccountType;
 import com.eqchains.serialization.EQCHashInheritable;
 import com.eqchains.serialization.EQCHashTypable;
 import com.eqchains.serialization.EQCInheritable;
@@ -53,24 +51,24 @@ import com.eqchains.util.Util;
  * @date Dec 14, 2018
  * @email 10509759@qq.com
  */
-public class Key implements EQCHashTypable, EQCHashInheritable  {
-
-	private Passport passport;
+public class KeyDeprecated implements EQCHashTypable, EQCHashInheritable  {
+	
+	private Lock key;
 	private ID passportCreateHeight;
 	private Publickey publickey;
 	
-	public Key() {
+	public KeyDeprecated() {
 		publickey = new Publickey();
 	}
 	
-	public Key(byte[] bytes) throws NoSuchFieldException, IOException {
+	public KeyDeprecated(byte[] bytes) throws NoSuchFieldException, IOException {
 		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseBody(is);
 		EQCType.assertNoRedundantData(is);
 	}
 	
-	public Key(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+	public KeyDeprecated(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		parseBody(is);
 	}
 	
@@ -89,15 +87,15 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	/**
 	 * @return the Passport
 	 */
-	public Passport getPassport() {
-		return passport;
+	public Lock getKey() {
+		return key;
 	}
 
 	/**
-	 * @param Passport the Passport to set
+	 * @param Lock the Passport to set
 	 */
-	public void setPassport(Passport passport) {
-		this.passport = passport;
+	public void setKey(Lock passport) {
+		this.key = key;
 	}
 
 	/**
@@ -145,17 +143,17 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	}
 	public String toInnerJson() {
 		return "\"Key\":" + "\n{\n" + 
-				passport.toInnerJson() + ",\n" +
+				key.toInnerJson() + ",\n" +
 				"\"AddressCreateHeight\":" + "\"" + passportCreateHeight + "\"" + ",\n" +
 				((publickey.isNULL())?Publickey.NULL():publickey.toInnerJson()) + "\n" +
 				"\n" + "}";
 	}
 	@Override
 	public boolean isSanity() {
-		if(passport == null || passportCreateHeight == null || publickey == null) {
+		if(key == null || passportCreateHeight == null || publickey == null) {
 			return false;
 		}
-		if(!passport.isSanity(null)) {
+		if(!key.isSanity(null)) {
 			return false;
 		}
 		if(!passportCreateHeight.isSanity()) {
@@ -172,14 +170,14 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		// Parse Passport
-		passport = new Passport(is);
+		key = new Lock(is);
 		// Parse addressCreateHeight
 		passportCreateHeight = new ID(EQCType.parseEQCBits(is));
 		// Parse publickey
 		publickey = new Publickey(is);
 	}
 
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -194,7 +192,7 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	public byte[] getBodyBytes() {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(passport.getBytes());
+			os.write(key.getBytes());
 			os.write(passportCreateHeight.getEQCBits());
 			if(publickey.isNULL()) {
 				os.write(EQCType.NULL);
@@ -220,7 +218,7 @@ public class Key implements EQCHashTypable, EQCHashInheritable  {
 	public byte[] getBodyHashBytes(SoleUpdate soleUpdate) throws ClassNotFoundException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(passport.getBytes());
+			os.write(key.getBytes());
 			os.write(passportCreateHeight.getEQCBits());
 			soleUpdate.update(os, passportCreateHeight);
 			if(publickey.isNULL()) {

@@ -31,8 +31,9 @@ package com.eqchains.serialization;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 
 /**
  * @author Xun Wang
@@ -43,5 +44,5 @@ public interface EQCTypable {
 	public byte[] getBytes() throws Exception;
 	public byte[] getBin() throws Exception;
 	public boolean isSanity();
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception;
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) throws Exception;
 }

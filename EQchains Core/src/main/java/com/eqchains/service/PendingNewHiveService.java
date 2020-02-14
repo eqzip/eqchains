@@ -31,8 +31,8 @@ package com.eqchains.service;
 
 import java.util.concurrent.PriorityBlockingQueue;
 
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
@@ -108,7 +108,7 @@ public class PendingNewHiveService extends EQCService {
 //						+ " just return");
 //				return;
 //			} else {
-			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
+			EQcoinSubchainPassport eQcoinSubchainAccount = (EQcoinSubchainPassport) Util.DB().getPassport(ID.ONE, Mode.GLOBAL);
 			// Here need do more job to check if the checkpoint is valid need add checkpoint
 			// transaction in NewBlock add isValid in NewBlock to handle this
 			if (newBlockState.getNewBlock().getEqcHive().getHeight().compareTo(Util.DB().getEQCBlockTailHeight()) > 0

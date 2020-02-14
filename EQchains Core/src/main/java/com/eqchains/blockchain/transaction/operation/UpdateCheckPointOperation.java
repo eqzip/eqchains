@@ -34,10 +34,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
 import com.eqchains.serialization.EQCType;
@@ -58,7 +58,7 @@ public class UpdateCheckPointOperation extends Operation {
 		super(OP.CHECKPOINT);
 	}
 
-	public UpdateCheckPointOperation(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
+	public UpdateCheckPointOperation(ByteArrayInputStream is, LockShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
 		super(OP.CHECKPOINT);
 		parseHeader(is, addressShape);
 		parseBody(is, addressShape);
@@ -72,7 +72,7 @@ public class UpdateCheckPointOperation extends Operation {
 	 * .eqcoin.blockchain.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public byte[] getBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Header
@@ -95,7 +95,7 @@ public class UpdateCheckPointOperation extends Operation {
 	 * eqcoin.blockchain.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBin(AddressShape addressShape) {
+	public byte[] getBin(LockShape addressShape) {
 		return EQCType.bytesToBIN(getBytes(addressShape));
 	}
 
@@ -104,11 +104,11 @@ public class UpdateCheckPointOperation extends Operation {
 	 */
 	@Override
 	public boolean execute(Object ...objects) throws Exception {
-		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
-		EQcoinSubchainAccount account = (EQcoinSubchainAccount) accountsMerkleTree.getAccount(Asset.EQCOIN, true);
+		PassportsMerkleTree accountsMerkleTree = (PassportsMerkleTree) objects[1];
+		EQcoinSubchainPassport account = (EQcoinSubchainPassport) accountsMerkleTree.getPassport(Asset.EQCOIN, true);
 		account.setCheckPointHash(checkPointHash);
 		account.setCheckPointHeight(checkPointHeight);
-		accountsMerkleTree.saveAccount(account);
+		accountsMerkleTree.savePassport(account);
 		return true;
 	}
 
@@ -118,9 +118,9 @@ public class UpdateCheckPointOperation extends Operation {
 	@Override
 	public boolean isMeetPreconditions(Object ...objects) throws Exception {
 		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
-		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
+		PassportsMerkleTree accountsMerkleTree = (PassportsMerkleTree) objects[1];
 		boolean isMeetPreconditions = true;
-		if(isSanity(null) && operationTransaction.getTxIn().getPassport().getID().equals(ID.NINE)) {
+		if(isSanity(null) && operationTransaction.getTxIn().getKey().getID().equals(ID.NINE)) {
 			if(checkPointHeight.compareTo(Util.DB().getEQCBlockTailHeight()) > 0) {
 				isMeetPreconditions = false;
 			}
@@ -140,7 +140,7 @@ public class UpdateCheckPointOperation extends Operation {
 	 * @see com.eqzip.eqcoin.blockchain.transaction.operation.Operation#isSanity(com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape[])
 	 */
 	@Override
-	public boolean isSanity(AddressShape addressShape) {
+	public boolean isSanity(LockShape addressShape) {
 		if(op != OP.CHECKPOINT) {
 			return false;
 		}
@@ -167,7 +167,7 @@ public class UpdateCheckPointOperation extends Operation {
 	 * @see com.eqchains.blockchain.transaction.operation.Operation#parseBody(java.io.ByteArrayInputStream, com.eqchains.blockchain.transaction.Address.AddressShape)
 	 */
 	@Override
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+	public void parseBody(ByteArrayInputStream is, LockShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
 		checkPointHash = EQCType.parseBIN(is);
 		checkPointHeight = EQCType.parseID(is);
@@ -177,7 +177,7 @@ public class UpdateCheckPointOperation extends Operation {
 	 * @see com.eqchains.blockchain.transaction.operation.Operation#getBodyBytes(com.eqchains.blockchain.transaction.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBodyBytes(AddressShape addressShape) {
+	public byte[] getBodyBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(EQCType.bytesToBIN(checkPointHash));

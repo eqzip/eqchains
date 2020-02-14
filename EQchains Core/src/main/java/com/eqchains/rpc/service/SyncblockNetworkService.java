@@ -42,9 +42,9 @@ import org.apache.avro.util.Utf8;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.rpc.Code;
 import com.eqchains.rpc.Cookie;

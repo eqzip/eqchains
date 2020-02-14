@@ -61,11 +61,12 @@ package com.eqchains.service;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.rpc.NewHive;
@@ -83,7 +84,7 @@ import com.eqchains.util.Util;
  */
 public final class MinerService extends EQCService {
 	private static MinerService instance;
-	private static AccountsMerkleTree accountsMerkleTree;
+	private static PassportsMerkleTree accountsMerkleTree;
 	private ID newHiveHeight;
 	private AtomicBoolean isMining;
 	
@@ -193,7 +194,7 @@ public final class MinerService extends EQCService {
 			newHiveHeight = blockTailHeight.getNextID();
 			// If create AccountsMerkleTree just create it
 			try {
-				accountsMerkleTree = new AccountsMerkleTree(newHiveHeight, new Filter(Mode.MINING));
+				accountsMerkleTree = new PassportsMerkleTree(newHiveHeight, new Filter(Mode.MINING));
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -284,7 +285,7 @@ public final class MinerService extends EQCService {
 								try {
 									// Send new block to EQC Miner network
 									NewHiveState newBlockState = new NewHiveState(State.BROADCASTNEWHIVE);
-									EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
+									EQcoinSubchainPassport eQcoinSubchainAccount = (EQcoinSubchainPassport) Util.DB().getPassport(ID.ONE, Mode.GLOBAL);
 									NewHive newBlock = new NewHive();
 									newBlock.setEqcHive(newEQCHive);
 									newBlock.setCheckPointHeight(eQcoinSubchainAccount.getCheckPointHeight());

@@ -27,13 +27,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.account.Account.AccountType;
+import com.eqchains.blockchain.passport.Passport.AccountType;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
@@ -43,7 +43,7 @@ import com.eqchains.util.Log;
  * @date Jun 22, 2019
  * @email 10509759@qq.com
  */
-public class EQcoinSubchainAccount extends AssetSubchainAccount {
+public class EQcoinSubchainPassport extends AssetSubchainPassport {
 	/**
 	 * Body field include TxFeeRate
 	 */
@@ -51,11 +51,11 @@ public class EQcoinSubchainAccount extends AssetSubchainAccount {
 	private ID checkPointHeight;
 	private byte[] checkPointHash;
 
-	public EQcoinSubchainAccount() {
+	public EQcoinSubchainPassport() {
 		super(AccountType.EQCOINSUBCHAIN);
 	}
 	
-	public EQcoinSubchainAccount(byte[] bytes) throws NoSuchFieldException, IOException {
+	public EQcoinSubchainPassport(byte[] bytes) throws NoSuchFieldException, IOException {
 		super(bytes);
 	}
 	

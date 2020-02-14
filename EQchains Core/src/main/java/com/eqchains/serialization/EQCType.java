@@ -61,8 +61,8 @@ import com.eqchains.util.Util;
  * EQCBits is a series of consecutive bytes. Each byte has 7 significant digits,
  * the highest digit of which is a continuous label. If it is 1, it means that
  * the subsequent byte is still part of bytes. If it is 0, it means the current
- * byte is the last byte of bytes. The endian is little endian. | 1xxxxxxx | ...
- * | 1xxxxxxx | 0xxxxxxx |
+ * byte is the last byte of bytes. The endian is little endian. 
+ * | 1xxxxxxx | ... | 1xxxxxxx | 0xxxxxxx |
  * <p>
  * 3. ARRAY
  * 

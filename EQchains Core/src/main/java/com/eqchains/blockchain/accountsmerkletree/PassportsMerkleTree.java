@@ -35,16 +35,17 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Vector;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.AssetSubchainAccount;
-import com.eqchains.blockchain.account.AssetSubchainHeader;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.account.Passport.AddressShape;
+
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetPassport;
+import com.eqchains.blockchain.passport.AssetSubchainHeader;
+import com.eqchains.blockchain.passport.AssetSubchainPassport;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.configuration.Configuration;
@@ -57,31 +58,31 @@ import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
 /**
- * The height of AccountsMerkleTree is previous EQCBlock's height when 
+ * The height of PassportsMerkleTree is previous EQCBlock's height when 
  * build new block or verify new block.
- * If create from the early height need fill all the relevant Account's 
+ * If create from the early height need fill all the relevant Passport's 
  * Snapshot(In current height) from H2 in Filter.
  * 
  * @author Xun Wang
  * @date Mar 11, 2019
  * @email 10509759@qq.com
  */
-public class AccountsMerkleTree {
-	public final static int MAX_ACCOUNTS_PER_TREE = 1024;
-	private Vector<byte[]> accountsMerkleTreeRootList;
+public class PassportsMerkleTree {
+	public final static int MAX_PASSPORTS_PER_TREE = 1024;
+	private Vector<byte[]> passportsMerkleTreeRootList;
 	/**
 	 * Current EQCHive's height which is the base for the new EQCHive
 	 */
 	private ID height;
-	private byte[] accountsMerkleTreeRoot;
-	private ID totalAccountNumbers;
-	private ID previousTotalAccountNumbers;
+	private byte[] passportsMerkleTreeRoot;
+	private ID totalPassportNumbers;
+	private ID previousTotalPassportNumbers;
 	private Filter filter;
-	private Vector<MerkleTree> accountsMerkleTree;
+	private Vector<MerkleTree> passportsMerkleTree;
 
-	public AccountsMerkleTree(ID height, Filter filter) throws Exception {
+	public PassportsMerkleTree(ID height, Filter filter) throws Exception {
 		super();
-		EQcoinSubchainAccount eQcoinSubchainAccount = null;
+		EQcoinSubchainPassport eQcoinSubchainPassport = null;
 		
 		filter.setAccountsMerkleTree(this);
 		this.height = height;
@@ -97,20 +98,20 @@ public class AccountsMerkleTree {
 //			totalAccountNumbers = Util.DB().getTotalAccountNumbers(height.getPreviousID());
 //		}
 		
-		eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, height);
-		if (eQcoinSubchainAccount != null) {
-			totalAccountNumbers = eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers();
+		eQcoinSubchainPassport = (EQcoinSubchainPassport) Util.DB().getPassport(ID.ONE, height);
+		if (eQcoinSubchainPassport != null) {
+			totalPassportNumbers = eQcoinSubchainPassport.getAssetSubchainHeader().getTotalPassportNumbers();
 		} else {
-			totalAccountNumbers = ID.ZERO;
+			totalPassportNumbers = ID.ZERO;
 		}
 		
-		previousTotalAccountNumbers = totalAccountNumbers;
+		previousTotalPassportNumbers = totalPassportNumbers;
 		this.filter = filter;
-		accountsMerkleTreeRootList = new Vector<>();
+		passportsMerkleTreeRootList = new Vector<>();
 	}
 	
 	/**
-	 * Check if Account exists according to Passport's AddressAI.
+	 * Check if Passport exists according to Lock's AddressAI.
 	 * <p>
 	 * When check TxIn Account doesn't need searching in filter just set isFiltering to false
 	 * Check if TxIn Account exists in EQC blockchain's Accounts table
@@ -122,57 +123,57 @@ public class AccountsMerkleTree {
 	 * and it's create height less than current AccountsMerkleTree's
 	 * height.
 	 * 
-	 * @param passport
+	 * @param lock
 	 * @param isFiltering When need searching in Filter table just set it to true
 	 * @return true if Account exists
 	 * @throws Exception 
 	 */
-	public synchronized boolean isAccountExists(Passport passport, boolean isFiltering) throws Exception {
+	public synchronized boolean isPassportExists(Lock lock, boolean isFiltering) throws Exception {
 		boolean isExists = false;
-		if(isFiltering && filter.isAccountExists(passport)) {
+		if(isFiltering && filter.isAccountExists(lock)) {
 			isExists = true;
 		}
 		else {
-			Account account = Util.DB().getAccount(passport.getAddressAI(), Mode.GLOBAL);
-			if(account != null && account.getCreateHeight().compareTo(height) < 0 && account.getLockCreateHeight().compareTo(height) < 0 && account.getID().compareTo(previousTotalAccountNumbers) <= 0) {
+			Passport passport = Util.DB().getPassport(lock.getAddressAI(), Mode.GLOBAL);
+			if(passport != null && passport.getCreateHeight().compareTo(height) < 0 && passport.getLockCreateHeight().compareTo(height) < 0 && passport.getID().compareTo(previousTotalPassportNumbers) <= 0) {
 				isExists = true;
 			}
 		}
 		return  isExists;
 	}
 	
-	public synchronized Account getAccount(ID id, boolean isFiltering) throws Exception {
+	public synchronized Passport getPassport(ID id, boolean isFiltering) throws Exception {
 //		EQCType.assertNotBigger(id, previousTotalAccountNumbers); // here need do more job to determine if need this check
-		return filter.getAccount(id, isFiltering);
+		return filter.getPassport(id, isFiltering);
 	}
 	
-	public synchronized Account getAccount(Passport passport, boolean isFiltering) throws Exception {
-		return filter.getAccount(passport, isFiltering);
+	public synchronized Passport getPassport(Lock key, boolean isFiltering) throws Exception {
+		return filter.getPassport(key, isFiltering);
 	}
 	
 	/**
-	 * Save current Account in Filter
-	 * @param account
+	 * Save current Passport in Filter
+	 * @param passport
 	 * @return true if save successful
 	 * @throws Exception 
 	 * @throws SQLException 
 	 * @throws ClassNotFoundException 
 	 */
-	public synchronized void saveAccount(Account account) throws ClassNotFoundException, SQLException, Exception {
+	public synchronized void savePassport(Passport account) throws ClassNotFoundException, SQLException, Exception {
 //		Log.info(account.toString());
-		filter.saveAccount(account);
+		filter.savePassport(account);
 	}
 	
-	public synchronized void increaseTotalAccountNumbers() {
-		totalAccountNumbers = totalAccountNumbers.add(BigInteger.ONE);
-		Log.info("increaseTotalAccountNumbers: " + totalAccountNumbers);
+	public synchronized void increaseTotalPassportNumbers() {
+		totalPassportNumbers = totalPassportNumbers.add(BigInteger.ONE);
+		Log.info("increaseTotalAccountNumbers: " + totalPassportNumbers);
 	}
 	
 	/**
-	 * @return the totalAccountNumber
+	 * @return the totalPassportNumber
 	 */
-	public synchronized ID getTotalAccountNumbers() {
-		return totalAccountNumbers;
+	public synchronized ID getTotalPassportNumbers() {
+		return totalPassportNumbers;
 	}
 	
 	/**
@@ -195,23 +196,23 @@ public class AccountsMerkleTree {
 
 	public void buildAccountsMerkleTree() throws Exception {
 		Log.info("Begin buildAccountsMerkleTree");
-		Account account = null;
+		Passport account = null;
 		Vector<byte[]> accountsHash = new Vector<>();
-		long remainder = totalAccountNumbers.longValue();
+		long remainder = totalPassportNumbers.longValue();
 		int begin = 0, end = 0;
 		byte[] accountHash = null;
 		
-		for (int i = 0; i <= totalAccountNumbers.longValue() / MAX_ACCOUNTS_PER_TREE; ++i) {
-			begin = BigInteger.valueOf(i * MAX_ACCOUNTS_PER_TREE)
+		for (int i = 0; i <= totalPassportNumbers.longValue() / MAX_PASSPORTS_PER_TREE; ++i) {
+			begin = BigInteger.valueOf(i * MAX_PASSPORTS_PER_TREE)
 					.add(BigInteger.valueOf(Util.INIT_ADDRESS_SERIAL_NUMBER)).intValue();
-			if ((remainder - MAX_ACCOUNTS_PER_TREE) > 0) {
-				end = MAX_ACCOUNTS_PER_TREE + Util.INIT_ADDRESS_SERIAL_NUMBER;
-				remainder -= MAX_ACCOUNTS_PER_TREE;
+			if ((remainder - MAX_PASSPORTS_PER_TREE) > 0) {
+				end = MAX_PASSPORTS_PER_TREE + Util.INIT_ADDRESS_SERIAL_NUMBER;
+				remainder -= MAX_PASSPORTS_PER_TREE;
 			} else {
 				end = (int) remainder + Util.INIT_ADDRESS_SERIAL_NUMBER; 
 			}
 			for (int j = begin; j < end; ++j) {
-				account = filter.getAccount(new ID(j), true);
+				account = filter.getPassport(new ID(j), true);
 				// If account == null which means error occur
 				if (account == null) {
 					throw new IllegalStateException("Account shouldn't be null");
@@ -220,14 +221,14 @@ public class AccountsMerkleTree {
 //				Log.info(Util.dumpBytes(account.getHash(), 16));
 				account.setSaveHash(true);
 				accountHash = account.getHash();
-				filter.saveAccount(account);
+				filter.savePassport(account);
 				accountsHash.add(accountHash);
 //				Log.info("No." + j + "'s "+ Util.dumpBytes(accountHash, 16));
 				accountHash = null;
 			}
 			MerkleTree merkleTree = new MerkleTree(accountsHash);
 			merkleTree.generateRoot();
-			accountsMerkleTreeRootList.add(merkleTree.getRoot());
+			passportsMerkleTreeRootList.add(merkleTree.getRoot());
 			merkleTree = null;
 			accountsHash.clear();
 		}
@@ -235,18 +236,18 @@ public class AccountsMerkleTree {
 	}
 	
 	public void generateRoot() {
-		MerkleTree merkleTree = new MerkleTree(accountsMerkleTreeRootList);
+		MerkleTree merkleTree = new MerkleTree(passportsMerkleTreeRootList);
 		merkleTree.generateRoot();
-		accountsMerkleTreeRoot = merkleTree.getRoot();
+		passportsMerkleTreeRoot = merkleTree.getRoot();
 	}
 	
 	public byte[] getRoot() {
-		return accountsMerkleTreeRoot;
+		return passportsMerkleTreeRoot;
 	}
 	
 	public Vector<byte[]> getAccountsMerkleTreeRootList(){
 		Vector<byte[]> bytes = new Vector<byte[]>();
-		for(MerkleTree merkleTree : accountsMerkleTree) {
+		for(MerkleTree merkleTree : passportsMerkleTree) {
 			bytes.add(merkleTree.getRoot());
 		}
 		return bytes;
@@ -341,11 +342,11 @@ public class AccountsMerkleTree {
 			return false;
 		}
 		
-		public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+		public boolean isValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 			for(AssetStatistics assetStatistics : assetStatisticsList) {
-				AssetSubchainAccount assetSubchainAccount = (AssetSubchainAccount) accountsMerkleTree.getAccount(assetStatistics.assetID, true);
+				AssetSubchainPassport assetSubchainAccount = (AssetSubchainPassport) accountsMerkleTree.getPassport(assetStatistics.assetID, true);
 				AssetSubchainHeader assetSubchainHeader = assetSubchainAccount.getAssetSubchainHeader();
-				if(assetSubchainHeader.getTotalAccountNumbers().compareTo(assetStatistics.totalAccountNumbers) != 0) {
+				if(assetSubchainHeader.getTotalPassportNumbers().compareTo(assetStatistics.totalAccountNumbers) != 0) {
 					Log.Error("totalAccountNumbers is invalid.");
 					return false;
 				}
@@ -394,10 +395,10 @@ public class AccountsMerkleTree {
 	}
 	
 	public Statistics getStatistics() throws Exception {
-		Account account;
+		Passport account;
 		Statistics statistics = new Statistics();
-		for(int i=1; i<=totalAccountNumbers.longValue(); ++i) {
-			account = filter.getAccount(ID.valueOf(i), true);
+		for(int i=1; i<=totalPassportNumbers.longValue(); ++i) {
+			account = filter.getPassport(ID.valueOf(i), true);
 //			Log.info(account.toString());
 			statistics.update(account.getAssetList());
 		}
@@ -422,7 +423,7 @@ public class AccountsMerkleTree {
 	 * @return the previousTotalAccountNumbers
 	 */
 	public ID getPreviousTotalAccountNumbers() {
-		return previousTotalAccountNumbers;
+		return previousTotalPassportNumbers;
 	}
 	
 	public void updateGlobalState() throws Exception {

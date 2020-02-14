@@ -33,14 +33,14 @@ import java.math.BigInteger;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetPassport;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.TxOut;
 import com.eqchains.configuration.Configuration;
@@ -147,11 +147,16 @@ public class Singularity {
 //		Log.info("" + (int)'-');
 //		System.out.println("Begin testKeystore");
 		try {
+//			Math.exp(a)
 //			Configuration.getInstance().updateIsInitSingularityBlock(false);
 //			Util.IP = args[0];
 //			Util.init();
+//			for(int i=2; i<10000; ++i)
+			EQCBlockChainH2.getInstance().test(ID.valueOf(3));
+//			EQCBlockChainH2 .getInstance().test1(ID.valueOf(747));
+//			Log.info("Hash counter: " + Test.testHashCounter(1000000000d, 2^256));
 //			Test.testMultiExtendTime();
-			Test.testMultiExtendTimeMix();
+//			Test.testMultiExtendTimeMix();
 //			Test.testHashTime();
 //			Account account = Util.DB().getAccount(Asset.EQCOIN);
 //			Vector<Account> accounts = new Vector<>();

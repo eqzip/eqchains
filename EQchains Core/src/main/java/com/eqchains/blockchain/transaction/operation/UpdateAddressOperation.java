@@ -34,12 +34,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
-
-
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -54,13 +52,13 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @email 10509759@qq.com
  */
 public class UpdateAddressOperation extends Operation {
-	private Passport address;
+	private Lock address;
 	
 	public UpdateAddressOperation() {
 		super(OP.ADDRESS);
 	}
 
-	public UpdateAddressOperation(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
+	public UpdateAddressOperation(ByteArrayInputStream is, LockShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
 		super(OP.ADDRESS);
 		parseHeader(is, addressShape);
 		parseBody(is, addressShape);
@@ -74,7 +72,7 @@ public class UpdateAddressOperation extends Operation {
 	 * .eqcoin.blockchain.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public byte[] getBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Header
@@ -97,7 +95,7 @@ public class UpdateAddressOperation extends Operation {
 	 * eqcoin.blockchain.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBin(AddressShape addressShape) {
+	public byte[] getBin(LockShape addressShape) {
 		return EQCType.bytesToBIN(getBytes(addressShape));
 	}
 
@@ -107,15 +105,15 @@ public class UpdateAddressOperation extends Operation {
 	@Override
 	public boolean execute(Object ...objects) throws Exception {
 		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
-		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
-		Account account = accountsMerkleTree.getAccount(operationTransaction.getTxIn().getPassport().getID(), true);
+		PassportsMerkleTree accountsMerkleTree = (PassportsMerkleTree) objects[1];
+		Passport account = accountsMerkleTree.getPassport(operationTransaction.getTxIn().getKey().getID(), true);
 		if(account.isPublickeyExists()) {
 			account.setPublickey(null);
 		}
 		address.setID(account.getID());
-		account.setPassport(address);
+		account.setKey(address);
 		account.setLockCreateHeight(accountsMerkleTree.getHeight());
-		accountsMerkleTree.saveAccount(account);
+		accountsMerkleTree.savePassport(account);
 		return true;
 	}
 
@@ -124,23 +122,23 @@ public class UpdateAddressOperation extends Operation {
 	 */
 	@Override
 	public boolean isMeetPreconditions(Object ...objects) throws Exception {
-		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[0];
+		PassportsMerkleTree accountsMerkleTree = (PassportsMerkleTree) objects[0];
 		// Here exists one bug need do more job to fix it for example can't use new Account create in current height
 		// At isAccountExists must filtering because need to check if this Address already exists in current Hive
-		return address.isSanity(AddressShape.READABLE) && !accountsMerkleTree.isAccountExists(address, true);
+		return address.isSanity(LockShape.READABLE) && !accountsMerkleTree.isPassportExists(address, true);
 	}
 
 	/**
 	 * @return the readableAddress
 	 */
-	public Passport getAddress() {
+	public Lock getAddress() {
 		return address;
 	}
 
 	/**
 	 * @param readableAddress the readableAddress to set
 	 */
-	public void setAddress(Passport readableAddress) {
+	public void setAddress(Lock readableAddress) {
 		this.address = readableAddress;
 	}
 
@@ -148,7 +146,7 @@ public class UpdateAddressOperation extends Operation {
 	 * @see com.eqzip.eqcoin.blockchain.transaction.operation.Operation#isSanity(com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape[])
 	 */
 	@Override
-	public boolean isSanity(AddressShape addressShape) {
+	public boolean isSanity(LockShape addressShape) {
 		if(op != OP.ADDRESS || address == null) {
 			return false;
 		}
@@ -171,13 +169,13 @@ public class UpdateAddressOperation extends Operation {
 	 * @see com.eqchains.blockchain.transaction.operation.Operation#parseBody(java.io.ByteArrayInputStream, com.eqchains.blockchain.transaction.Address.AddressShape)
 	 */
 	@Override
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+	public void parseBody(ByteArrayInputStream is, LockShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
 		// Parse Address
-		if (addressShape == AddressShape.READABLE) {
-			address = new Passport(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
-		} else if (addressShape == AddressShape.ID || addressShape == AddressShape.AI) {
-			address = new Passport(AddressTool.AIToAddress(EQCType.parseBIN(is)));
+		if (addressShape == LockShape.READABLE) {
+			address = new Lock(EQCType.bytesToASCIISting(EQCType.parseBIN(is)));
+		} else if (addressShape == LockShape.ID || addressShape == LockShape.AI) {
+			address = new Lock(AddressTool.AIToAddress(EQCType.parseBIN(is)));
 		}
 	}
 
@@ -185,12 +183,12 @@ public class UpdateAddressOperation extends Operation {
 	 * @see com.eqchains.blockchain.transaction.operation.Operation#getBodyBytes(com.eqchains.blockchain.transaction.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBodyBytes(AddressShape addressShape) {
+	public byte[] getBodyBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Address
-			if(addressShape == AddressShape.ID || addressShape == AddressShape.AI) {
-				os.write(address.getBin(AddressShape.AI));
+			if(addressShape == LockShape.ID || addressShape == LockShape.AI) {
+				os.write(address.getBin(LockShape.AI));
 			}
 			else {
 				os.write(address.getBin(addressShape));

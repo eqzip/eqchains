@@ -27,62 +27,59 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.transaction;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.passport.Lock;
-import com.eqchains.blockchain.passport.Lock.LockShape;
-import com.eqchains.serialization.EQCTypable;
-import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
-import com.eqchains.util.Log;
 import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Sep 28, 2018
+ * @date Jun 6, 2019
  * @email 10509759@qq.com
  */
-public class TxIn extends Tx {
-	
-	public TxIn(byte[] bytes, Lock.LockShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
-		super(bytes, addressShape);
-	}
-	
-	public TxIn(ByteArrayInputStream is, Lock.LockShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
-		super(is, addressShape);
-	}
-	
-	public TxIn() {
-		super();
+public class CoinAsset extends Asset {
+
+	public CoinAsset() {
+		super(AssetType.COIN);
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		return 
-		"{\n" +
-		toInnerJson() +
-		"\n}";
+	public CoinAsset(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+		super(is);
 	}
-	
+	@Override
+	public boolean isSanity() {
+		if(assetType == null || version == null || assetID == null || balance == null || nonce == null) {
+			return false;
+		}
+		if(!version.isSanity() || !assetID.isSanity() || !nonce.isSanity()) {
+			return false;
+		}
+		if(assetType != AssetType.COIN) {
+			return false;
+		}
+		if(assetID.equals(Asset.EQCOIN)) {
+			if(balance.compareTo(new ID(Util.MIN_EQC)) < 0) {
+				return false;
+			}
+		}
+		else {
+			if(!balance.isSanity()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	@Override
 	public String toInnerJson() {
 		return 
-		"\"TxIn\":" + 
-		"\n{" +
-			key.toInnerJson() + ",\n" +
-			"\"Value\":" + "\"" +  Long.toString(value) + "\"" + "\n" +
-		"}";
+				"\"CoinAsset\":" + 
+				"\n{\n" +
+					"\"AssetID\":" + "\"" + assetID + "\"" + ",\n" +
+					"\"Balance\":" + "\"" + balance + "\"" + ",\n" +
+					"\"Nonce\":" + "\"" + nonce + "\"" + "\n" +
+				"}";
 	}
-	
-	public static String coinBase() {
-		return 
-		"\"TxIn\":\"CoinBase\""; 
-	}
-
 }

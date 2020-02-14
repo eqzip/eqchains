@@ -40,7 +40,7 @@ import org.jboss.netty.channel.socket.oio.OioClientSocketChannelFactory;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.TransactionNetwork;
-import com.eqchains.blockchain.account.Account;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.rpc.Balance;
 import com.eqchains.rpc.Cookie;
@@ -163,8 +163,8 @@ public class TransactionNetworkClient extends EQCRPCClient {
 		return id;
 	}
 
-	public static Account getAccount(byte[] addressAI, String ip) throws Exception {
-		Account account = null;
+	public static Passport getAccount(byte[] addressAI, String ip) throws Exception {
+		Passport account = null;
 		NettyTransceiver nettyTransceiver = null;
 		TransactionNetwork client = null;
 		try {
@@ -173,7 +173,7 @@ public class TransactionNetworkClient extends EQCRPCClient {
 			                Executors.newCachedThreadPool()),
 					Util.DEFAULT_TIMEOUT);
 			client = SpecificRequestor.getClient(TransactionNetwork.class, nettyTransceiver);
-			account = Account.parseAccount(client.getAccount(Util.bytes2O(addressAI)).getO().array());
+			account = Passport.parseAccount(client.getAccount(Util.bytes2O(addressAI)).getO().array());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

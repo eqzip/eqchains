@@ -84,21 +84,21 @@ import org.bouncycastle.crypto.digests.RIPEMD128Digest;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.CoinAsset;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.account.SmartContractAccount.LanguageType;
-import com.eqchains.blockchain.account.SmartContractAccount.State;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHeader;
 import com.eqchains.blockchain.hive.EQCHive;
 import com.eqchains.blockchain.hive.EQCRoot;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetPassport;
+import com.eqchains.blockchain.passport.CoinAsset;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Lock.LockShape;
+import com.eqchains.blockchain.passport.SmartContractPassport.LanguageType;
+import com.eqchains.blockchain.passport.SmartContractPassport.State;
 import com.eqchains.blockchain.subchain.EQcoinSubchainHeader;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
@@ -1174,7 +1174,7 @@ public final class Util {
 			if(SN.length == 1) {
 				signature.update(intToBytes(SN[0]));
 			}
-			signature.update(transaction.getBytes(AddressShape.AI));
+			signature.update(transaction.getBytes(LockShape.AI));
 			isTransactionValid = signature.verify(userSignature);
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			// TODO Auto-generated catch block
@@ -1206,7 +1206,7 @@ public final class Util {
 			if(SN.length == 1) {
 				ecdsa.update(intToBytes(SN[0]));
 			}
-			ecdsa.update(transaction.getBytes(AddressShape.AI));
+			ecdsa.update(transaction.getBytes(LockShape.AI));
 			sign = ecdsa.sign();
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			// TODO Auto-generated catch block
@@ -1945,7 +1945,7 @@ public final class Util {
 				}
 
 				@Override
-				public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+				public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 					// TODO Auto-generated method stub
 					return false;
 				}
@@ -2064,7 +2064,7 @@ public final class Util {
 				}
 
 				@Override
-				public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+				public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 					// TODO Auto-generated method stub
 					return false;
 				}
@@ -2205,7 +2205,7 @@ public final class Util {
 				}
 
 				@Override
-				public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+				public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 					// TODO Auto-generated method stub
 					return false;
 				}
@@ -2244,7 +2244,7 @@ public final class Util {
 			}
 
 			@Override
-			public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+			public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 				// TODO Auto-generated method stub
 				return false;
 			}
@@ -2269,16 +2269,16 @@ public final class Util {
 		
 	}
 
-	public static CoinbaseTransaction generateCoinBaseTransaction(Passport passport,
-			AccountsMerkleTree accountsMerkleTree) {
+	public static CoinbaseTransaction generateCoinBaseTransaction(Lock key,
+			PassportsMerkleTree accountsMerkleTree) {
 		CoinbaseTransaction transaction = new CoinbaseTransaction();
 		TxOut eqcFoundationTxOut = new TxOut();
 		TxOut eqzipTxOut = new TxOut();
 		TxOut minerTxOut = new TxOut();
 		try {
-			eqcFoundationTxOut.setPassport(Util.DB().getAccount(ID.ONE, Mode.GLOBAL).getPassport());
-			eqzipTxOut.setPassport(Util.DB().getAccount(ID.TWO, Mode.GLOBAL).getPassport());
-			minerTxOut.setPassport(passport);
+			eqcFoundationTxOut.setKey(Util.DB().getPassport(ID.ONE, Mode.GLOBAL).getKey());
+			eqzipTxOut.setKey(Util.DB().getPassport(ID.TWO, Mode.GLOBAL).getKey());
+			minerTxOut.setKey(key);
 			
 			eqcFoundationTxOut.setValue(Util.EQC_FOUNDATION_COINBASE_REWARD);
 			eqzipTxOut.setValue(EQZIP_COINBASE_REWARD);
@@ -2300,9 +2300,9 @@ public final class Util {
 		// If exists old status need clear it
 		for(int i=1; i<=3; ++i) {
 			try {
-				Account account = Util.DB().getAccount(ID.valueOf(i), Mode.GLOBAL);
+				Passport account = Util.DB().getPassport(ID.valueOf(i), Mode.GLOBAL);
 				if(account != null) {
-					Util.DB().deleteAccount(ID.valueOf(i), Mode.GLOBAL);
+					Util.DB().deletePassport(ID.valueOf(i), Mode.GLOBAL);
 				}
 			}
 			catch (Exception e) {
@@ -2310,7 +2310,7 @@ public final class Util {
 			}
 		}
 		// Create AccountsMerkleTree
-		AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(ID.ZERO,
+		PassportsMerkleTree accountsMerkleTree = new PassportsMerkleTree(ID.ZERO,
 				new Filter(Mode.GLOBAL));
 
 		// Create EQC block
@@ -2324,17 +2324,17 @@ public final class Util {
 		// Create Transaction
 		CoinbaseTransaction transaction = new CoinbaseTransaction();
 		TxOut txOut = new TxOut();
-		txOut.getPassport().setReadableAddress(SINGULARITY_A);
-		txOut.getPassport().setID(ID.ONE);
+		txOut.getKey().setReadableLock(SINGULARITY_A);
+		txOut.getKey().setID(ID.ONE);
 		txOut.setValue(EQC_FOUNDATION_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
-		EQcoinSubchainAccount account = new EQcoinSubchainAccount();
+		EQcoinSubchainPassport account = new EQcoinSubchainPassport();
 		account.setCreateHeight(ID.ZERO);
 		account.setVersion(ID.ZERO);
 		account.setVersionUpdateHeight(ID.ZERO);
 		
-		account.setPassport(txOut.getPassport());
+		account.setKey(txOut.getKey());
 		account.setLockCreateHeight(ID.ZERO);
 		Asset asset = new CoinAsset();
 		asset.setVersionUpdateHeight(ID.ZERO);
@@ -2359,7 +2359,7 @@ public final class Util {
 		account.getAssetSubchainHeader().setSymbol("EQC");
 		account.getAssetSubchainHeader().setTotalSupply(new ID(cypherTotalSupply(ID.ZERO)));
 		account.getAssetSubchainHeader().setTotalSupplyUpdateHeight(ID.ZERO);
-		account.getAssetSubchainHeader().setTotalAccountNumbers(ID.THREE);
+		account.getAssetSubchainHeader().setTotalPassportNumbers(ID.THREE);
 		account.getAssetSubchainHeader().setTotalAccountNumbersUpdateHeight(ID.ZERO);
 		account.getAssetSubchainHeader().setTotalTransactionNumbers(ID.ZERO);
 		account.getAssetSubchainHeader().setTotalTransactionNumbersUpdateHeight(ID.ZERO);
@@ -2372,18 +2372,18 @@ public final class Util {
 		account.setTotalStateSizeUpdateHeight(ID.ZERO);
 		account.setTotalStateSize(account.getBytes().length);
 		
-		accountsMerkleTree.saveAccount(account);
-		accountsMerkleTree.increaseTotalAccountNumbers();
+		accountsMerkleTree.savePassport(account);
+		accountsMerkleTree.increaseTotalPassportNumbers();
 
 		txOut = new TxOut();
-		txOut.getPassport().setReadableAddress(SINGULARITY_B);
-		txOut.getPassport().setID(ID.TWO);
+		txOut.getKey().setReadableLock(SINGULARITY_B);
+		txOut.getKey().setID(ID.TWO);
 		txOut.setValue(EQZIP_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
-		AssetAccount account1 = new AssetAccount();
+		AssetPassport account1 = new AssetPassport();
 		account1.setCreateHeight(ID.ZERO);
-		account1.setPassport(txOut.getPassport());
+		account1.setKey(txOut.getKey());
 		account1.setLockCreateHeight(ID.ZERO);
 		asset = new CoinAsset();
 		asset.setVersionUpdateHeight(ID.ZERO);
@@ -2394,18 +2394,18 @@ public final class Util {
 		asset.setNonceUpdateHeight(ID.ZERO);
 		account1.setAsset(asset);
 		account1.setUpdateHeight(ID.ZERO);
-		accountsMerkleTree.saveAccount(account1);
-		accountsMerkleTree.increaseTotalAccountNumbers();
+		accountsMerkleTree.savePassport(account1);
+		accountsMerkleTree.increaseTotalPassportNumbers();
 		
 		txOut = new TxOut();
-		txOut.getPassport().setReadableAddress(SINGULARITY_C);
-		txOut.getPassport().setID(new ID(3));
+		txOut.getKey().setReadableLock(SINGULARITY_C);
+		txOut.getKey().setID(new ID(3));
 		txOut.setValue(MINER_COINBASE_REWARD);
 		txOut.setNew(true);
 		transaction.addTxOut(txOut);
-		account1 = new AssetAccount();
+		account1 = new AssetPassport();
 		account1.setCreateHeight(ID.ZERO);
-		account1.setPassport(txOut.getPassport());
+		account1.setKey(txOut.getKey());
 		account1.setLockCreateHeight(ID.ZERO);
 		asset = new CoinAsset();
 		asset.setVersionUpdateHeight(ID.ZERO);
@@ -2416,8 +2416,8 @@ public final class Util {
 		asset.setNonceUpdateHeight(ID.ZERO);
 		account1.setAsset(asset);
 		account1.setUpdateHeight(ID.ZERO);
-		accountsMerkleTree.saveAccount(account1);
-		accountsMerkleTree.increaseTotalAccountNumbers();
+		accountsMerkleTree.savePassport(account1);
+		accountsMerkleTree.increaseTotalPassportNumbers();
 		transaction.setNonce(ID.ONE);
 		
 		transaction.prepareAccounting(accountsMerkleTree, ID.valueOf(eqcHive.getEQcoinSubchain().getNewPassportList().size()));
@@ -2425,7 +2425,7 @@ public final class Util {
 		
 		// Set EQcoinSubchainHeader
 		eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().setID(Asset.EQCOIN);
-		eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().setTotalAccountNumbers(ID.valueOf(eqcHive.getEQcoinSubchain().getNewPassportList().size()));
+		eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().setTotalPassportNumbers(ID.valueOf(eqcHive.getEQcoinSubchain().getNewPassportList().size()));
 		eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().setTotalTransactionNumbers(ID.valueOf(eqcHive.getEQcoinSubchain().getNewTransactionList().size()));
 		
 		// Add new address in address list
@@ -2545,18 +2545,18 @@ public final class Util {
 	}
 
 	public static String getAddress(ID id, EQCHive eqcBlock) throws ClassNotFoundException, SQLException, NoSuchFieldException, IllegalStateException, IOException {
-		Passport passport = null;
-		passport = EQCBlockChainH2.getInstance().getAccount(id).getPassport();
-		if (passport == null) {
-			Vector<Passport> passportList = eqcBlock.getEQcoinSubchain().getNewPassportList();
-			for (Passport passport2 : passportList) {
+		Lock key = null;
+		key = EQCBlockChainH2.getInstance().getPassport(id).getKey();
+		if (key == null) {
+			Vector<Lock> passportList = eqcBlock.getEQcoinSubchain().getNewPassportList();
+			for (Lock passport2 : passportList) {
 				if (passport2.equals(id)) {
-					passport = passport2;
+					key = passport2;
 					break;
 				}
 			}
 		}
-		return (passport == null) ? null : passport.getReadableAddress();
+		return (key == null) ? null : key.getReadableLock();
 	}
 
 //	public static long getBillingFee(Transaction transaction, TXFEE_RATE rate, SerialNumber height){
@@ -2641,9 +2641,9 @@ public final class Util {
 
 	@Deprecated
 	public static long getBalance(String address) throws ClassNotFoundException, SQLException, NoSuchFieldException, IllegalStateException, IOException {
-		Passport strAddress = new Passport();
-		strAddress.setReadableAddress(address);
-		strAddress.setID(EQCBlockChainH2.getInstance().getAccount(strAddress.getAddressAI()).getID());
+		Lock strAddress = new Lock();
+		strAddress.setReadableLock(address);
+		strAddress.setID(EQCBlockChainH2.getInstance().getPassport(strAddress.getAddressAI()).getID());
 		return EQCBlockChainH2.getInstance().getBalance(strAddress);
 	}
 
@@ -2754,7 +2754,7 @@ public final class Util {
 	
 	public static byte[] getBlockHeaderHash(Transaction transaction) throws Exception {
 		return EQCBlockChainH2.getInstance().getEQCHeaderHash(
-				EQCBlockChainH2.getInstance().getTxInHeight(transaction.getTxIn().getPassport()));
+				EQCBlockChainH2.getInstance().getTxInHeight(transaction.getTxIn().getKey()));
 	}
 	
 	public static byte[] CRC32C(byte[] bytes) {
@@ -2898,7 +2898,7 @@ public final class Util {
 	
 	public static void recoveryAccounts(ID height) throws ClassNotFoundException, SQLException, Exception {
 		// From height to checkpoint verify if Block is valid
-		EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
+		EQcoinSubchainPassport eQcoinSubchainAccount = (EQcoinSubchainPassport) Util.DB().getPassport(ID.ONE, Mode.GLOBAL);
 		if(height.compareTo(eQcoinSubchainAccount.getCheckPointHeight()) < 0) {
 			throw new IllegalStateException("Can't recovery to the height: " + height + " which below the check point: " + eQcoinSubchainAccount.getCheckPointHeight());
 		}
@@ -2911,11 +2911,11 @@ public final class Util {
 		}
 		long base = height.longValue();
 		boolean isSanity = false;
-		AccountsMerkleTree accountsMerkleTree = null;
+		PassportsMerkleTree accountsMerkleTree = null;
 		Log.info("Begin Recovery Account's status from height: " + height);
 		for (; base >= checkPointHeight; --base) {
 			Log.info("Try to recovery No. " + base + "'s Account status");
-			accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(base), new Filter(Mode.VALID));
+			accountsMerkleTree = new PassportsMerkleTree(ID.valueOf(base), new Filter(Mode.VALID));
 			if (Util.DB().getEQCHive(ID.valueOf(base), true).isValid(accountsMerkleTree)) {
 				Log.info("No. " + base + " verify passed");
 				// Through merge recovery all relevant Account
@@ -2935,12 +2935,12 @@ public final class Util {
 		}
 
 		// Due to base height's Account status saved in the Account table so here just deleteAccountSnapshotFrom base
-		EQCBlockChainH2.getInstance().deleteAccountSnapshotFrom(ID.valueOf(base), true);
+		EQCBlockChainH2.getInstance().deletePassportSnapshotFrom(ID.valueOf(base), true);
 		
 		// Delete extra Account
-		EQcoinSubchainAccount eQcoinSubchainAccount2 = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
-		for (long i=eQcoinSubchainAccount2.getAssetSubchainHeader().getTotalAccountNumbers().getNextID().longValue(); i<=eQcoinSubchainAccount.getAssetSubchainHeader().getTotalAccountNumbers().longValue(); ++i) {
-			Util.DB().deleteAccount(ID.valueOf(i), Mode.GLOBAL);
+		EQcoinSubchainPassport eQcoinSubchainAccount2 = (EQcoinSubchainPassport) Util.DB().getPassport(ID.ONE, Mode.GLOBAL);
+		for (long i=eQcoinSubchainAccount2.getAssetSubchainHeader().getTotalPassportNumbers().getNextID().longValue(); i<=eQcoinSubchainAccount.getAssetSubchainHeader().getTotalPassportNumbers().longValue(); ++i) {
+			Util.DB().deletePassport(ID.valueOf(i), Mode.GLOBAL);
 		}
 		
 		// Delete extra EQCHive
@@ -2977,17 +2977,17 @@ public final class Util {
 //		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_AI));
 //		EQCBlockChainRocksDB.getInstance().clearTable(EQCBlockChainRocksDB.getInstance().getTableHandle(TABLE.ACCOUNT_HASH));
 		Log.info("Delete all AccountSnapshot");
-		EQCBlockChainH2.getInstance().deleteAccountSnapshotFrom(ID.ZERO, true);
+		EQCBlockChainH2.getInstance().deletePassportSnapshotFrom(ID.ZERO, true);
 		recoverySingularityStatus();
 		ID tail = Util.DB().getEQCBlockTailHeight();
 		Log.info("Current have " + tail + " EQCHive");
 		long base = 1;
-		AccountsMerkleTree accountsMerkleTree = null;
+		PassportsMerkleTree accountsMerkleTree = null;
 		EQCHive eqcHive = null;
 		for(; base<=tail.longValue(); ++base) {
 			eqcHive = Util.DB().getEQCHive(ID.valueOf(base), false);
 			if(eqcHive != null) {
-				accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(base), new Filter(Mode.VALID));
+				accountsMerkleTree = new PassportsMerkleTree(ID.valueOf(base), new Filter(Mode.VALID));
 				if(eqcHive.isValid(accountsMerkleTree)) {
 					accountsMerkleTree.takeSnapshot();
 					accountsMerkleTree.merge();
@@ -3016,17 +3016,17 @@ public final class Util {
 	public static void recoveryAccountsStatusTo(ID height) throws ClassNotFoundException, SQLException, Exception {
 		Log.info("Begin recoveryAccountsStatusTo " + height);
 		EQcoinSubchainHeader eQcoinSubchainHeader = Util.DB().getEQCHive(height, true).getEQcoinSubchain().getEQcoinSubchainHeader();
-		Account account = null;
+		Passport account = null;
 		ID id = null;
-		for(long i=1; i<=eQcoinSubchainHeader.getTotalAccountNumbers().longValue(); ++i) {
+		for(long i=1; i<=eQcoinSubchainHeader.getTotalPassportNumbers().longValue(); ++i) {
 			id = ID.valueOf(i);
-			account = Util.DB().getAccount(id, Mode.GLOBAL);
+			account = Util.DB().getPassport(id, Mode.GLOBAL);
 			Objects.requireNonNull(account);
 			if(account.getUpdateHeight().compareTo(height) > 0) {
 				Log.info("Accounts table's No. " + i + "'s update height:" + account.getUpdateHeight() + " bigger than new tail base:" + height + " recovery it's current height's history state from snapshot");
-				account = EQCBlockChainH2.getInstance().getAccountSnapshot(id, height);
+				account = EQCBlockChainH2.getInstance().getPassportSnapshot(id, height);
 				Objects.requireNonNull(account);
-				Util.DB().saveAccount(account, Mode.GLOBAL);
+				Util.DB().savePassport(account, Mode.GLOBAL);
 			}
 		}
 	}

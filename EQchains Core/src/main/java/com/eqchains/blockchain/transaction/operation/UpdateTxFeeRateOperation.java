@@ -34,14 +34,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
-
-
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
 import com.eqchains.serialization.EQCType;
@@ -61,7 +59,7 @@ public class UpdateTxFeeRateOperation extends Operation {
 		super(OP.TXFEERATE);
 	}
 	
-	public UpdateTxFeeRateOperation(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
+	public UpdateTxFeeRateOperation(ByteArrayInputStream is, LockShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
 		super(OP.TXFEERATE);
 		parseHeader(is, addressShape);
 		parseBody(is, addressShape);
@@ -75,7 +73,7 @@ public class UpdateTxFeeRateOperation extends Operation {
 	 * .eqcoin.blockchain.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public byte[] getBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Header
@@ -98,7 +96,7 @@ public class UpdateTxFeeRateOperation extends Operation {
 	 * eqcoin.blockchain.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBin(AddressShape addressShape) {
+	public byte[] getBin(LockShape addressShape) {
 		return EQCType.bytesToBIN(getBytes(addressShape));
 	}
 
@@ -107,10 +105,10 @@ public class UpdateTxFeeRateOperation extends Operation {
 	 */
 	@Override
 	public boolean execute(Object ...objects) throws Exception {
-		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
-		EQcoinSubchainAccount account = (EQcoinSubchainAccount) accountsMerkleTree.getAccount(Asset.EQCOIN, true);
+		PassportsMerkleTree accountsMerkleTree = (PassportsMerkleTree) objects[1];
+		EQcoinSubchainPassport account = (EQcoinSubchainPassport) accountsMerkleTree.getPassport(Asset.EQCOIN, true);
 		account.setTxFeeRate(txFeeRate);
-		accountsMerkleTree.saveAccount(account);
+		accountsMerkleTree.savePassport(account);
 		return true;
 	}
 
@@ -120,15 +118,15 @@ public class UpdateTxFeeRateOperation extends Operation {
 	@Override
 	public boolean isMeetPreconditions(Object ...objects) throws Exception {
 		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
-		AccountsMerkleTree accountsMerkleTree = (AccountsMerkleTree) objects[1];
-		return isSanity(null) && operationTransaction.getTxIn().getPassport().getID().equals(ID.NINE);
+		PassportsMerkleTree accountsMerkleTree = (PassportsMerkleTree) objects[1];
+		return isSanity(null) && operationTransaction.getTxIn().getKey().getID().equals(ID.NINE);
 	}
 
 	/* (non-Javadoc)
 	 * @see com.eqzip.eqcoin.blockchain.transaction.operation.Operation#isSanity(com.eqzip.eqcoin.blockchain.transaction.Address.AddressShape[])
 	 */
 	@Override
-	public boolean isSanity(AddressShape addressShape) {
+	public boolean isSanity(LockShape addressShape) {
 		if(op != OP.TXFEERATE) {
 			return false;
 		}
@@ -151,7 +149,7 @@ public class UpdateTxFeeRateOperation extends Operation {
 	 * @see com.eqchains.blockchain.transaction.operation.Operation#parseBody(java.io.ByteArrayInputStream, com.eqchains.blockchain.transaction.Address.AddressShape)
 	 */
 	@Override
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+	public void parseBody(ByteArrayInputStream is, LockShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
 		// Parse TxFeeRate
 		txFeeRate = EQCType.parseBIN(is)[0];
@@ -161,7 +159,7 @@ public class UpdateTxFeeRateOperation extends Operation {
 	 * @see com.eqchains.blockchain.transaction.operation.Operation#getBodyBytes(com.eqchains.blockchain.transaction.Address.AddressShape)
 	 */
 	@Override
-	public byte[] getBodyBytes(AddressShape addressShape) {
+	public byte[] getBodyBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization TxFeeRate

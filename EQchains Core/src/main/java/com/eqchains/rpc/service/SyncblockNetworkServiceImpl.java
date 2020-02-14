@@ -35,12 +35,12 @@ import org.apache.avro.AvroRemoteException;
 
 import com.eqchains.avro.O;
 import com.eqchains.avro.SyncblockNetwork;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHeader;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
 import com.eqchains.rpc.Cookie;
@@ -107,11 +107,11 @@ public class SyncblockNetworkServiceImpl implements SyncblockNetwork {
 	public O getBlockTail() {
 		O io = null;
 		TailInfo<O> europa = null;
-		EQcoinSubchainAccount eQcoinSubchainAccount = null;
+		EQcoinSubchainPassport eQcoinSubchainAccount = null;
 		try {
 			europa = new TailInfo();
 			europa.setHeight(Util.DB().getEQCBlockTailHeight());
-			eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
+			eQcoinSubchainAccount = (EQcoinSubchainPassport) Util.DB().getPassport(ID.ONE, Mode.GLOBAL);
 			europa.setCheckPointHeight(eQcoinSubchainAccount.getCheckPointHeight());
 			europa.setBlockTailProof(Util.DB().getEQCHive(europa.getHeight(), true).getEqcHeader().getProof());
 			io = europa.getProtocol();

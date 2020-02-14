@@ -38,14 +38,12 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Vector;
 
-
-
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
 import com.eqchains.blockchain.transaction.operation.Operation;
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
@@ -77,7 +75,7 @@ public class OperationTransaction extends TransferTransaction {
 		super(TransactionType.OPERATION);
 	}
 
-	public OperationTransaction(byte[] bytes, Passport.AddressShape addressShape)
+	public OperationTransaction(byte[] bytes, Lock.LockShape addressShape)
 			throws NoSuchFieldException, IOException, UnsupportedOperationException, IllegalStateException {
 		super(TransactionType.OPERATION);
 		EQCType.assertNotNull(bytes);
@@ -99,15 +97,15 @@ public class OperationTransaction extends TransferTransaction {
 			if(!parseBody(resultSet)) {
 				if (resultSet.getByte("op") == TRANSACTION_OP.ADDRESS.ordinal()) {
 					UpdateAddressOperation updateAddressOperation = new UpdateAddressOperation();
-					updateAddressOperation.setAddress(new Passport(AddressTool.AIToAddress(resultSet.getBytes("object"))));
+					updateAddressOperation.setAddress(new Lock(AddressTool.AIToAddress(resultSet.getBytes("object"))));
 				}
 				else if (resultSet.getByte("op") == TRANSACTION_OP.TXFEERATE.ordinal()) {
 					UpdateAddressOperation updateAddressOperation = new UpdateAddressOperation();
-					updateAddressOperation.setAddress(new Passport(AddressTool.AIToAddress(resultSet.getBytes("object"))));
+					updateAddressOperation.setAddress(new Lock(AddressTool.AIToAddress(resultSet.getBytes("object"))));
 				}
 				else if (resultSet.getByte("op") == TRANSACTION_OP.CHECKPOINT.ordinal()) {
 					UpdateAddressOperation updateAddressOperation = new UpdateAddressOperation();
-					updateAddressOperation.setAddress(new Passport(AddressTool.AIToAddress(resultSet.getBytes("object"))));
+					updateAddressOperation.setAddress(new Lock(AddressTool.AIToAddress(resultSet.getBytes("object"))));
 				}
 			}
 		}
@@ -135,7 +133,7 @@ public class OperationTransaction extends TransferTransaction {
 	 * AddressShape)
 	 */
 	@Override
-	public byte[] getBytes(Passport.AddressShape addressShape) {
+	public byte[] getBytes(Lock.LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Header
@@ -163,7 +161,7 @@ public class OperationTransaction extends TransferTransaction {
 		size += super.getMaxBillingLength();
 
 		// Operations size
-		size += operation.getBin(AddressShape.AI).length;
+		size += operation.getBin(LockShape.AI).length;
 
 		return size;
 	}
@@ -180,7 +178,7 @@ public class OperationTransaction extends TransferTransaction {
 		size += super.getBillingSize();
 
 		// Operations size
-		size += operation.getBin(AddressShape.AI).length;
+		size += operation.getBin(LockShape.AI).length;
 		return super.getBillingSize();
 	}
 
@@ -192,7 +190,7 @@ public class OperationTransaction extends TransferTransaction {
 	 * AccountsMerkleTree)
 	 */
 	@Override
-	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean verify(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// TODO Auto-generated method stub
 		return super.verify(accountsMerkleTree);
 	}
@@ -205,7 +203,7 @@ public class OperationTransaction extends TransferTransaction {
 	 * AddressShape)
 	 */
 	@Override
-	public byte[] getBin(Passport.AddressShape addressShape) {
+	public byte[] getBin(Lock.LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return super.getBin(addressShape);
 	}
@@ -216,7 +214,7 @@ public class OperationTransaction extends TransferTransaction {
 	 * @see com.eqchains.blockchain.transaction.TransferTransaction#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree, com.eqchains.blockchain.account.Passport.AddressShape)
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree, LockShape addressShape)
 			throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 		if(!operation.isMeetPreconditions(this, accountsMerkleTree)) {
 			Log.Error("Operation " + operation + " doesn't meet preconditions.");
@@ -281,7 +279,7 @@ public class OperationTransaction extends TransferTransaction {
 	}
 	
 	@Override
-	public boolean isSanity(AddressShape addressShape) {
+	public boolean isSanity(LockShape addressShape) {
 		if(!isBasicSanity(addressShape)) {
 			return false;
 		}
@@ -316,14 +314,14 @@ public class OperationTransaction extends TransferTransaction {
 		return true;
 	}
 	
-	public void update(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public void update(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		super.update(accountsMerkleTree);
 		if(!operation.execute(this, accountsMerkleTree)) {
 			throw new IllegalStateException("During execute operation error occur: " + operation);
 		}
 	}
 	
-	public byte[] getBodyBytes(AddressShape addressShape) {
+	public byte[] getBodyBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Operation
@@ -338,7 +336,7 @@ public class OperationTransaction extends TransferTransaction {
 		return os.toByteArray();
 	}
 	
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IOException {
+	public void parseBody(ByteArrayInputStream is, LockShape addressShape) throws NoSuchFieldException, IOException {
 		byte[] data = null;
 		// Parse Operation
 		operation = Operation.parseOperation(is, addressShape);

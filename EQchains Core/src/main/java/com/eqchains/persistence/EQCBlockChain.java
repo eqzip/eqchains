@@ -31,9 +31,11 @@ package com.eqchains.persistence;
 
 import java.sql.SQLException;
 import java.util.Vector;
-import com.eqchains.blockchain.account.Account;
+
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.persistence.EQCBlockChainH2.NODETYPE;
@@ -53,150 +55,242 @@ import com.eqchains.util.ID;
  * @email 10509759@qq.com
  */
 public interface EQCBlockChain<T> {
-	
-	// Account relevant interface for H2, avro(optional).
-	public boolean saveAccount(Account account, Mode mode) throws Exception;
-	
+
+	// Lock relevant interface for H2, avro(optional).
+	public boolean saveLock(Lock lock, Mode mode) throws Exception;
+
 	/**
-	 * Get Account from Global state DB according to it's ID which is the latest status.
+	 * Get Lock from Global state DB according to it's ID which is the latest
+	 * status.
 	 * <p>
+	 * 
 	 * @param id
 	 * @return
 	 * @throws Exception
 	 */
-	public Account getAccount(ID id, Mode mode) throws Exception;
-	
+	public Lock getLock(ID id, Mode mode) throws Exception;
+
 	/**
-	 * Get Account from the specific height if which doesn't exists will return null.
-	 * If the height equal to current tail's height will retrieve the Account from ACCOUNT_GLOBAL table otherwise will try retrieve it from Account snapshot table.
+	 * Get Lock from the specific height if which doesn't exists will return null.
+	 * If the height equal to current tail's height will retrieve the Lock from
+	 * LOCK_GLOBAL table otherwise will try retrieve it from Lock snapshot table.
 	 * <p>
+	 * 
 	 * @param id
 	 * @param height
 	 * @return
 	 * @throws Exception
 	 */
-	public Account getAccount(ID id, ID height) throws Exception;
-	
-	public Account getAccount(byte[] addressAI, Mode mode) throws Exception;
-	
-	public boolean deleteAccount(ID id, Mode mode) throws Exception;
-	
-	public boolean clear(Mode mode) throws Exception;
-	
-	//  relevant interface for for avro, H2(optional).
+	public Lock getLock(ID id, ID height) throws Exception;
+
+	public Lock getLock(String readableLock, Mode mode) throws Exception;
+
+	public boolean deleteLock(ID id, Mode mode) throws Exception;
+
+	public boolean clearLock(Mode mode) throws Exception;
+
+	// Passport relevant interface for H2, avro(optional).
+	public boolean savePassport(Passport account, Mode mode) throws Exception;
+
+	/**
+	 * Get Passport from Global state DB according to it's ID which is the latest
+	 * status.
+	 * <p>
+	 * 
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
+	public Passport getPassport(ID id, Mode mode) throws Exception;
+
+	/**
+	 * Get Passport from the specific height if which doesn't exists will return
+	 * null. If the height equal to current tail's height will retrieve the Account
+	 * from ACCOUNT_GLOBAL table otherwise will try retrieve it from Account
+	 * snapshot table.
+	 * <p>
+	 * 
+	 * @param id
+	 * @param height
+	 * @return
+	 * @throws Exception
+	 */
+	public Passport getPassport(ID id, ID height) throws Exception;
+
+	public Passport getPassport(byte[] addressAI, Mode mode) throws Exception;
+
+	public boolean deletePassport(ID id, Mode mode) throws Exception;
+
+	public boolean clearPassport(Mode mode) throws Exception;
+
+	// relevant interface for for avro, H2(optional).
 	public boolean isEQCHiveExists(ID height) throws Exception;
-	
+
 	public boolean saveEQCHive(EQCHive eqcHive) throws Exception;
-	
+
 	public EQCHive getEQCHive(ID height, boolean isSegwit) throws Exception;
-	
+
 	public boolean deleteEQCHive(ID height) throws Exception;
-	
+
 	// TransactionPool relevant interface for H2, avro.
 	public boolean isTransactionExistsInPool(Transaction transaction) throws SQLException;
-	
+
 	public boolean isTransactionExistsInPool(TransactionIndex transactionIndex) throws SQLException;
-	
+
 	public boolean saveTransactionInPool(Transaction transaction) throws SQLException;
-	
+
 	public boolean deleteTransactionInPool(Transaction transaction) throws SQLException;
-	
+
 	public boolean deleteTransactionsInPool(EQCHive eqcHive) throws SQLException, ClassNotFoundException, Exception;
-	
+
 	public Vector<Transaction> getTransactionListInPool() throws SQLException, Exception;
-	
+
 	public Vector<Transaction> getPendingTransactionListInPool(Nest nest) throws SQLException, Exception;
-	
+
 	@Deprecated
 	public boolean isTransactionMaxNonceExists(Nest nest) throws SQLException;
-	
+
 	@Deprecated
 	public boolean saveTransactionMaxNonce(Nest nest, MaxNonce maxNonce) throws SQLException;
-	
+
 	public MaxNonce getTransactionMaxNonce(Nest nest) throws SQLException, Exception;
-	
+
 	@Deprecated
 	public boolean deleteTransactionMaxNonce(Nest nest) throws SQLException;
-	
+
 	public Balance getBalance(Nest nest) throws SQLException, Exception;
-	
-	public TransactionIndexList getTransactionIndexListInPool(long previousSyncTime, long currentSyncTime) throws SQLException, Exception;
-	
-	public TransactionList<byte[]> getTransactionListInPool(TransactionIndexList<byte[]> transactionIndexList) throws SQLException, Exception;
-	
-	// For sign and verify Transaction need use relevant TxIn's EQC block header's hash via this function to get it from xxx.EQC.
+
+	public TransactionIndexList getTransactionIndexListInPool(long previousSyncTime, long currentSyncTime)
+			throws SQLException, Exception;
+
+	public TransactionList<byte[]> getTransactionListInPool(TransactionIndexList<byte[]> transactionIndexList)
+			throws SQLException, Exception;
+
+	// For sign and verify Transaction need use relevant TxIn's EQC block header's
+	// hash via this function to get it from xxx.EQC.
 	public byte[] getEQCHeaderHash(ID height) throws Exception;
-	
+
 	public byte[] getEQCHeaderBuddyHash(ID height, ID currentTailHeight) throws Exception;
-	
+
 	public ID getEQCBlockTailHeight() throws Exception;
-	
+
 	public boolean saveEQCBlockTailHeight(ID height) throws Exception;
-	
+
 	@Deprecated
 	public ID getTotalAccountNumbers(ID height) throws Exception;
-	
+
 	public SignHash getSignHash(ID id) throws Exception;
-	
+
 	// MinerNetwork and FullNodeNetwork relevant interface for H2, avro.
 	public boolean isIPExists(String ip, NODETYPE nodeType) throws SQLException;
-	
+
 	public boolean isMinerExists(String ip) throws SQLException, Exception;
-	
+
 	public boolean saveMiner(String ip) throws SQLException, Exception;
-	
+
 	public boolean deleteMiner(String ip) throws SQLException, Exception;
-	
+
 	public boolean saveMinerSyncTime(String ip, long syncTime) throws SQLException, Exception;
-	
+
 	public long getMinerSyncTime(String ip) throws SQLException, Exception;
-	
+
 	public boolean saveIPCounter(String ip, int counter) throws SQLException, Exception;
-	
+
 	public int getIPCounter(String ip) throws SQLException, Exception;
-	
+
 	public IPList getMinerList() throws SQLException, Exception;
-	
+
 	public boolean isFullNodeExists(String ip) throws SQLException, Exception;
-	
+
 	public boolean saveFullNode(String ip) throws SQLException, Exception;
-	
+
 	public boolean deleteFullNode(String ip) throws SQLException, Exception;
-	
+
 	public IPList getFullNodeList() throws SQLException, Exception;
-	
+
 	// Release the relevant database resource
 	public boolean close() throws SQLException, Exception;
-	
+
 	// Clear the relevant database table
 	public boolean dropTable() throws Exception, SQLException;
-	
-	// Take Account's snapshot
-	public Account getAccountSnapshot(ID accountID, ID height) throws SQLException, Exception;
-	
-	public Account getAccountSnapshot(byte[] addressAI, ID height) throws SQLException, Exception;
-	
-	public boolean saveAccountSnapshot(Account account, ID height) throws SQLException, Exception;
-	
-	public boolean deleteAccountSnapshotFrom(ID height, boolean isForward) throws SQLException, Exception;
-	
-	public boolean merge(Mode mode) throws SQLException, Exception;
-	
-	public boolean takeSnapshot(Mode mode, ID height) throws SQLException, Exception;
-	
+
+	// Take Lock's snapshot
+	public Passport getLockSnapshot(ID lockID, ID height) throws SQLException, Exception;
+
+	public Passport getLockSnapshot(byte[] addressAI, ID height) throws SQLException, Exception;
+
+	public boolean saveLockSnapshot(Lock lock, ID height) throws SQLException, Exception;
+
+	public boolean deleteLockSnapshotFrom(ID height, boolean isForward) throws SQLException, Exception;
+
+	/**
+	 * After verify the new block's state. Merge the new Lock states from Miner
+	 * or Valid to Global
+	 * 
+	 * @param mode
+	 * @return
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	public boolean mergeLock(Mode mode) throws SQLException, Exception;
+
+	/**
+	 * After verify the new block's state. Take the changed Lock's snapshot from
+	 * Miner or Valid.
+	 * 
+	 * @param mode
+	 * @param height
+	 * @return
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	public boolean takeLockSnapshot(Mode mode, ID height) throws SQLException, Exception;
+
+	// Take Passport's snapshot
+	public Passport getPassportSnapshot(ID passportID, ID height) throws SQLException, Exception;
+
+	public Passport getPassportSnapshot(byte[] addressAI, ID height) throws SQLException, Exception;
+
+	public boolean savePassportSnapshot(Passport passport, ID height) throws SQLException, Exception;
+
+	public boolean deletePassportSnapshotFrom(ID height, boolean isForward) throws SQLException, Exception;
+
+	/**
+	 * After verify the new block's state. Merge the new Passport states from Miner
+	 * or Valid to Global
+	 * 
+	 * @param mode
+	 * @return
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	public boolean mergePassport(Mode mode) throws SQLException, Exception;
+
+	/**
+	 * After verify the new block's state. Take the changed Passport's snapshot from
+	 * Miner or Valid.
+	 * 
+	 * @param mode
+	 * @param height
+	 * @return
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	public boolean takePassportSnapshot(Mode mode, ID height) throws SQLException, Exception;
+
 	// Audit layer relevant interface for H2
 	public ID isTransactionExists(Transaction transaction, Mode mode) throws Exception;
-	
+
 	public boolean saveTransaction(Transaction transaction, ID height, ID index, ID sn, Mode mode) throws Exception;
-	
+
 	public boolean saveTransactions(EQCSubchain eqcSubchain, ID height, Mode mode) throws Exception;
-	
+
 	public boolean deleteTransaction(Transaction transaction, Mode mode) throws Exception;
-	
+
 	public boolean deleteTransactionFrom(ID height, Mode mode) throws Exception;
-	
+
 	public boolean saveTransactions(EQCHive eqcHive, Mode mode) throws Exception;
-	
+
 	public ID getTotalTransactionNumbers(ID height, ID assetID, Mode mode) throws Exception;
-	
+
 }

@@ -37,11 +37,11 @@ import java.security.Signature;
 import org.junit.jupiter.api.Test;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.Lock;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.blockchain.transaction.TxIn;
 import com.eqchains.blockchain.transaction.TxOut;
@@ -67,14 +67,14 @@ public class TransactionTest {
 		UserAccount userAccount1 = Keystore.getInstance().getUserAccounts().get(3);
 		TransferTransaction transaction = new TransferTransaction();
 		TxIn txIn = new TxIn();
-		txIn.setPassport(new Passport(userAccount.getReadableAddress()));
+		txIn.setKey(new Lock(userAccount.getReadableLock()));
 		transaction.setTxIn(txIn);
 		TxOut txOut = new TxOut();
-		txOut.setPassport(new Passport(userAccount1.getReadableAddress()));
+		txOut.setKey(new Lock(userAccount1.getReadableLock()));
 		txOut.setValue(500 * Util.ABC);
 		transaction.addTxOut(txOut);
 		try {
-			transaction.setNonce(Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL)
+			transaction.setNonce(Util.DB().getPassport(txIn.getKey().getAddressAI(), Mode.GLOBAL)
 					.getAsset(Asset.EQCOIN).getNonce().getNextID());
 			byte[] privateKey = Util.AESDecrypt(userAccount.getPrivateKey(), "abc");
 			byte[] publickey = Util.AESDecrypt(userAccount.getPublicKey(), "abc");
@@ -90,17 +90,17 @@ public class TransactionTest {
 			Signature ecdsa = null;
 			try {
 				ecdsa = Signature.getInstance("NONEwithECDSA", "SunEC");
-				ecdsa.initSign(Util.getPrivateKey(privateKey, transaction.getTxIn().getPassport().getAddressType()));
+				ecdsa.initSign(Util.getPrivateKey(privateKey, transaction.getTxIn().getKey().getAddressType()));
 			} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			AccountsMerkleTree accountsMerkleTree = new AccountsMerkleTree(
+			PassportsMerkleTree accountsMerkleTree = new PassportsMerkleTree(
 					Util.DB().getEQCBlockTailHeight(),
 					new Filter(Mode.MINING));
-			compressedPublickey.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
-			transaction.getTxIn().getPassport()
-					.setID(accountsMerkleTree.getAccount(transaction.getTxIn().getPassport(), true).getID());
+			compressedPublickey.setID(accountsMerkleTree.getPassport(transaction.getTxIn().getKey(), true).getID());
+			transaction.getTxIn().getKey()
+					.setID(accountsMerkleTree.getPassport(transaction.getTxIn().getKey(), true).getID());
 			transaction.sign(ecdsa);
 		
 			if (transaction.verify(accountsMerkleTree)) {

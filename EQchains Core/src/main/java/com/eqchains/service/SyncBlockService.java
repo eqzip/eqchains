@@ -39,12 +39,12 @@ import java.util.concurrent.PriorityBlockingQueue;
 import org.h2.util.IntIntHashMap;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
 import com.eqchains.blockchain.hive.EQCHive;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.blockchain.subchain.EQcoinSubchainHeader;
 import com.eqchains.keystore.Keystore;
 import com.eqchains.persistence.EQCBlockChainH2;
@@ -232,7 +232,7 @@ public class SyncBlockService extends EQCService {
 			maxTailInfo = minerTailList.get(0);
 			Log.info("MaxTail: " + maxTailInfo.getHeight());
 			Log.info("LocalTail: " + Util.DB().getEQCBlockTailHeight());
-			EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
+			EQcoinSubchainPassport eQcoinSubchainAccount = (EQcoinSubchainPassport) Util.DB().getPassport(ID.ONE, Mode.GLOBAL);
 			if (maxTailInfo.getCheckPointHeight().compareTo(eQcoinSubchainAccount.getCheckPointHeight()) >= 0
 					&& maxTailInfo.getHeight().compareTo(Util.DB().getEQCBlockTailHeight()) > 0) {
 				isMaxTail = false;
@@ -276,7 +276,7 @@ public class SyncBlockService extends EQCService {
 
 	private void onSync(EQCServiceState state) {
 		SyncHiveState syncHiveState = (SyncHiveState) state;
-		AccountsMerkleTree accountsMerkleTree = null;
+		PassportsMerkleTree accountsMerkleTree = null;
 		boolean isValidChain = false;
 
 		try {
@@ -298,7 +298,7 @@ public class SyncBlockService extends EQCService {
 							if (Arrays.equals(syncHiveState.getEqcHive().getEqcHeader().getPreHash(),
 									localTailHive.getHash())) {
 								Log.info("New block is current tail's next block just begin verify it");
-								accountsMerkleTree = new AccountsMerkleTree(syncHiveState.getEqcHive().getHeight(),
+								accountsMerkleTree = new PassportsMerkleTree(syncHiveState.getEqcHive().getHeight(),
 										new Filter(Mode.VALID));
 								if (syncHiveState.getEqcHive().isValid(accountsMerkleTree)) {
 									// Maybe here need do more job
@@ -340,7 +340,7 @@ public class SyncBlockService extends EQCService {
 				}
 				localTail = Util.DB().getEQCBlockTailHeight();
 				Log.info("LocalTail: " + localTail);
-				EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB().getAccount(ID.ONE, Mode.GLOBAL);
+				EQcoinSubchainPassport eQcoinSubchainAccount = (EQcoinSubchainPassport) Util.DB().getPassport(ID.ONE, Mode.GLOBAL);
 				long base = localTail.longValue();
 				// Check if it is valid chain
 				if (maxTailInfo.getHeight().compareTo(localTail) > 0 && maxTailInfo.getCheckPointHeight()
@@ -394,24 +394,24 @@ public class SyncBlockService extends EQCService {
 							// Recovery base height Accounts table's status
 							Util.recoveryAccountsStatusTo(ID.valueOf(base));
 							// Remove Snapshot
-							Util.DB().deleteAccountSnapshotFrom(ID.valueOf(base + 1), true);
+							Util.DB().deletePassportSnapshotFrom(ID.valueOf(base + 1), true);
 						}
 					
 						// Remove extra Account here need remove accounts after base
 						ID originalAccountNumbers = eQcoinSubchainAccount.getAssetSubchainHeader()
-								.getTotalAccountNumbers();
+								.getTotalPassportNumbers();
 						EQcoinSubchainHeader eQcoinSubchainHeader = Util.DB().getEQCHive(ID.valueOf(base), true)
 								.getEQcoinSubchain().getEQcoinSubchainHeader();
-						if (eQcoinSubchainHeader.getTotalAccountNumbers().compareTo(originalAccountNumbers) < 0) {
+						if (eQcoinSubchainHeader.getTotalPassportNumbers().compareTo(originalAccountNumbers) < 0) {
 							Log.info("Begin delete extra Account from "
-									+ eQcoinSubchainHeader.getTotalAccountNumbers().getNextID() + " to "
+									+ eQcoinSubchainHeader.getTotalPassportNumbers().getNextID() + " to "
 									+ originalAccountNumbers);
-							for(long i=eQcoinSubchainHeader.getTotalAccountNumbers().getNextID().longValue(); i<=originalAccountNumbers.longValue(); ++i) {
-								Util.DB().deleteAccount(ID.valueOf(i), Mode.GLOBAL);
+							for(long i=eQcoinSubchainHeader.getTotalPassportNumbers().getNextID().longValue(); i<=originalAccountNumbers.longValue(); ++i) {
+								Util.DB().deletePassport(ID.valueOf(i), Mode.GLOBAL);
 							}
 						} else {
 							Log.info(
-									"Base height's TotalAccountNumbers " + eQcoinSubchainHeader.getTotalAccountNumbers()
+									"Base height's TotalAccountNumbers " + eQcoinSubchainHeader.getTotalPassportNumbers()
 											+ " equal to local tail " + originalAccountNumbers + " do nothing");
 						}
 						Util.DB().saveEQCBlockTailHeight(ID.valueOf(base));
@@ -425,7 +425,7 @@ public class SyncBlockService extends EQCService {
 								Log.Error("During sync block error occur just  goto find again");
 								break;
 							}
-							accountsMerkleTree = new AccountsMerkleTree(ID.valueOf(i), new Filter(Mode.VALID));
+							accountsMerkleTree = new PassportsMerkleTree(ID.valueOf(i), new Filter(Mode.VALID));
 							if (maxTailHive.isValid(accountsMerkleTree)) {
 								Log.info("Verify No. " + i + " hive passed");
 								Util.DB().saveEQCHive(maxTailHive);

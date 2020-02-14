@@ -75,7 +75,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#hashCode()}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#hashCode()}.
 	 */
 	@Test
 	void testHashCode() {
@@ -83,7 +83,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#Account(java.lang.String, byte[], byte[], java.lang.String, long)}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#Account(java.lang.String, byte[], byte[], java.lang.String, long)}.
 	 */
 	@Test
 	void testAccountStringByteArrayByteArrayStringLong() {
@@ -91,7 +91,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#Account()}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#Account()}.
 	 */
 	@Test
 	void testAccount() {
@@ -99,7 +99,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#getUserName()}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#getUserName()}.
 	 */
 	@Test
 	void testGetUserName() {
@@ -107,7 +107,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#setUserName(java.lang.String)}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#setUserName(java.lang.String)}.
 	 */
 	@Test
 	void testSetUserName() {
@@ -115,7 +115,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#getPwdHash()}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#getPwdHash()}.
 	 */
 	@Test
 	void testGetPwdHash() {
@@ -123,7 +123,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#setPwdHash(byte[])}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#setPwdHash(byte[])}.
 	 */
 	@Test
 	void testSetPwdHash() {
@@ -131,7 +131,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#getPrivateKey()}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#getPrivateKey()}.
 	 */
 	@Test
 	void testGetPrivateKey() {
@@ -139,7 +139,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#setPrivateKey(byte[])}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#setPrivateKey(byte[])}.
 	 */
 	@Test
 	void testSetPrivateKey() {
@@ -147,7 +147,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#getPassport()}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#getKey()}.
 	 */
 	@Test
 	void testGetAddress() {
@@ -155,7 +155,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#setPassport(java.lang.String)}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#setKey(java.lang.String)}.
 	 */
 	@Test
 	void testSetAddress() {
@@ -163,7 +163,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#getBalance()}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#getBalance()}.
 	 */
 	@Test
 	void testGetBalance() {
@@ -171,7 +171,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#setBalance(long)}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#setBalance(long)}.
 	 */
 	@Test
 	void testSetBalance() {
@@ -179,7 +179,7 @@ class AccountTest {
 	}
 
 	/**
-	 * Test method for {@link com.eqchains.blockchain.account.keystore.Account#equals(java.lang.Object)}.
+	 * Test method for {@link com.eqchains.blockchain.passport.Passport.Account#equals(java.lang.Object)}.
 	 */
 	@Test
 	void testEqualsObject() {

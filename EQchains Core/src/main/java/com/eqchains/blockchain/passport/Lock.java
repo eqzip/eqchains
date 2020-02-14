@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,11 +36,11 @@ import java.util.Arrays;
 
 import javax.print.attribute.standard.RequestingUserName;
 
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.persistence.EQCBlockChainH2;
-import com.eqchains.serialization.EQCAddressShapeTypable;
+import com.eqchains.serialization.EQCLockShapeTypable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -54,39 +54,42 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @date Sep 27, 2018
  * @email 10509759@qq.com
  */
-public class Passport implements EQCAddressShapeTypable {
+public class Lock implements EQCLockShapeTypable {
 	/*
-	 * AddressShape enum which expressed three types of addresses Readable, ID and
-	 * AI. <p> Readable Address used for RPC for example send the Transaction's
-	 * bytes to EQC Transaction network. <p> AI address used for signature the
-	 * Transaction. <p> ID used for EQC blockchain for example save the
-	 * Transaction's bytes into EQC blockchain.
+	 * LockShape enum which expressed three types of Lock: Readable, ID and AI.
+	 * Readable Lock used for signature the Transaction and RPC for example sign the
+	 * Transaction then send the Transaction's bytes to EQC Transaction network. AI
+	 * Lock used for store the Lock in LockList in the blockchain. ID Lock used for
+	 * EQC Passport for example save the Passport and relevant Lock into EQC
+	 * blockchain.
 	 */
-	public enum AddressShape {
+	public enum LockShape {
 		READABLE, AI, ID,
 	}
 
 	private ID id = null;
-	private String readableAddress = null;
+	private String readableLock = null;
+	private ID passportID = null;
+	private byte[] publickey = null;
 	private byte[] code = null;
 
 	/**
 	 * @param id
-	 * @param address
+	 * @param key
 	 * @param code
 	 */
-	public Passport(ID id, String address, byte[] code) {
+	public Lock(ID id, String readableLock, byte[] code) {
 		super();
 		this.id = id;
-		this.readableAddress = address;
+		this.readableLock = readableLock;
 		this.code = code;
 	}
 
-	public Passport() {
+	public Lock() {
 	}
 	
-	public Passport(String readableAddress) {
-		this.readableAddress = readableAddress;
+	public Lock(String readableLock) {
+		this.readableLock = readableLock;
 	}
 
 	/**
@@ -96,14 +99,14 @@ public class Passport implements EQCAddressShapeTypable {
 	 * @throws IOException
 	 * @throws NoSuchFieldException
 	 */
-	public Passport(byte[] bytes) throws NoSuchFieldException, IOException {
+	public Lock(byte[] bytes) throws NoSuchFieldException, IOException {
 		EQCType.assertNotNull(bytes);
 		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 		parseAddress(is);
 		EQCType.assertNoRedundantData(is);
 	}
 	
-	public Passport(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
+	public Lock(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 		parseAddress(is);
 	}
 
@@ -112,7 +115,7 @@ public class Passport implements EQCAddressShapeTypable {
 		id = new ID(EQCType.parseEQCBits(is));
 		
 		// Parse Address
-		readableAddress = Util.AddressTool.AIToAddress(EQCType.parseBIN(is));
+		readableLock = Util.AddressTool.AIToAddress(EQCType.parseBIN(is));
 
 //		// Parse Code
 //		data = null;
@@ -131,7 +134,7 @@ public class Passport implements EQCAddressShapeTypable {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			os.write(id.getEQCBits());
-			os.write(EQCType.bytesToBIN(AddressTool.addressToAI(readableAddress)));
+			os.write(EQCType.bytesToBIN(AddressTool.addressToAI(readableLock)));
 //			if (code != null) {
 //				os.write(EQCType.bytesToBIN(code));
 //			}
@@ -156,7 +159,7 @@ public class Passport implements EQCAddressShapeTypable {
 	public int getBillingSize() {
 		int size = 0;
 		size += Util.BASIC_SERIAL_NUMBER_LEN;
-		size += EQCType.bytesToBIN(Util.AddressTool.addressToAI(readableAddress)).length;
+		size += EQCType.bytesToBIN(Util.AddressTool.addressToAI(readableLock)).length;
 		if (code != null) {
 			size += EQCType.bytesToBIN(code).length;
 		}
@@ -165,7 +168,7 @@ public class Passport implements EQCAddressShapeTypable {
 	}
 
 	public AddressType getAddressType() {
-		return Util.AddressTool.getAddressType(readableAddress);
+		return Util.AddressTool.getAddressType(readableLock);
 	}
 	
 	/**
@@ -184,17 +187,17 @@ public class Passport implements EQCAddressShapeTypable {
 	}
 
 	/**
-	 * @return the readableAddress
+	 * @return the readableLock
 	 */
-	public String getReadableAddress() {
-		return readableAddress;
+	public String getReadableLock() {
+		return readableLock;
 	}
 
 	/**
-	 * @param readableAddress the readableAddress to set
+	 * @param readableLock the readableLock to set
 	 */
-	public void setReadableAddress(String readableAddress) {
-		this.readableAddress = readableAddress;
+	public void setReadableLock(String readableLock) {
+		this.readableLock = readableLock;
 	}
 
 	/**
@@ -218,7 +221,7 @@ public class Passport implements EQCAddressShapeTypable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((readableAddress == null) ? 0 : readableAddress.hashCode());
+		result = prime * result + ((readableLock == null) ? 0 : readableLock.hashCode());
 		return result;
 	}
 
@@ -233,11 +236,11 @@ public class Passport implements EQCAddressShapeTypable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Passport other = (Passport) obj;
-		if (readableAddress == null) {
-			if (other.readableAddress != null)
+		Lock other = (Lock) obj;
+		if (readableLock == null) {
+			if (other.readableLock != null)
 				return false;
-		} else if (!readableAddress.equals(other.readableAddress))
+		} else if (!readableLock.equals(other.readableLock))
 			return false;
 		return true;
 	}
@@ -254,7 +257,7 @@ public class Passport implements EQCAddressShapeTypable {
 
 	public String toInnerJson() {
 		return "\"Passport\":" + "{\n" + "\"ID\":" + ((id == null) ? null : "\"" + id + "\"") + ",\n"
-				+ "\"ReadableAddress\":" + ((readableAddress == null)?null:"\"" + readableAddress + "\"") + ",\n" + "\"Code\":" + ((code == null)?null:"\"" + Util.getHexString(code) + "\"")
+				+ "\"readableLock\":" + ((readableLock == null)?null:"\"" + readableLock + "\"") + ",\n" + "\"Code\":" + ((code == null)?null:"\"" + Util.getHexString(code) + "\"")
 				+ "\n" + "}";
 	}
 
@@ -263,24 +266,24 @@ public class Passport implements EQCAddressShapeTypable {
 	}
 
 	public boolean isGood(CompressedPublickey publickey) {
-		if (readableAddress == null) {
+		if (readableLock == null) {
 			return false;
 		}
 		
-		AddressTool.AddressType addressType = Util.AddressTool.getAddressType(readableAddress);
+		AddressTool.AddressType addressType = Util.AddressTool.getAddressType(readableLock);
 
 		// Check Address length is valid
-		if (readableAddress.length() > Util.MAX_ADDRESS_LEN || readableAddress.length() < Util.MIN_ADDRESS_LEN) {
+		if (readableLock.length() > Util.MAX_ADDRESS_LEN || readableLock.length() < Util.MIN_ADDRESS_LEN) {
 			return false;
 		}
 
 		// Check Address type, CRC32 checksum and generated from Publickey is valid
 		if (addressType == AddressType.T1 || addressType == AddressType.T2) {
-			if (!AddressTool.verifyAddressCRC32C(readableAddress)) {
+			if (!AddressTool.verifyAddressCRC32C(readableLock)) {
 				return false;
 			}
 			if (publickey != null) {
-				if (!AddressTool.verifyAddressPublickey(readableAddress, publickey.getCompressedPublickey())) {
+				if (!AddressTool.verifyAddressPublickey(readableLock, publickey.getCompressedPublickey())) {
 					return false;
 				}
 			}
@@ -294,13 +297,13 @@ public class Passport implements EQCAddressShapeTypable {
 	}
 
 	@Override
-	public boolean isSanity(AddressShape addressShape) {
+	public boolean isSanity(LockShape addressShape) {
 		// Here exists one bug need check if code is null due to in mvp phase the code should be null
 		if (getAddressType() != AddressType.T1 && getAddressType() != AddressType.T2) {
 			return false;
 		}
 		if (addressShape == null) {
-			if (readableAddress == null) {
+			if (readableLock == null) {
 				return false;
 			}
 			if (id == null) {
@@ -311,11 +314,11 @@ public class Passport implements EQCAddressShapeTypable {
 				return false;
 			}
 		} else {
-			if (addressShape == AddressShape.AI || addressShape == AddressShape.READABLE) {
-				if (readableAddress == null) {
+			if (addressShape == LockShape.AI || addressShape == LockShape.READABLE) {
+				if (readableLock == null) {
 					return false;
 				}
-			} else if(addressShape == AddressShape.ID) {
+			} else if(addressShape == LockShape.ID) {
 				if (id == null) {
 					return false;
 				}
@@ -330,7 +333,7 @@ public class Passport implements EQCAddressShapeTypable {
 	}
 
 	public byte[] getAddressAI() {
-		return AddressTool.addressToAI(readableAddress);
+		return AddressTool.addressToAI(readableLock);
 	}
 	
 	/**
@@ -342,16 +345,16 @@ public class Passport implements EQCAddressShapeTypable {
 	 * @param addressShape
 	 * @return byte[]
 	 */
-	public byte[] getBytes(AddressShape addressShape) {
+	public byte[] getBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			if (addressShape == Passport.AddressShape.ID) {
+			if (addressShape == Lock.LockShape.ID) {
 				os.write(id.getEQCBits());
-			} else if (addressShape == Passport.AddressShape.READABLE) {
-//				Log.info(Util.dumpBytes(EQCType.stringToASCIIBytes(readableAddress), 16));
-				os.write(EQCType.stringToASCIIBytes(readableAddress));
-			} else if (addressShape == Passport.AddressShape.AI) {
-				os.write(AddressTool.addressToAI(readableAddress));
+			} else if (addressShape == Lock.LockShape.READABLE) {
+//				Log.info(Util.dumpBytes(EQCType.stringToASCIIBytes(readableLock), 16));
+				os.write(EQCType.stringToASCIIBytes(readableLock));
+			} else if (addressShape == Lock.LockShape.AI) {
+				os.write(AddressTool.addressToAI(readableLock));
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -370,10 +373,10 @@ public class Passport implements EQCAddressShapeTypable {
 	 * @param addressShape
 	 * @return byte[]
 	 */
-	public byte[] getBin(AddressShape addressShape) {
+	public byte[] getBin(LockShape addressShape) {
 		byte[] bin = null;
 		// Due to EQCBits bytes is BIN type also so here just get it
-		if(addressShape == AddressShape.ID) {
+		if(addressShape == LockShape.ID) {
 			bin = getBytes(addressShape);
 		}
 		else {
@@ -383,25 +386,53 @@ public class Passport implements EQCAddressShapeTypable {
 	}
 	
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree, LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	public boolean compare(Passport passport) {
-		if(!id.equals(passport.getID())) {
+	public boolean compare(Lock lock) {
+		if(!id.equals(lock.getID())) {
 			return false;
 		}
-		if(!readableAddress.equals(passport.getReadableAddress())) {
+		if(!readableLock.equals(lock.getReadableLock())) {
 			return false;
 		}
 		if(code != null) {
 			return false;
 		}
-		if(passport.getCode() != null) {
+		if(lock.getCode() != null) {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * @return the passportID
+	 */
+	public ID getPassportID() {
+		return passportID;
+	}
+
+	/**
+	 * @param passportID the passportID to set
+	 */
+	public void setPassport_id(ID passportID) {
+		this.passportID = passportID;
+	}
+
+	/**
+	 * @return the publickey
+	 */
+	public byte[] getPublickey() {
+		return publickey;
+	}
+
+	/**
+	 * @param publickey the publickey to set
+	 */
+	public void setPublickey(byte[] publickey) {
+		this.publickey = publickey;
 	}
 	
 }

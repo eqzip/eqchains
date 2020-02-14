@@ -51,14 +51,14 @@ import java.util.Vector;
 
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.account.Publickey;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Publickey;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.subchain.EQCSubchain;
 import com.eqchains.blockchain.subchain.EQcoinSubchain;
 import com.eqchains.blockchain.transaction.Transaction.TransactionType;
@@ -68,8 +68,8 @@ import com.eqchains.persistence.EQCBlockChainH2;
 import com.eqchains.persistence.EQCBlockChainH2.TRANSACTION_OP;
 import com.eqchains.rpc.MaxNonce;
 import com.eqchains.rpc.Nest;
-import com.eqchains.serialization.EQCAddressShapeInheritable;
-import com.eqchains.serialization.EQCAddressShapeTypable;
+import com.eqchains.serialization.EQCLockShapeInheritable;
+import com.eqchains.serialization.EQCLockShapeTypable;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -84,8 +84,8 @@ import com.eqchains.util.Util.AddressTool.AddressType;
  * @date Mar 21, 2019
  * @email 10509759@qq.com
  */
-public abstract class Transaction implements Comparator<Transaction>, Comparable<Transaction>, EQCAddressShapeTypable,
-		EQCAddressShapeInheritable {
+public abstract class Transaction implements Comparator<Transaction>, Comparable<Transaction>, EQCLockShapeTypable,
+		EQCLockShapeInheritable {
 	/**
 	 * Header
 	 */
@@ -187,7 +187,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		compressedPublickey = new CompressedPublickey();
 	}
 
-	public Transaction(byte[] bytes, Passport.AddressShape addressShape)
+	public Transaction(byte[] bytes, Lock.LockShape addressShape)
 			throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 	}
 
@@ -263,7 +263,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if ((nResult = this.getTransactionType().compareTo(o.getTransactionType())) == 0) {
 			if ((nResult = this.getSubchainID().compareTo(o.getSubchainID())) == 0) {
 				if ((nResult = this.getQosRate().compareTo(o.getQosRate())) == 0) {
-					if ((nResult = this.txIn.getPassport().getID().compareTo(o.getTxIn().getPassport().getID())) == 0) {
+					if ((nResult = this.txIn.getKey().getID().compareTo(o.getTxIn().getKey().getID())) == 0) {
 						nResult = this.nonce.compareTo(o.getNonce());
 					}
 				}
@@ -286,7 +286,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if ((nResult = o1.getTransactionType().compareTo(o2.getTransactionType())) == 0) {
 			if ((nResult = o1.getSubchainID().compareTo(o2.getSubchainID())) == 0) {
 				if ((nResult = o1.getQosRate().compareTo(o2.getQosRate())) == 0) {
-					if ((nResult = o1.txIn.getPassport().getID().compareTo(o2.getTxIn().getPassport().getID())) == 0) {
+					if ((nResult = o1.txIn.getKey().getID().compareTo(o2.getTxIn().getKey().getID())) == 0) {
 						nResult = o1.nonce.compareTo(o2.getNonce());
 					}
 				}
@@ -391,7 +391,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return new ID(rate);
 	}
 
-	public boolean verify(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean verify(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		boolean isValid = false;
 		if (compressedPublickey.isValid(accountsMerkleTree)) {
 			// isValid =
@@ -406,7 +406,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return isValid;
 	}
 
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape)
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree, LockShape addressShape)
 			throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 		return false;
 	}
@@ -446,7 +446,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return transactionType;
 	}
 
-	public static Transaction parseTransaction(byte[] bytes, Passport.AddressShape addressShape) {
+	public static Transaction parseTransaction(byte[] bytes, Lock.LockShape addressShape) {
 		if(bytes == null) {
 			return null;
 		}
@@ -497,19 +497,19 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public boolean verifySignature() throws ClassNotFoundException, SQLException, Exception {
 		boolean isTransactionValid = false;
 		Signature signature = null;
-		Account account = null;
+		Passport account = null;
 		// Verify Signature
 		try {
-			account = Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL);
+			account = Util.DB().getPassport(txIn.getKey().getAddressAI(), Mode.GLOBAL);
 			if(account == null) {
-				Log.Error("Invalid TxIn " + txIn.getPassport().getReadableAddress() + "'s ID doesn't exists");
+				Log.Error("Invalid TxIn " + txIn.getKey().getReadableLock() + "'s ID doesn't exists");
 				return false;
 			}
 			signature = Signature.getInstance("NONEwithECDSA", "SunEC");
 			ECCTYPE eccType = null;
-			if (txIn.getPassport().getAddressType() == AddressType.T1) {
+			if (txIn.getKey().getAddressType() == AddressType.T1) {
 				eccType = ECCTYPE.P256;
-			} else if (txIn.getPassport().getAddressType() == AddressType.T2) {
+			} else if (txIn.getKey().getAddressType() == AddressType.T2) {
 				eccType = ECCTYPE.P521;
 			}
 			EQCPublicKey eqPublicKey = new EQCPublicKey(eccType);
@@ -528,7 +528,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 
 	public byte[] sign(Signature ecdsa) throws ClassNotFoundException, SQLException, Exception {
 		try {
-			Account account = Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL);
+			Passport account = Util.DB().getPassport(txIn.getKey().getAddressAI(), Mode.GLOBAL);
 			ecdsa.update(cypherM(account));
 			signature = ecdsa.sign();
 		} catch (SignatureException | IOException e) {
@@ -538,9 +538,9 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return signature;
 	}
 
-	public byte[] cypherM(Account account) throws ClassNotFoundException, SQLException, Exception {
+	public byte[] cypherM(Passport account) throws ClassNotFoundException, SQLException, Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		os.write(getBytes(AddressShape.READABLE));
+		os.write(getBytes(LockShape.READABLE));
 		os.write(Util.SINGULARITY);
 		os.write(account.getSignatureHash());
 		byte[] raw = os.toByteArray();
@@ -556,28 +556,28 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		os.write(Util.SINGULARITY);
 		os.write(Util.DB().getEQCHeaderHash(random));
 		os.write(Util.SINGULARITY);
-		os.write(account.getPassport().getID().getEQCBits());
+		os.write(account.getKey().getID().getEQCBits());
 		os.write(Util.SINGULARITY);
 		os.write(nonce.getEQCBits());
 		
 		return Util.EQCCHA_MULTIPLE_DUAL(os.toByteArray(), Util.HUNDREDPULS, true, false);
 	}
 	
-	public boolean isAllAddressIDValid(AccountsMerkleTree accountsMerkleTree) {
-		if (txIn.getPassport().getID().compareTo(accountsMerkleTree.getTotalAccountNumbers()) > 0) {
+	public boolean isAllAddressIDValid(PassportsMerkleTree accountsMerkleTree) {
+		if (txIn.getKey().getID().compareTo(accountsMerkleTree.getTotalPassportNumbers()) > 0) {
 			return false;
 		}
 		return true;
 	}
 
-	public void prepareVerify(AccountsMerkleTree accountsMerkleTree, EQCSubchain eqcSubchain) throws Exception {
+	public void prepareVerify(PassportsMerkleTree accountsMerkleTree, EQCSubchain eqcSubchain) throws Exception {
 		
 	}
 
-	public boolean isNonceCorrect(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isNonceCorrect(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// Check if Nonce's value is correct
 		if (!nonce.isNextID(
-				accountsMerkleTree.getAccount(txIn.getPassport().getID(), true).getAsset(getAssetID()).getNonce())) {
+				accountsMerkleTree.getPassport(txIn.getKey().getID(), true).getAsset(getAssetID()).getNonce())) {
 			return false;
 		}
 		return true;
@@ -638,30 +638,30 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 //		return true;
 //	}
 
-	public void update(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public void update(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// Update current Transaction's relevant Account's AccountsMerkleTree's data
 		// Update current Transaction's TxIn Publickey if need
 		if (compressedPublickey.isNew()) {
-			Account account = accountsMerkleTree.getAccount(txIn.getPassport().getID(), true);
+			Passport account = accountsMerkleTree.getPassport(txIn.getKey().getID(), true);
 			Publickey publickey = new Publickey();
 			publickey.setCompressedPublickey(compressedPublickey.getCompressedPublickey());
 			publickey.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
 			account.setPublickey(publickey);
-			accountsMerkleTree.saveAccount(account);
+			accountsMerkleTree.savePassport(account);
 		}
 
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce&Balance
-		Account account = accountsMerkleTree.getAccount(txIn.getPassport().getID(), true);
+		Passport account = accountsMerkleTree.getPassport(txIn.getKey().getID(), true);
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
 		account.getAsset(getAssetID()).withdraw(ID.valueOf(getBillingValue()));
 		account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight());
 		account.setUpdateHeight(accountsMerkleTree.getHeight());
-		accountsMerkleTree.saveAccount(account);
+		accountsMerkleTree.savePassport(account);
 	}
 
-	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape)
+	public void parseHeader(ByteArrayInputStream is, LockShape addressShape)
 			throws NoSuchFieldException, IOException {
 		// Parse Solo
 		solo = EQCType.eqcBitsToID(EQCType.parseEQCBits(is));
@@ -672,7 +672,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
 	}
 
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+	public void parseBody(ByteArrayInputStream is, LockShape addressShape)
 			throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		// Parse nonce
 		nonce = new ID(EQCType.parseEQCBits(is));
@@ -680,7 +680,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		txIn = new TxIn(is, addressShape);
 	}
 
-	public void prepareAccounting(AccountsMerkleTree accountsMerkleTree, ID accountListInitId) throws Exception {
+	public void prepareAccounting(PassportsMerkleTree accountsMerkleTree, ID accountListInitId) throws Exception {
 		// TODO Auto-generated method stub
 
 	}
@@ -700,19 +700,19 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return 0;
 	}
 	
-	public byte[] getBytes(AddressShape addressShape) {
+	public byte[] getBytes(LockShape addressShape) {
 		return null;
 	}
 
-	public byte[] getBin(AddressShape addressShape) {
+	public byte[] getBin(LockShape addressShape) {
 		return null;
 	}
 
-	public boolean isSanity(AddressShape addressShape) {
+	public boolean isSanity(LockShape addressShape) {
 		return false;
 	}
 
-	public byte[] getHeaderBytes(AddressShape addressShape) {
+	public byte[] getHeaderBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization Solo
@@ -727,7 +727,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		return os.toByteArray();
 	}
 
-	public byte[] getBodyBytes(AddressShape addressShape) {
+	public byte[] getBodyBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization nonce
@@ -769,7 +769,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	
 	public static Transaction parseRPC(ByteArrayInputStream is) throws NoSuchFieldException, IllegalStateException, IOException {
 		// Parse Transaction
-		Transaction transaction = Transaction.parseTransaction(EQCType.parseBIN(is), Passport.AddressShape.READABLE);
+		Transaction transaction = Transaction.parseTransaction(EQCType.parseBIN(is), Lock.LockShape.READABLE);
 		// Parse PublicKey
 		CompressedPublickey compressedPublickey = new CompressedPublickey();
 		compressedPublickey.setCompressedPublickey(EQCType.parseBIN(is));
@@ -781,14 +781,14 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 
 	public boolean update() throws ClassNotFoundException, SQLException, Exception {
-		Account account = null;
+		Passport account = null;
 		ID maxNonce = null;
 		// Check if Publickey isn't null
 		if(compressedPublickey == null || compressedPublickey.isNULL()) {
 			return false;
 		}
 		// Check if Account exists
-		account = Util.DB().getAccount(txIn.getPassport().getAddressAI(), Mode.GLOBAL);
+		account = Util.DB().getPassport(txIn.getKey().getAddressAI(), Mode.GLOBAL);
 		if (account == null) {
 			return false;
 		}
@@ -807,7 +807,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 			}
 		}
 		// Check if transaction is sanity
-		if (!isSanity(AddressShape.READABLE)) {
+		if (!isSanity(LockShape.READABLE)) {
 			return false;
 		}
 		// Check if balance is enough
@@ -839,7 +839,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 
 	public Nest getNest() {
 		Nest nest = new Nest();
-		nest.setID(txIn.getPassport().getID());
+		nest.setID(txIn.getKey().getID());
 		nest.setAssetID(getAssetID());
 		return nest;
 	}

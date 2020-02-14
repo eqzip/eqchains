@@ -33,15 +33,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-
-
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.operation.Operation.OP;
-import com.eqchains.serialization.EQCAddressShapeInheritable;
-import com.eqchains.serialization.EQCAddressShapeTypable;
+import com.eqchains.serialization.EQCLockShapeInheritable;
+import com.eqchains.serialization.EQCLockShapeTypable;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -53,7 +51,7 @@ import com.eqchains.util.Log;
  * @date Mar 27, 2019
  * @email 10509759@qq.com
  */
-public abstract class Operation implements EQCAddressShapeTypable, EQCAddressShapeInheritable {
+public abstract class Operation implements EQCLockShapeTypable, EQCLockShapeInheritable {
 
 	public enum OP {
 		ADDRESS, TXFEERATE, EMAIL, RENEW, CHECKPOINT, INVALID;
@@ -124,7 +122,7 @@ public abstract class Operation implements EQCAddressShapeTypable, EQCAddressSha
 		return op;
 	}
 
-	public static Operation parseOperation(ByteArrayInputStream is, AddressShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
+	public static Operation parseOperation(ByteArrayInputStream is, LockShape addressShape) throws NoSuchFieldException, IllegalArgumentException, IOException {
 		Operation operation = null;
 		OP op = parseOP(is);
 
@@ -156,38 +154,38 @@ public abstract class Operation implements EQCAddressShapeTypable, EQCAddressSha
 	}
 
 	@Override
-	public byte[] getBytes(AddressShape addressShape) {
+	public byte[] getBytes(LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public byte[] getBin(AddressShape addressShape) {
+	public byte[] getBin(LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean isSanity(AddressShape addressShape) {
+	public boolean isSanity(LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree, AddressShape addressShape) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree, LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public void parseBody(ByteArrayInputStream is, AddressShape addressShape)
+	public void parseBody(ByteArrayInputStream is, LockShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public byte[] getHeaderBytes(AddressShape addressShape) {
+	public byte[] getHeaderBytes(LockShape addressShape) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			// Serialization OP
@@ -201,13 +199,13 @@ public abstract class Operation implements EQCAddressShapeTypable, EQCAddressSha
 	}
 
 	@Override
-	public byte[] getBodyBytes(AddressShape addressShape) {
+	public byte[] getBodyBytes(LockShape addressShape) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void parseHeader(ByteArrayInputStream is, AddressShape addressShape)
+	public void parseHeader(ByteArrayInputStream is, LockShape addressShape)
 			throws NoSuchFieldException, IOException, IllegalArgumentException {
 		// Parse OP
 		op = OP.get(EQCType.eqcBitsToInt(EQCType.parseEQCBits(is)));

@@ -34,7 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Vector;
 
 import com.eqchains.avro.O;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.serialization.EQCType.ARRAY;
 import com.eqchains.util.Util;
@@ -76,7 +76,7 @@ public class TransactionIndexList<T> extends IO<T> {
 	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}

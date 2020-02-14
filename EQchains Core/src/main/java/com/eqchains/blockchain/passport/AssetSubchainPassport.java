@@ -27,82 +27,66 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.eqchains.blockchain.account;
+package com.eqchains.blockchain.passport;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.security.acl.Owner;
+import java.util.Collections;
 
-import com.eqchains.blockchain.account.Asset.AssetType;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
+import com.eqchains.blockchain.passport.Passport.AccountType;
+import com.eqchains.blockchain.passport.SmartContractPassport.LanguageType;
+import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
+import com.eqchains.serialization.EQCType.ARRAY;
 import com.eqchains.util.ID;
 import com.eqchains.util.Log;
-import com.eqchains.util.Util;
 
 /**
  * @author Xun Wang
- * @date Jun 6, 2019
+ * @date May 13, 2019
  * @email 10509759@qq.com
  */
-public class MiscAsset extends Asset {
-
-	public MiscAsset() {
-		super(AssetType.MISC);
+public class AssetSubchainPassport extends SmartContractPassport {
+	/**
+	 * Body field include AssetSubchainHeader
+	 */
+	protected AssetSubchainHeader assetSubchainHeader;
+	
+	public AssetSubchainPassport() {
+		super(AccountType.ASSETSUBCHAIN);
+		assetSubchainHeader = new AssetSubchainHeader();
 	}
 	
-	public MiscAsset(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		super(AssetType.MISC);
-		parseHeader(is);
-		parseBody(is);
+	protected AssetSubchainPassport(AccountType accountType) {
+		super(accountType);
+		assetSubchainHeader = new AssetSubchainHeader();
 	}
-
-	@Override
-	public boolean isSanity() {
-		if(assetType == null || version == null || assetID == null || nonce == null) {
-			return false;
-		}
-		if(balance != null) {
-			return false;
-		}
-		if(!version.isSanity() || !assetID.isSanity() || !nonce.isSanity()) {
-			return false;
-		}
-		if(assetType != AssetType.MISC) {
-			return false;
-		}
-		return true;
+	
+	public AssetSubchainPassport(byte[] bytes) throws NoSuchFieldException, IOException {
+		super(bytes);
 	}
-	@Override
-	public String toInnerJson() {
-		return 
-				"\"MiscAsset\":" + 
-				"\n{\n" +
-					"\"AssetID\":" + "\"" + assetID + "\"" + ",\n" +
-					"\"Nonce\":" + "\"" + nonce + "\"" + "\n" +
-				"}";
-	}
-
+	
 	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.account.Asset#parseBody(java.io.ByteArrayInputStream)
+	 * @see com.eqchains.blockchain.account.SmartContractAccount#parseBody(java.io.ByteArrayInputStream)
 	 */
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws NoSuchFieldException, IOException {
-		// Parse AssetID
-		assetID = new ID(EQCType.parseEQCBits(is));
-		
-		// Parse Nonce
-		nonce = new ID(EQCType.parseEQCBits(is));
+		// TODO Auto-generated method stub
+		super.parseBody(is);
+		assetSubchainHeader = new AssetSubchainHeader(is);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.eqchains.blockchain.account.Asset#getBodyBytes()
-	 */
 	@Override
 	public byte[] getBodyBytes() {
+		// TODO Auto-generated method stub
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			os.write(assetID.getEQCBits());
-			os.write(nonce.getEQCBits());
+			os.write(super.getBodyBytes());
+			os.write(assetSubchainHeader.getBodyBytes());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -111,4 +95,53 @@ public class MiscAsset extends Asset {
 		return os.toByteArray();
 	}
 
+	/**
+	 * @return the assetSubchainHeader
+	 */
+	public AssetSubchainHeader getAssetSubchainHeader() {
+		return assetSubchainHeader;
+	}
+
+	/**
+	 * @param assetSubchainHeader the assetSubchainHeader to set
+	 */
+	public void setAssetSubchainHeader(AssetSubchainHeader assetSubchainHeader) {
+		this.assetSubchainHeader = assetSubchainHeader;
+	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return 
+				"\"AssetSubchainAccount\":" + 
+				"\n{\n" +
+					toInnerJson() +
+				"\n}";
+	}
+
+	public String toInnerJson() {
+		return 
+					super.toInnerJson() +
+					assetSubchainHeader.toInnerJson();
+	}
+
+	/* (non-Javadoc)
+	 * @see com.eqchains.blockchain.account.SmartContractAccount#isSanity()
+	 */
+	@Override
+	public boolean isSanity() {
+		if(!super.isSanity()) {
+			return false;
+		}
+		if(assetSubchainHeader == null) {
+			return false;
+		}
+		if(!assetSubchainHeader.isSanity()) {
+			return false;
+		}
+		return true;
+	}
+	
 }

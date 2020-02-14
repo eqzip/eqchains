@@ -33,9 +33,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.AssetSubchainAccount;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.AssetSubchainPassport;
+import com.eqchains.blockchain.passport.Passport;
 import com.eqchains.serialization.EQCInheritable;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
@@ -122,7 +122,7 @@ public class EQCSubchainHeader implements EQCTypable, EQCInheritable {
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}

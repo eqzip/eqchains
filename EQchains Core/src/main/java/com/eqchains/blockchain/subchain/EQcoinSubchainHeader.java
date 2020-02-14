@@ -32,9 +32,9 @@ package com.eqchains.blockchain.subchain;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.serialization.EQCType;
@@ -48,9 +48,9 @@ import com.eqchains.util.Util;
  */
 public class EQcoinSubchainHeader extends EQCSubchainHeader {
 	/**
-	 * Calculate this according to newAddressList ARRAY's length
+	 * Calculate this according to newPassportList ARRAY's length
 	 */
-	private ID totalAccountNumbers;
+	private ID totalPassportNumbers;
 	private CoinbaseTransaction coinbaseTransaction;
 	
 	public EQcoinSubchainHeader(byte[] bytes) throws Exception {
@@ -73,8 +73,8 @@ public class EQcoinSubchainHeader extends EQCSubchainHeader {
 	@Override
 	public void parseBody(ByteArrayInputStream is) throws Exception {
 		super.parseBody(is);
-		totalAccountNumbers = EQCType.parseID(is);
-		coinbaseTransaction = (CoinbaseTransaction) CoinbaseTransaction.parseTransaction(EQCType.parseBIN(is), AddressShape.ID);
+		totalPassportNumbers = EQCType.parseID(is);
+		coinbaseTransaction = (CoinbaseTransaction) CoinbaseTransaction.parseTransaction(EQCType.parseBIN(is), LockShape.ID);
 	}
 
 	/* (non-Javadoc)
@@ -84,9 +84,9 @@ public class EQcoinSubchainHeader extends EQCSubchainHeader {
 	public byte[] getBodyBytes() throws Exception {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		os.write(super.getBodyBytes());
-		os.write(totalAccountNumbers.getEQCBits());
+		os.write(totalPassportNumbers.getEQCBits());
 		if(coinbaseTransaction != null) {
-			os.write(coinbaseTransaction.getBin(AddressShape.ID));
+			os.write(coinbaseTransaction.getBin(LockShape.ID));
 		}
 		else {
 			os.write(EQCType.NULL);
@@ -95,17 +95,17 @@ public class EQcoinSubchainHeader extends EQCSubchainHeader {
 	}
 
 	/**
-	 * @return the totalAccountNumbers
+	 * @return the totalPassportNumbers
 	 */
-	public ID getTotalAccountNumbers() {
-		return totalAccountNumbers;
+	public ID getTotalPassportNumbers() {
+		return totalPassportNumbers;
 	}
 
 	/**
-	 * @param totalAccountNumbers the totalAccountNumbers to set
+	 * @param totalPassportNumbers the totalPassportNumbers to set
 	 */
-	public void setTotalAccountNumbers(ID totalAccountNumbers) {
-		this.totalAccountNumbers = totalAccountNumbers;
+	public void setTotalPassportNumbers(ID totalPassportNumbers) {
+		this.totalPassportNumbers = totalPassportNumbers;
 	}
 
 	/**
@@ -122,23 +122,23 @@ public class EQcoinSubchainHeader extends EQCSubchainHeader {
 		this.coinbaseTransaction = coinbaseTransaction;
 	}
 
-	public boolean isSanity(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isSanity(PassportsMerkleTree accountsMerkleTree) {
 		if(!isSanity()) {
 			return false;
 		}
 		if(accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight())) < 0) {
-			if(totalAccountNumbers == null || coinbaseTransaction == null) {
+			if(totalPassportNumbers == null || coinbaseTransaction == null) {
 				return false;
 			}
-			if(!totalAccountNumbers.isSanity() || !coinbaseTransaction.isSanity(AddressShape.ID)) {
+			if(!totalPassportNumbers.isSanity() || !coinbaseTransaction.isSanity(LockShape.ID)) {
 				return false;
 			}
 		}
 		else {
-			if(totalAccountNumbers == null || coinbaseTransaction != null) {
+			if(totalPassportNumbers == null || coinbaseTransaction != null) {
 				return false;
 			}
-			if(!totalAccountNumbers.isSanity()) {
+			if(!totalPassportNumbers.isSanity()) {
 				return false;
 			}
 		}
@@ -148,7 +148,7 @@ public class EQcoinSubchainHeader extends EQCSubchainHeader {
 	protected String toInnerJson() {
 		return "\"EQcoinSubchainHeader\":" + "{\n" + "\"SubchainID\":" + "\"" + id + "\"" + ",\n"
 				+ "\"TotalTxFee\":" + "\"" + totalTxFee + "\"" + ",\n" + "\"TotalTransactionNumbers\":" + "\"" + totalTransactionNumbers + "\"" + ",\n"
-				 + "\"TotalAccountNumbers\":" + "\"" + totalAccountNumbers + "\"" + ",\n" + coinbaseTransaction.toInnerJson()
+				 + "\"TotalAccountNumbers\":" + "\"" + totalPassportNumbers + "\"" + ",\n" + coinbaseTransaction.toInnerJson()
 				+ "\n" + "}";
 	}
 	

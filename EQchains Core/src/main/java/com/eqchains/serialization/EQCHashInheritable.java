@@ -29,7 +29,7 @@
  */
 package com.eqchains.serialization;
 
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 
 /**
  * @author Xun Wang

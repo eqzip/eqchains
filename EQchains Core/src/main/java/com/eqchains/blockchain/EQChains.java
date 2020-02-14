@@ -38,15 +38,16 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Vector;
-import com.eqchains.blockchain.account.Account;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.AssetAccount;
-import com.eqchains.blockchain.account.AssetSubchainAccount;
-import com.eqchains.blockchain.account.CoinAsset;
-import com.eqchains.blockchain.account.Publickey;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.AssetPassport;
+import com.eqchains.blockchain.passport.AssetSubchainPassport;
+import com.eqchains.blockchain.passport.CoinAsset;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Passport;
+import com.eqchains.blockchain.passport.Publickey;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.CoinbaseTransaction;
 import com.eqchains.blockchain.transaction.OperationTransaction;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
@@ -70,7 +71,7 @@ import com.eqchains.util.Util.AddressTool;
 public class EQChains implements EQCTypable {
 	private Vector<Transaction> newTransactionList;
 	private long newTransactionListSize;
-	private Vector<Passport> newPassportList;
+	private Vector<Lock> newPassportList;
 	private long newPassportListSize;
 	private Vector<CompressedPublickey> newCompressedPublickeyList;
 	private long newCompressedPublickeyListSize;
@@ -108,7 +109,7 @@ public class EQChains implements EQCTypable {
 			newTransactionListSize = array.size;
 			ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
 			for (int i=0; i<newTransactionListSize; ++i) {
-				newTransactionList.add(Transaction.parseTransaction(EQCType.parseBIN(iStream), Passport.AddressShape.ID));
+				newTransactionList.add(Transaction.parseTransaction(EQCType.parseBIN(iStream), Lock.LockShape.ID));
 			}
 			EQCType.assertNoRedundantData(iStream);
 		}
@@ -122,7 +123,7 @@ public class EQChains implements EQCTypable {
 			newPassportListSize = array.size;
 			ByteArrayInputStream iStream = new ByteArrayInputStream(array.elements);
 			for(int i=0; i<newPassportListSize; ++i) {
-				newPassportList.add(new Passport(iStream));
+				newPassportList.add(new Lock(iStream));
 			}
 			EQCType.assertNoRedundantData(iStream);
 		}
@@ -187,7 +188,7 @@ public class EQChains implements EQCTypable {
 			// Add new Address
 			for(TxOut txOut : transaction.getTxOutList()) {
 				if(txOut.isNew()) {
-					newPassportList.add(txOut.getPassport());
+					newPassportList.add(txOut.getKey());
 				}
 			}
 			// Add Transaction
@@ -200,15 +201,15 @@ public class EQChains implements EQCTypable {
 	}
 	
 	@Deprecated
-	public boolean isAccountExists(Passport address) {
+	public boolean isAccountExists(Lock address) {
 		return newPassportList.contains(address);
 	}
 	
 	@Deprecated
 	public boolean isAddressExists(String address) {
 		boolean isExists = false;
-		for(Passport address2 : newPassportList) {
-			if(address2.getReadableAddress().equals(address)) {
+		for(Lock address2 : newPassportList) {
+			if(address2.getReadableLock().equals(address)) {
 				isExists = true;
 				break;
 			}
@@ -258,7 +259,7 @@ public class EQChains implements EQCTypable {
 		}
 		else {
 			Vector<byte[]> addresses = new Vector<byte[]>();
-			for (Passport address : newPassportList) {
+			for (Lock address : newPassportList) {
 				addresses.add(address.getBytes());
 			}
 			return EQCType.bytesArrayToARRAY(addresses);
@@ -297,7 +298,7 @@ public class EQChains implements EQCTypable {
 		else {
 			Vector<byte[]> transactions = new Vector<byte[]>();
 			for(Transaction transaction: newTransactionList) {
-				transactions.add(transaction.getBin(AddressShape.ID));
+				transactions.add(transaction.getBin(LockShape.ID));
 			}
 			return EQCType.bytesArrayToARRAY(transactions);
 //			ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -420,14 +421,14 @@ public class EQChains implements EQCTypable {
 	/**
 	 * @return the newPassportList
 	 */
-	public Vector<Passport> getNewPassportList() {
+	public Vector<Lock> getNewPassportList() {
 		return newPassportList;
 	}
 
 	/**
 	 * @param newPassportList the newPassportList to set
 	 */
-	public void setNewPassportList(Vector<Passport> newPassportList) {
+	public void setNewPassportList(Vector<Lock> newPassportList) {
 		this.newPassportList = newPassportList;
 	}
 
@@ -463,8 +464,8 @@ public class EQChains implements EQCTypable {
 	public void deleteTransactionTail() {
 		Transaction transaction = newTransactionList.lastElement();
 		for(TxOut txOut : transaction.getTxOutList()) {
-			if(newPassportList.contains(txOut.getPassport())) {
-				newPassportList.removeElement(txOut.getPassport());
+			if(newPassportList.contains(txOut.getKey())) {
+				newPassportList.removeElement(txOut.getKey());
 			}
 		}
 		if(newCompressedPublickeyList.contains(transaction.getCompressedPublickey())) {
@@ -476,7 +477,7 @@ public class EQChains implements EQCTypable {
 	public byte[] getNewTransactionListMerkelTreeRoot() {
 		Vector<byte[]> transactions = new Vector<byte[]>();
 		for (Transaction transaction : newTransactionList) {
-			transactions.add(transaction.getBytes(AddressShape.ID));
+			transactions.add(transaction.getBytes(LockShape.ID));
 		}
 		return Util.getMerkleTreeRoot(transactions);
 	}
@@ -497,7 +498,7 @@ public class EQChains implements EQCTypable {
 			return null;
 		}
 		Vector<byte[]> addresses = new Vector<byte[]>();
-		for (Passport address : newPassportList) {
+		for (Lock address : newPassportList) {
 			addresses.add(address.getBytes());
 		}
 		return Util.getMerkleTreeRoot(addresses);
@@ -509,7 +510,7 @@ public class EQChains implements EQCTypable {
 
 	@Override
 	public boolean isSanity() {
-		for(Passport address : newPassportList) {
+		for(Lock address : newPassportList) {
 			if(!address.isSanity(null)) {
 				return false;
 			}
@@ -520,7 +521,7 @@ public class EQChains implements EQCTypable {
 			}
 		}
 		for(Transaction transaction : newTransactionList) {
-			if(!transaction.isSanity(AddressShape.ID)) {
+			if(!transaction.isSanity(LockShape.ID)) {
 				return false;
 			}
 		}
@@ -535,7 +536,7 @@ public class EQChains implements EQCTypable {
 		return txFee;
 	}
 	
-	public boolean isNewPassportListValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isNewPassportListValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 //		if(newPassportList.size() == 0) {
 //			// Here exists one bug need check if current Transactions contain any new Passport
 //			return true;
@@ -548,9 +549,9 @@ public class EQChains implements EQCTypable {
 		Vector<ID> newAccounts = new Vector<>();
 		for (Transaction transaction : newTransactionList) {
 			for (TxOut txOut : transaction.getTxOutList()) {
-				if (txOut.getPassport().getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
-					if (!newAccounts.contains(txOut.getPassport().getID())) {
-						newAccounts.add(txOut.getPassport().getID());
+				if (txOut.getKey().getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
+					if (!newAccounts.contains(txOut.getKey().getID())) {
+						newAccounts.add(txOut.getKey().getID());
 					}
 				}
 			}
@@ -566,7 +567,7 @@ public class EQChains implements EQCTypable {
 		for (int i = 0; i < newPassportList.size(); ++i) {
 			// Check if Address already exists and if exists duplicate Address in
 			// newPassportList
-			if (accountsMerkleTree.isAccountExists(newPassportList.get(i), true)) {
+			if (accountsMerkleTree.isPassportExists(newPassportList.get(i), true)) {
 				return false;
 			} else {
 				// Check if ID is valid
@@ -576,11 +577,11 @@ public class EQChains implements EQCTypable {
 					}
 				}
 				// Save new Account in Filter
-				Account account = new AssetAccount();
+				Passport account = new AssetPassport();
 				account.setCreateHeight(accountsMerkleTree.getHeight());
 				account.setVersion(ID.ZERO);
 				account.setVersionUpdateHeight(accountsMerkleTree.getHeight());
-				account.setPassport(newPassportList.get(i));
+				account.setKey(newPassportList.get(i));
 				account.setLockCreateHeight(accountsMerkleTree.getHeight());
 				Asset asset = new CoinAsset();
 				asset.setVersion(ID.ZERO);
@@ -593,7 +594,7 @@ public class EQChains implements EQCTypable {
 				asset.setNonceUpdateHeight(accountsMerkleTree.getHeight());
 				account.setAsset(asset);
 //				account.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
-				accountsMerkleTree.saveAccount(account);
+				accountsMerkleTree.savePassport(account);
 //					Log.info("Original Account Numbers: " + accountsMerkleTree.getTotalAccountNumbers());
 //					accountsMerkleTree.increaseTotalAccountNumbers();
 //					Log.info("New Account Numbers: " + accountsMerkleTree.getTotalAccountNumbers());
@@ -605,7 +606,7 @@ public class EQChains implements EQCTypable {
 	public boolean isPublickeyIDExistsInTransactions(ID id) {
 		for(Transaction transaction : newTransactionList) {
 			if(!transaction.isCoinBase()) {
-			if(transaction.getTxIn().getPassport().getID().equals(id)) {
+			if(transaction.getTxIn().getKey().getID().equals(id)) {
 				return true;
 			}
 			}
@@ -613,7 +614,7 @@ public class EQChains implements EQCTypable {
 		return false;
 	}
 	
-	public boolean isnewCompressedPublickeyListValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isnewCompressedPublickeyListValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 //		WriteBatch writeBatch = null;
 //		if(newCompressedPublickeyList.size() > 0) {
 //			writeBatch = new WriteBatch();
@@ -670,9 +671,9 @@ public class EQChains implements EQCTypable {
 		return true;
 	}
 	
-	public boolean isAllTxInPublickeyExists(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isAllTxInPublickeyExists(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		for(int i=1; i<newTransactionList.size(); ++i) {
-			if(!accountsMerkleTree.getAccount(newTransactionList.get(i).getTxIn().getPassport().getID(), true).isPublickeyExists()) {
+			if(!accountsMerkleTree.getPassport(newTransactionList.get(i).getTxIn().getKey().getID(), true).isPublickeyExists()) {
 				return false;
 			}
 		}
@@ -683,10 +684,10 @@ public class EQChains implements EQCTypable {
 		return (CoinbaseTransaction) newTransactionList.get(0);
 	}
 	
-	public ID getNewPassportID(AccountsMerkleTree accountsMerkleTree) {
+	public ID getNewPassportID(PassportsMerkleTree accountsMerkleTree) {
 		ID initID = null;
 		if (newPassportList.size() == 0) {
-			initID = new ID(accountsMerkleTree.getTotalAccountNumbers()
+			initID = new ID(accountsMerkleTree.getTotalPassportNumbers()
 					.add(BigInteger.valueOf(Util.INIT_ADDRESS_SERIAL_NUMBER)));
 		} else {
 			initID = newPassportList.lastElement().getID().getNextID();
@@ -695,7 +696,7 @@ public class EQChains implements EQCTypable {
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
 	}

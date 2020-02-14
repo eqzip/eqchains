@@ -41,8 +41,8 @@ import java.security.SignatureException;
 import java.util.Arrays;
 import org.bouncycastle.asn1.sec.ECPrivateKey;
 
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.TransferTransaction;
 import com.eqchains.crypto.EQCPublicKey;
 import com.eqchains.keystore.Keystore.ECCTYPE;
@@ -64,7 +64,7 @@ public class UserAccount implements EQCTypable {
 	private byte[] pwdHash;
 	private byte[] privateKey;
 	private byte[] publicKey;
-	private String readableAddress;
+	private String readableLock;
 	private long balance;
 
 	public UserAccount() {
@@ -84,7 +84,7 @@ public class UserAccount implements EQCTypable {
 		this.pwdHash = pwdHash;
 		this.privateKey = privateKey;
 		this.publicKey = publicKey;
-		this.readableAddress = readableAddress;
+		this.readableLock = readableAddress;
 		this.balance = balance;
 	}
 
@@ -105,7 +105,7 @@ public class UserAccount implements EQCTypable {
 		publicKey = EQCType.parseBIN(is);
 
 		// Parse address
-		readableAddress = EQCType.bytesToASCIISting(EQCType.parseBIN(is));
+		readableLock = EQCType.bytesToASCIISting(EQCType.parseBIN(is));
 
 		// Parse balance
 		balance = EQCType.eqcBitsToLong(EQCType.parseEQCBits(is));
@@ -125,7 +125,7 @@ public class UserAccount implements EQCTypable {
 			// publicKey
 			os.write(EQCType.bytesToBIN(publicKey));
 			// address
-			os.write(EQCType.bytesToBIN(EQCType.stringToASCIIBytes(readableAddress)));
+			os.write(EQCType.bytesToBIN(EQCType.stringToASCIIBytes(readableLock)));
 			// balance
 			os.write(EQCType.longToEQCBits(balance));
 		} catch (IOException e) {
@@ -200,19 +200,19 @@ public class UserAccount implements EQCTypable {
 	/**
 	 * @return the readableAddress
 	 */
-	public String getReadableAddress() {
-		return readableAddress;
+	public String getReadableLock() {
+		return readableLock;
 	}
 	
 	public byte[] getAddressAI() {
-		return AddressTool.addressToAI(readableAddress);
+		return AddressTool.addressToAI(readableLock);
 	}
 
 	/**
 	 * @param readableAddress the readableAddress to set
 	 */
-	public void setReadableAddress(String readableAddress) {
-		this.readableAddress = readableAddress;
+	public void setReadableLock(String readableAddress) {
+		this.readableLock = readableAddress;
 	}
 
 	/**
@@ -238,7 +238,7 @@ public class UserAccount implements EQCTypable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((readableAddress == null) ? 0 : readableAddress.hashCode());
+		result = prime * result + ((readableLock == null) ? 0 : readableLock.hashCode());
 		result = prime * result + Arrays.hashCode(privateKey);
 		return result;
 	}
@@ -257,10 +257,10 @@ public class UserAccount implements EQCTypable {
 		if (getClass() != obj.getClass())
 			return false;
 		UserAccount other = (UserAccount) obj;
-		if (readableAddress == null) {
-			if (other.readableAddress != null)
+		if (readableLock == null) {
+			if (other.readableLock != null)
 				return false;
-		} else if (!readableAddress.equals(other.readableAddress))
+		} else if (!readableLock.equals(other.readableLock))
 			return false;
 		if (!Arrays.equals(privateKey, other.privateKey))
 			return false;
@@ -276,9 +276,9 @@ public class UserAccount implements EQCTypable {
 		try {
 			Signature ecdsa;
 			ecdsa = Signature.getInstance("SHA1withECDSA", "SunEC");
-			PrivateKey privateKey = Util.getPrivateKey(Util.AESDecrypt(this.privateKey, password), transaction.getTxIn().getPassport().getAddressType());
+			PrivateKey privateKey = Util.getPrivateKey(Util.AESDecrypt(this.privateKey, password), transaction.getTxIn().getKey().getAddressType());
 			ecdsa.initSign(privateKey);
-			ecdsa.update(transaction.getBytes(AddressShape.READABLE));
+			ecdsa.update(transaction.getBytes(LockShape.READABLE));
 			signature = ecdsa.sign();
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			// TODO Auto-generated catch block
@@ -291,10 +291,10 @@ public class UserAccount implements EQCTypable {
 	public boolean verifyTransaction(String password, TransferTransaction transaction) {
 		boolean boolVerifyResult = false;
 		EQCPublicKey eqcPublicKey = null;
-		if(Util.AddressTool.getAddressType(transaction.getTxIn().getPassport().getReadableAddress()) == AddressType.T1) {
+		if(Util.AddressTool.getAddressType(transaction.getTxIn().getKey().getReadableLock()) == AddressType.T1) {
 			eqcPublicKey = new EQCPublicKey(ECCTYPE.P256);
 		}
-		else if(transaction.getTxIn().getPassport().getAddressType() == AddressType.T2) {
+		else if(transaction.getTxIn().getKey().getAddressType() == AddressType.T2) {
 			eqcPublicKey = new EQCPublicKey(ECCTYPE.P521);
 		}
 		eqcPublicKey.setECPoint(Util.AESDecrypt(publicKey, password));
@@ -302,7 +302,7 @@ public class UserAccount implements EQCTypable {
 		try {
 			sign = Signature.getInstance("SHA1withECDSA", "SunEC");
 			sign.initVerify(eqcPublicKey);
-			sign.update(transaction.getBytes(AddressShape.READABLE));
+			sign.update(transaction.getBytes(LockShape.READABLE));
 			boolVerifyResult = sign.verify(transaction.getSignature());
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			// TODO Auto-generated catch block
@@ -327,25 +327,25 @@ public class UserAccount implements EQCTypable {
 					"\"pwdHash\":" + "\"" + Util.dumpBytes(pwdHash, 16) + "\"" + ",\n" +
 					"\"privateKey\":" + "\"" + Util.dumpBytes(privateKey, 16)  + "\"" + ",\n" +
 					"\"publicKey\":" + "\"" + Util.dumpBytes(publicKey, 16)  + "\"" + ",\n" +
-					"\"address\":" + "\"" + readableAddress + "\"" + ",\n" +
+					"\"address\":" + "\"" + readableLock + "\"" + ",\n" +
 					"\"balance\":" + "\"" + Long.toHexString(balance) + "\"" + "\n" +
 				"}\n" +
 			"}";
 	}
 
 	public AddressType getAddressType() {
-		return Util.AddressTool.getAddressType(readableAddress);
+		return Util.AddressTool.getAddressType(readableLock);
 	}
 
 	@Override
 	public boolean isSanity() {
-		if(userName == null || pwdHash == null || privateKey == null || publicKey == null || readableAddress == null) {
+		if(userName == null || pwdHash == null || privateKey == null || publicKey == null || readableLock == null) {
 			return false;
 		}
 		if(pwdHash.length != Util.HASH_LEN) {
 			return false;
 		}
-		if(readableAddress.length() < Util.MIN_ADDRESS_LEN || readableAddress.length() > Util.MAX_ADDRESS_LEN) {
+		if(readableLock.length() < Util.MIN_ADDRESS_LEN || readableLock.length() > Util.MAX_ADDRESS_LEN) {
 			return false;
 		}
 		if(balance < 0 || balance >= Util.MAX_EQC) {
@@ -355,7 +355,7 @@ public class UserAccount implements EQCTypable {
 	}
 
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) {
 		// TODO Auto-generated method stub
 		return false;
 	}

@@ -34,8 +34,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Comparator;
 
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Passport.AddressShape;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.serialization.EQCTypable;
 import com.eqchains.serialization.EQCType;
 import com.eqchains.util.ID;
@@ -50,11 +50,11 @@ import com.eqchains.util.Util;
 public class TxOut extends Tx {
 	private boolean isNew;
 	
-	public TxOut(byte[] bytes, Passport.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+	public TxOut(byte[] bytes, Lock.LockShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		super(bytes, addressShape);
 	}
 	
-	public TxOut(ByteArrayInputStream is, Passport.AddressShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
+	public TxOut(ByteArrayInputStream is, Lock.LockShape addressShape) throws NoSuchFieldException, IOException, NoSuchFieldException, IllegalStateException {
 		super(is, addressShape);
 	}
 	
@@ -77,7 +77,7 @@ public class TxOut extends Tx {
 		return 
 		"\"TxOut\":" + 
 		"\n{" +
-			passport.toInnerJson() + ",\n" +
+			key.toInnerJson() + ",\n" +
 			"\"Value\":" + "\"" +  Long.toString(value) + "\"" + "\n" +
 		"}";
 	}

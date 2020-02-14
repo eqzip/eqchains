@@ -35,12 +35,13 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Vector;
 import org.apache.velocity.runtime.directive.Parse;
-import com.eqchains.blockchain.account.Asset;
-import com.eqchains.blockchain.account.EQcoinSubchainAccount;
-import com.eqchains.blockchain.account.Passport;
-import com.eqchains.blockchain.account.Passport.AddressShape;
-import com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree;
+
+import com.eqchains.blockchain.accountsmerkletree.PassportsMerkleTree;
 import com.eqchains.blockchain.accountsmerkletree.Filter.Mode;
+import com.eqchains.blockchain.passport.Asset;
+import com.eqchains.blockchain.passport.EQcoinSubchainPassport;
+import com.eqchains.blockchain.passport.Lock;
+import com.eqchains.blockchain.passport.Lock.LockShape;
 import com.eqchains.blockchain.transaction.CompressedPublickey;
 import com.eqchains.blockchain.transaction.Transaction;
 import com.eqchains.blockchain.transaction.TxOut;
@@ -121,7 +122,7 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 		}
 		long newTransactionListLength = 0;
 		for(Transaction transaction:newTransactionList) {
-			newTransactionListLength += transaction.getBin(AddressShape.ID).length;
+			newTransactionListLength += transaction.getBin(LockShape.ID).length;
 		}
 		if(this.newTransactionListLength != newTransactionListLength) {
 			return false;
@@ -133,7 +134,7 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 	 * @see com.eqchains.serialization.EQCTypable#isValid(com.eqchains.blockchain.accountsmerkletree.AccountsMerkleTree)
 	 */
 	@Override
-	public boolean isValid(AccountsMerkleTree accountsMerkleTree) throws Exception {
+	public boolean isValid(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -153,7 +154,7 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 			newTransactionListLength = transactions.size;
 			ByteArrayInputStream is1 = new ByteArrayInputStream(transactions.elements);
 			while (!EQCType.isInputStreamEnd(is1)) {
-				transaction = Transaction.parseTransaction(EQCType.parseBIN(is1), AddressShape.ID);
+				transaction = Transaction.parseTransaction(EQCType.parseBIN(is1), LockShape.ID);
 				newTransactionList.add(transaction);
 			}
 			EQCType.assertEqual(transactions.size, newTransactionList.size());
@@ -230,15 +231,15 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 		return newSignatureList;
 	}
 	
-	public ID getSN(AccountsMerkleTree accountsMerkleTree)
+	public ID getSN(PassportsMerkleTree accountsMerkleTree)
 			throws ClassNotFoundException, SQLException, Exception {
 		ID sn = null;
 		if (newTransactionList.size() == 0) {
 			if (accountsMerkleTree.getHeight().equals(ID.ZERO)) {
 				initSN = ID.ONE;
 			} else {
-				EQcoinSubchainAccount eQcoinSubchainAccount = (EQcoinSubchainAccount) Util.DB()
-						.getAccount(Asset.EQCOIN, accountsMerkleTree.getHeight().getPreviousID());
+				EQcoinSubchainPassport eQcoinSubchainAccount = (EQcoinSubchainPassport) Util.DB()
+						.getPassport(Asset.EQCOIN, accountsMerkleTree.getHeight().getPreviousID());
 				initSN = eQcoinSubchainAccount.getAssetSubchainHeader().getTotalTransactionNumbers()
 						.add(accountsMerkleTree.getTotalCoinbaseTransactionNumbers()).getNextID();
 			}
@@ -249,10 +250,10 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 		return sn;
 	}
 	
-	public void addTransaction(Transaction transaction, AccountsMerkleTree accountsMerkleTree, ID index) throws ClassNotFoundException, SQLException, Exception {
+	public void addTransaction(Transaction transaction, PassportsMerkleTree accountsMerkleTree, ID index) throws ClassNotFoundException, SQLException, Exception {
 			// Add Transaction
 			newTransactionList.add(transaction);
-			newTransactionListLength += transaction.getBin(AddressShape.ID).length;
+			newTransactionListLength += transaction.getBin(LockShape.ID).length;
 			// Add Signature
 			newSignatureList.add(transaction.getSignature());
 			// Add Transactions
@@ -274,7 +275,7 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 	public byte[] getNewTransactionListMerkelTreeRoot() {
 		Vector<byte[]> transactions = new Vector<byte[]>();
 		for (Transaction transaction : newTransactionList) {
-			transactions.add(transaction.getBytes(AddressShape.ID));
+			transactions.add(transaction.getBytes(LockShape.ID));
 		}
 		return Util.getMerkleTreeRoot(transactions);
 	}
@@ -335,7 +336,7 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 		} else {
 			Vector<byte[]> transactions = new Vector<byte[]>();
 			for (Transaction transaction : newTransactionList) {
-				transactions.add(transaction.getBin(AddressShape.ID));
+				transactions.add(transaction.getBin(LockShape.ID));
 			}
 			return EQCType.bytesArrayToARRAY(transactions);
 		}
@@ -420,7 +421,7 @@ public abstract class EQCSubchain implements EQCTypable, EQCInheritable {
 		return "{\n\"Signature\":\"" + Util.dumpBytes(signature, 16) + "\"\n}";
 	}
 	
-	public void accountingTransaction(Vector<Transaction> transactionList, AccountsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, IOException, Exception {
+	public void accountingTransaction(Vector<Transaction> transactionList, PassportsMerkleTree accountsMerkleTree) throws NoSuchFieldException, IllegalStateException, IOException, Exception {
 		
 	}
 	
