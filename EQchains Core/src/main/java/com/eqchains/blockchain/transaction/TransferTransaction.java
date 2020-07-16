@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Federation's EQchains core library
- * @copyright 2018-present EQchains Federation All rights reserved...
- * Copyright of all works released by EQchains Federation or jointly released by
- * EQchains Federation with cooperative partners are owned by EQchains Federation
+ * EQcoin core - EQcoin Federation's EQcoin core library
+ * @copyright 2018-present EQcoin Federation All rights reserved...
+ * Copyright of all works released by EQcoin Federation or jointly released by
+ * EQcoin Federation with cooperative partners are owned by EQcoin Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,10 +10,10 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Federation reserves all rights to
+ * or without prior written permission, EQcoin Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
- * https://www.eqchains.com
+ * https://www.eqcoin.org
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -301,14 +301,14 @@ public class TransferTransaction extends Transaction {
 			// In MVP phase just directly delete the Transaction which has the wrong nonce
 			EQCBlockChainH2.getInstance().deleteTransactionInPool(this);
 			Log.Error("Nonce doesn't correct, current: " + nonce + " expect: " + accountsMerkleTree
-					.getPassport(txIn.getKey().getID(), true).getAsset(getAssetID()).getNonce().getNextID());
+					.getPassport(txIn.getKey().getId(), true).getAsset(getAssetID()).getNonce().getNextID());
 			return false;
 		}
 
 		// Check if Publickey's ID is equal to TxIn's ID
-		if (!compressedPublickey.getID().equals(txIn.getKey().getID())) {
-			Log.Error("Publickey's ID:" + compressedPublickey.getID() + " doesn't equal to TxIn's ID:"
-					+ txIn.getKey().getID());
+		if (!compressedPublickey.getId().equals(txIn.getKey().getId())) {
+			Log.Error("Publickey's ID:" + compressedPublickey.getId() + " doesn't equal to TxIn's ID:"
+					+ txIn.getKey().getId());
 			return false;
 		}
 
@@ -667,7 +667,7 @@ public class TransferTransaction extends Transaction {
 	public TxOut getTxOut(ID id) {
 		TxOut txOut = null;
 		for (TxOut txOut2 : txOutList) {
-			if (txOut2.getKey().getID().equals(id)) {
+			if (txOut2.getKey().getId().equals(id)) {
 				txOut = txOut2;
 				break;
 			}
@@ -742,7 +742,7 @@ public class TransferTransaction extends Transaction {
 			return false;
 		}
 		for (TxOut txOut : txOutList) {
-			if (txOut.getKey().getID().compareTo(accountsMerkleTree.getTotalPassportNumbers()) > 0) {
+			if (txOut.getKey().getId().compareTo(accountsMerkleTree.getTotalPassportNumbers()) > 0) {
 				return false;
 			}
 		}
@@ -752,9 +752,9 @@ public class TransferTransaction extends Transaction {
 	public void prepareAccounting(PassportsMerkleTree accountsMerkleTree, ID initID) throws Exception {
 		Passport txInAccount = accountsMerkleTree.getPassport(txIn.getKey(), true);
 		// Fill in TxIn's Address
-		txIn.getKey().setID(txInAccount.getID());
+		txIn.getKey().setID(txInAccount.getId());
 		// Fill in Publickey's Serial Number
-		compressedPublickey.setID(txIn.getKey().getID());
+		compressedPublickey.setID(txIn.getKey().getId());
 
 		// Update Publickey's isNew status if need
 		if (!txInAccount.isPublickeyExists()) {
@@ -770,35 +770,35 @@ public class TransferTransaction extends Transaction {
 			} else {
 				// For security issue need retrieve and fill in every Address' ID
 				// according to it's AddressAI
-				txOut.getKey().setID(accountsMerkleTree.getPassport(txOut.getKey(), true).getID());
+				txOut.getKey().setID(accountsMerkleTree.getPassport(txOut.getKey(), true).getId());
 			}
 		}
 	}
 
 	public void prepareVerify(PassportsMerkleTree accountsMerkleTree, EQCSubchain eqcSubchain) throws Exception {
 		EQcoinSubchain eQcoinSubchain = (EQcoinSubchain) eqcSubchain;
-		Passport txInAccount = accountsMerkleTree.getPassport(txIn.getKey().getID(), true);
+		Passport txInAccount = accountsMerkleTree.getPassport(txIn.getKey().getId(), true);
 		// Fill in TxIn's ReadableAddress
 		txIn.getKey().setReadableLock(txInAccount.getKey().getReadableLock());
 
 		// Update Publickey's isNew status if need
 		if (!txInAccount.isPublickeyExists()) {
 			compressedPublickey.setNew(true);
-			compressedPublickey.setID(txIn.getKey().getID());
+			compressedPublickey.setID(txIn.getKey().getId());
 			compressedPublickey.setCompressedPublickey(
-					eQcoinSubchain.getCompressedPublickey(txIn.getKey().getID()).getCompressedPublickey());
+					eQcoinSubchain.getCompressedPublickey(txIn.getKey().getId()).getCompressedPublickey());
 		} else {
-			compressedPublickey.setID(txIn.getKey().getID());
+			compressedPublickey.setID(txIn.getKey().getId());
 			compressedPublickey.setCompressedPublickey(txInAccount.getPublickey().getCompressedPublickey());
 		}
 
 		// Update TxOut's Address' isNew status if need
 		Passport account = null;
 		for (TxOut txOut : txOutList) {
-			account = accountsMerkleTree.getPassport(txOut.getKey().getID(), true);
+			account = accountsMerkleTree.getPassport(txOut.getKey().getId(), true);
 			if (account == null) {
 				txOut.getKey().setReadableLock(
-						eQcoinSubchain.getPassport(txOut.getKey().getID()).getReadableLock());
+						eQcoinSubchain.getPassport(txOut.getKey().getId()).getReadableLock());
 				txOut.setNew(true);
 			} else {
 				// For security issue need retrieve and fill in every Address' AddressAI
@@ -811,7 +811,7 @@ public class TransferTransaction extends Transaction {
 	public void update(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// Update current Transaction's relevant Account's AccountsMerkleTree's data
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce&Balance
-		Passport account = accountsMerkleTree.getPassport(txIn.getKey().getID(), true);
+		Passport account = accountsMerkleTree.getPassport(txIn.getKey().getId(), true);
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
@@ -849,7 +849,7 @@ public class TransferTransaction extends Transaction {
 				Log.info("increaseTotalAccountNumbers");
 				accountsMerkleTree.increaseTotalPassportNumbers();
 			} else {
-				account = accountsMerkleTree.getPassport(txOut.getKey().getID(), true);
+				account = accountsMerkleTree.getPassport(txOut.getKey().getId(), true);
 			}
 			account.getAsset(getAssetID()).deposit(new ID(txOut.getValue()));
 			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight());

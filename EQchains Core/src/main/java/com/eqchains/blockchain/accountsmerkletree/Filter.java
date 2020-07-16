@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Federation's EQchains core library
- * @copyright 2018-present EQchains Federation All rights reserved...
- * Copyright of all works released by EQchains Federation or jointly released by
- * EQchains Federation with cooperative partners are owned by EQchains Federation
+ * EQcoin core - EQcoin Federation's EQcoin core library
+ * @copyright 2018-present EQcoin Federation All rights reserved...
+ * Copyright of all works released by EQcoin Federation or jointly released by
+ * EQcoin Federation with cooperative partners are owned by EQcoin Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,10 +10,10 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Federation reserves all rights to
+ * or without prior written permission, EQcoin Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
- * https://www.eqchains.com
+ * https://www.eqcoin.org
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -112,7 +112,7 @@ public class Filter {
 				ID tailHeight = Util.DB().getEQCBlockTailHeight();
 				if (accountsMerkleTree.getHeight().isNextID(tailHeight)) {
 					account = Util.DB().getPassport(id, Mode.GLOBAL);
-					if(!(account != null && account.getCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getLockCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) <= 0)) {
+					if(!(account != null && account.getCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getLockCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getId().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) <= 0)) {
 						Log.Error("Account exists but doesn't valid" + account);
 						account = null;
 					}
@@ -161,7 +161,7 @@ public class Filter {
 				ID tailHeight = Util.DB().getEQCBlockTailHeight();
 				if (accountsMerkleTree.getHeight().isNextID(tailHeight)) {
 					account = Util.DB().getPassport(key.getAddressAI(), Mode.GLOBAL);
-					if(!(account != null && account.getCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getLockCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) <= 0)) {
+					if(!(account != null && account.getCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getLockCreateHeight().compareTo(accountsMerkleTree.getHeight()) < 0 && account.getId().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) <= 0)) {
 						Log.Error("Account exists but doesn't valid" + account);
 						account = null;
 					}
@@ -221,11 +221,11 @@ public class Filter {
 //		Account account = null;
 //		account = Util.DB().getAccount(passport.getAddressAI(), mode);
 //		if (account != null) {
-//			id = account.getID();
+//			id = account.getId();
 //		} else {
 //			account = Util.DB().getAccount(passport.getAddressAI());
 //			if (account != null) {
-//				id = account.getID();
+//				id = account.getId();
 //			}
 //		}
 //		Objects.requireNonNull(id);

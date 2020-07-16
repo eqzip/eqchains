@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Federation's EQchains core library
- * @copyright 2018-present EQchains Federation All rights reserved...
- * Copyright of all works released by EQchains Federation or jointly released by
- * EQchains Federation with cooperative partners are owned by EQchains Federation
+ * EQcoin core - EQcoin Federation's EQcoin core library
+ * @copyright 2018-present EQcoin Federation All rights reserved...
+ * Copyright of all works released by EQcoin Federation or jointly released by
+ * EQcoin Federation with cooperative partners are owned by EQcoin Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,10 +10,10 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Federation reserves all rights to
+ * or without prior written permission, EQcoin Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
- * https://www.eqchains.com
+ * https://www.eqcoin.org
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -263,7 +263,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if ((nResult = this.getTransactionType().compareTo(o.getTransactionType())) == 0) {
 			if ((nResult = this.getSubchainID().compareTo(o.getSubchainID())) == 0) {
 				if ((nResult = this.getQosRate().compareTo(o.getQosRate())) == 0) {
-					if ((nResult = this.txIn.getKey().getID().compareTo(o.getTxIn().getKey().getID())) == 0) {
+					if ((nResult = this.txIn.getKey().getId().compareTo(o.getTxIn().getKey().getId())) == 0) {
 						nResult = this.nonce.compareTo(o.getNonce());
 					}
 				}
@@ -286,7 +286,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		if ((nResult = o1.getTransactionType().compareTo(o2.getTransactionType())) == 0) {
 			if ((nResult = o1.getSubchainID().compareTo(o2.getSubchainID())) == 0) {
 				if ((nResult = o1.getQosRate().compareTo(o2.getQosRate())) == 0) {
-					if ((nResult = o1.txIn.getKey().getID().compareTo(o2.getTxIn().getKey().getID())) == 0) {
+					if ((nResult = o1.txIn.getKey().getId().compareTo(o2.getTxIn().getKey().getId())) == 0) {
 						nResult = o1.nonce.compareTo(o2.getNonce());
 					}
 				}
@@ -556,7 +556,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		os.write(Util.SINGULARITY);
 		os.write(Util.DB().getEQCHeaderHash(random));
 		os.write(Util.SINGULARITY);
-		os.write(account.getKey().getID().getEQCBits());
+		os.write(account.getKey().getId().getEQCBits());
 		os.write(Util.SINGULARITY);
 		os.write(nonce.getEQCBits());
 		
@@ -564,7 +564,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	}
 	
 	public boolean isAllAddressIDValid(PassportsMerkleTree accountsMerkleTree) {
-		if (txIn.getKey().getID().compareTo(accountsMerkleTree.getTotalPassportNumbers()) > 0) {
+		if (txIn.getKey().getId().compareTo(accountsMerkleTree.getTotalPassportNumbers()) > 0) {
 			return false;
 		}
 		return true;
@@ -577,7 +577,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 	public boolean isNonceCorrect(PassportsMerkleTree accountsMerkleTree) throws Exception {
 		// Check if Nonce's value is correct
 		if (!nonce.isNextID(
-				accountsMerkleTree.getPassport(txIn.getKey().getID(), true).getAsset(getAssetID()).getNonce())) {
+				accountsMerkleTree.getPassport(txIn.getKey().getId(), true).getAsset(getAssetID()).getNonce())) {
 			return false;
 		}
 		return true;
@@ -642,7 +642,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		// Update current Transaction's relevant Account's AccountsMerkleTree's data
 		// Update current Transaction's TxIn Publickey if need
 		if (compressedPublickey.isNew()) {
-			Passport account = accountsMerkleTree.getPassport(txIn.getKey().getID(), true);
+			Passport account = accountsMerkleTree.getPassport(txIn.getKey().getId(), true);
 			Publickey publickey = new Publickey();
 			publickey.setCompressedPublickey(compressedPublickey.getCompressedPublickey());
 			publickey.setPublickeyCreateHeight(accountsMerkleTree.getHeight());
@@ -651,7 +651,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 		}
 
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce&Balance
-		Passport account = accountsMerkleTree.getPassport(txIn.getKey().getID(), true);
+		Passport account = accountsMerkleTree.getPassport(txIn.getKey().getId(), true);
 		// Update current Transaction's TxIn Account's relevant Asset's Nonce
 		account.getAsset(getAssetID()).increaseNonce();
 		// Update current Transaction's TxIn Account's relevant Asset's Balance
@@ -839,7 +839,7 @@ public abstract class Transaction implements Comparator<Transaction>, Comparable
 
 	public Nest getNest() {
 		Nest nest = new Nest();
-		nest.setID(txIn.getKey().getID());
+		nest.setID(txIn.getKey().getId());
 		nest.setAssetID(getAssetID());
 		return nest;
 	}

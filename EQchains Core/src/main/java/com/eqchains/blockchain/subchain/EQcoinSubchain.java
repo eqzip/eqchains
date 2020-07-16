@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Federation's EQchains core library
- * @copyright 2018-present EQchains Federation All rights reserved...
- * Copyright of all works released by EQchains Federation or jointly released by
- * EQchains Federation with cooperative partners are owned by EQchains Federation
+ * EQcoin core - EQcoin Federation's EQcoin core library
+ * @copyright 2018-present EQcoin Federation All rights reserved...
+ * Copyright of all works released by EQcoin Federation or jointly released by
+ * EQcoin Federation with cooperative partners are owned by EQcoin Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,10 +10,10 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Federation reserves all rights to
+ * or without prior written permission, EQcoin Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
- * https://www.eqchains.com
+ * https://www.eqcoin.org
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -133,7 +133,7 @@ public class EQcoinSubchain extends EQCSubchain {
 			initID = new ID(accountsMerkleTree.getPreviousTotalAccountNumbers()
 					.add(BigInteger.valueOf(Util.INIT_ADDRESS_SERIAL_NUMBER)));
 		} else {
-			initID = newPassportList.lastElement().getID().getNextID();
+			initID = newPassportList.lastElement().getId().getNextID();
 		}
 		return initID;
 	}
@@ -141,7 +141,7 @@ public class EQcoinSubchain extends EQCSubchain {
 	public Lock getPassport(ID id) {
 		Lock key = null;
 		for(Lock key2:newPassportList) {
-			if(key2.getID().equals(id)) {
+			if(key2.getId().equals(id)) {
 				key = key2;
 				break;
 			}
@@ -152,7 +152,7 @@ public class EQcoinSubchain extends EQCSubchain {
 	public CompressedPublickey getCompressedPublickey(ID id) {
 		CompressedPublickey compressedPublickey = null;
 		for(CompressedPublickey compressedPublickey2:newCompressedPublickeyList) {
-			if(compressedPublickey2.getID().equals(id)) {
+			if(compressedPublickey2.getId().equals(id)) {
 				compressedPublickey = compressedPublickey2;
 				break;
 			}
@@ -185,14 +185,14 @@ public class EQcoinSubchain extends EQCSubchain {
 //		for (Transaction transaction : transactions.getNewTransactionList()) {
 //			// Check if TxIn Address exists
 //			if (!transaction.isCoinBase()) {
-//				if (Util.getAddress(transaction.getTxIn().getPassport().getID(), this) == null) {
+//				if (Util.getAddress(transaction.getTxIn().getPassport().getId(), this) == null) {
 //					return false;
 //				}
 //			}
 //
 //			// Check if All TxOut Address exists
 //			for (TxOut txOut : transaction.getTxOutList()) {
-//				if (Util.getAddress(txOut.getPassport().getID(), this) == null) {
+//				if (Util.getAddress(txOut.getPassport().getId(), this) == null) {
 //					return false;
 //				}
 //			}
@@ -261,7 +261,7 @@ public class EQcoinSubchain extends EQCSubchain {
 				transaction.setSignature(newSignatureList.get(i));
 				
 				// Check if TxIn exists in previous block
-				if(transaction.getTxIn().getKey().getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
+				if(transaction.getTxIn().getKey().getId().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
 					Log.Error("Transaction Account doesn't exist in previous block have to exit");
 					return false;
 				}
@@ -269,8 +269,8 @@ public class EQcoinSubchain extends EQCSubchain {
 				try {
 					transaction.prepareVerify(accountsMerkleTree, this);
 //					if(transaction.getCompressedPublickey().isNew()) {
-//						transaction.getCompressedPublickey().setID(transaction.getTxIn().getPassport().getID());
-//						transaction.getCompressedPublickey().setCompressedPublickey(getCompressedPublickey(transaction.getTxIn().getPassport().getID()).getCompressedPublickey());
+//						transaction.getCompressedPublickey().setID(transaction.getTxIn().getPassport().getId());
+//						transaction.getCompressedPublickey().setCompressedPublickey(getCompressedPublickey(transaction.getTxIn().getPassport().getId()).getCompressedPublickey());
 //					}
 				} catch (IllegalStateException e) {
 					Log.Error(e.getMessage());
@@ -331,7 +331,7 @@ public class EQcoinSubchain extends EQCSubchain {
 //			// Here exists one bug need check if current Transactions contain any new Passport
 //			return true;
 //		}
-		if (!newPassportList.isEmpty() && !newPassportList.get(0).getID().getPreviousID()
+		if (!newPassportList.isEmpty() && !newPassportList.get(0).getId().getPreviousID()
 				.equals(accountsMerkleTree.getPreviousTotalAccountNumbers())) {
 			return false;
 		}
@@ -339,9 +339,9 @@ public class EQcoinSubchain extends EQCSubchain {
 		Vector<ID> newPassports = new Vector<>();
 		for (Transaction transaction : newTransactionList) {
 			for (TxOut txOut : transaction.getTxOutList()) {
-				if (txOut.getKey().getID().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
-					if (!newPassports.contains(txOut.getKey().getID())) {
-						newPassports.add(txOut.getKey().getID());
+				if (txOut.getKey().getId().compareTo(accountsMerkleTree.getPreviousTotalAccountNumbers()) > 0) {
+					if (!newPassports.contains(txOut.getKey().getId())) {
+						newPassports.add(txOut.getKey().getId());
 					}
 				}
 			}
@@ -350,7 +350,7 @@ public class EQcoinSubchain extends EQCSubchain {
 			return false;
 		}
 		for (int i = 0; i < newPassportList.size(); ++i) {
-			if (!newPassportList.get(i).getID().equals(newPassports.get(i))) {
+			if (!newPassportList.get(i).getId().equals(newPassports.get(i))) {
 				return false;
 			}
 		}
@@ -361,7 +361,7 @@ public class EQcoinSubchain extends EQCSubchain {
 			} else {
 				// Check if ID is valid
 				if (i < (newPassportList.size() - 1)) {
-					if (!newPassportList.get(i).getID().getNextID().equals(newPassportList.get(i + 1))) {
+					if (!newPassportList.get(i).getId().getNextID().equals(newPassportList.get(i + 1))) {
 						return false;
 					}
 				}
@@ -396,10 +396,10 @@ public class EQcoinSubchain extends EQCSubchain {
 		// Get the new Publickey's ID list from Transactions
 		Vector<ID> newPublickeys = new Vector<>();
 		for(Transaction transaction:newTransactionList) {
-			Passport account = accountsMerkleTree.getPassport(transaction.getTxIn().getKey().getID(), true);
+			Passport account = accountsMerkleTree.getPassport(transaction.getTxIn().getKey().getId(), true);
 				if(!account.isPublickeyExists()) {
-					if(!newPublickeys.contains(transaction.getTxIn().getKey().getID())) {
-						newPublickeys.add(transaction.getTxIn().getKey().getID());
+					if(!newPublickeys.contains(transaction.getTxIn().getKey().getId())) {
+						newPublickeys.add(transaction.getTxIn().getKey().getId());
 					}
 				}
 		}
@@ -410,8 +410,8 @@ public class EQcoinSubchain extends EQCSubchain {
 		Lock key = null;
 		for(int i=0; i<newCompressedPublickeyList.size(); ++i) {
 			key = new Lock(AddressTool.generateAddress(newCompressedPublickeyList.get(i).getCompressedPublickey(), AddressTool.getAddressType(newCompressedPublickeyList.get(i).getCompressedPublickey())));
-			newCompressedPublickeyList.get(i).setID(accountsMerkleTree.getPassport(key, true).getID());
-			if(!newCompressedPublickeyList.get(i).getID().equals(newPublickeys.get(i))) {
+			newCompressedPublickeyList.get(i).setID(accountsMerkleTree.getPassport(key, true).getId());
+			if(!newCompressedPublickeyList.get(i).getId().equals(newPublickeys.get(i))) {
 				Log.Error("Publickey's ID doesn't equal");
 				return false;
 			}
@@ -423,7 +423,7 @@ public class EQcoinSubchain extends EQCSubchain {
 				}
 			}
 			// Check if it is valid
-			Passport account = accountsMerkleTree.getPassport(newCompressedPublickeyList.get(i).getID(), true);
+			Passport account = accountsMerkleTree.getPassport(newCompressedPublickeyList.get(i).getId(), true);
 			if(account.isPublickeyExists()) {
 				return false;
 			}

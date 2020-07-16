@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Federation's EQchains core library
- * @copyright 2018-present EQchains Federation All rights reserved...
- * Copyright of all works released by EQchains Federation or jointly released by
- * EQchains Federation with cooperative partners are owned by EQchains Federation
+ * EQcoin core - EQcoin Federation's EQcoin core library
+ * @copyright 2018-present EQcoin Federation All rights reserved...
+ * Copyright of all works released by EQcoin Federation or jointly released by
+ * EQcoin Federation with cooperative partners are owned by EQcoin Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,10 +10,10 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Federation reserves all rights to
+ * or without prior written permission, EQcoin Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
- * https://www.eqchains.com
+ * https://www.eqcoin.org
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -106,11 +106,11 @@ public class UpdateAddressOperation extends Operation {
 	public boolean execute(Object ...objects) throws Exception {
 		OperationTransaction operationTransaction = (OperationTransaction) objects[0];
 		PassportsMerkleTree accountsMerkleTree = (PassportsMerkleTree) objects[1];
-		Passport account = accountsMerkleTree.getPassport(operationTransaction.getTxIn().getKey().getID(), true);
+		Passport account = accountsMerkleTree.getPassport(operationTransaction.getTxIn().getKey().getId(), true);
 		if(account.isPublickeyExists()) {
 			account.setPublickey(null);
 		}
-		address.setID(account.getID());
+		address.setID(account.getId());
 		account.setKey(address);
 		account.setLockCreateHeight(accountsMerkleTree.getHeight());
 		accountsMerkleTree.savePassport(account);

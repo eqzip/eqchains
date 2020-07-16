@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Federation's EQchains core library
- * @copyright 2018-present EQchains Federation All rights reserved...
- * Copyright of all works released by EQchains Federation or jointly released by
- * EQchains Federation with cooperative partners are owned by EQchains Federation
+ * EQcoin core - EQcoin Federation's EQcoin core library
+ * @copyright 2018-present EQcoin Federation All rights reserved...
+ * Copyright of all works released by EQcoin Federation or jointly released by
+ * EQcoin Federation with cooperative partners are owned by EQcoin Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,10 +10,10 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Federation reserves all rights to
+ * or without prior written permission, EQcoin Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
- * https://www.eqchains.com
+ * https://www.eqcoin.org
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -87,7 +87,7 @@ public class PendingTransactionService extends EQCService {
 				Log.info("Transaction's nonce " + transaction.getNonce() + " less than relevant Account's Asset's nonce " + account.getAsset(transaction.getAssetID()).getNonce() + " just discard it");
 				return;
 			}
-			transaction.getTxIn().getKey().setID(account.getID());
+			transaction.getTxIn().getKey().setID(account.getId());
 //			maxNonce = EQCBlockChainH2.getInstance().getTransactionMaxNonce(transaction.getNest());
 //			// Here maybe exists one bug maybe need remove this
 //			if(transaction.getNonce().compareTo(maxNonce.getNonce().getNextID()) > 0) {
@@ -100,7 +100,7 @@ public class PendingTransactionService extends EQCService {
 //					EQCBlockChainH2.getInstance().saveTransactionMaxNonce(transaction.getNest(), transaction.getMaxNonce());
 //				}
 				EQCBlockChainH2.getInstance().saveTransactionInPool(transaction);
-				Log.info("Transaction with ID " + transaction.getTxIn().getKey().getID()  + " and nonce " + transaction.getNonce() + " is valid just save it");
+				Log.info("Transaction with ID " + transaction.getTxIn().getKey().getId()  + " and nonce " + transaction.getNonce() + " is valid just save it");
 			}
 			else {
 				Log.Error("Transaction is invalid just discard it");

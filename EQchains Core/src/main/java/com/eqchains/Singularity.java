@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Federation's EQchains core library
- * @copyright 2018-present EQchains Federation All rights reserved...
- * Copyright of all works released by EQchains Federation or jointly released by
- * EQchains Federation with cooperative partners are owned by EQchains Federation
+ * EQcoin core - EQcoin Federation's EQcoin core library
+ * @copyright 2018-present EQcoin Federation All rights reserved...
+ * Copyright of all works released by EQcoin Federation or jointly released by
+ * EQcoin Federation with cooperative partners are owned by EQcoin Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,10 +10,10 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Federation reserves all rights to
+ * or without prior written permission, EQcoin Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
- * https://www.eqchains.com
+ * https://www.eqcoin.org
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -152,7 +152,7 @@ public class Singularity {
 //			Util.IP = args[0];
 //			Util.init();
 //			for(int i=2; i<10000; ++i)
-			EQCBlockChainH2.getInstance().test(ID.valueOf(3));
+//			EQCBlockChainH2.getInstance().test(ID.valueOf(3));
 //			EQCBlockChainH2 .getInstance().test1(ID.valueOf(747));
 //			Log.info("Hash counter: " + Test.testHashCounter(1000000000d, 2^256));
 //			Test.testMultiExtendTime();
@@ -211,7 +211,7 @@ public class Singularity {
 //			CoinbaseTransaction coinbaseTransaction = eqcHive.getEQcoinSubchain().getEQcoinSubchainHeader().getCoinbaseTransaction();
 //			for(TxOut txOut:coinbaseTransaction.getTxOutList()) {
 //				txOut.setNew(true);
-//				txOut.getPassport().setReadableAddress(Util.DB().getAccount(txOut.getPassport().getID()).getPassport().getReadableAddress());
+//				txOut.getPassport().setReadableAddress(Util.DB().getAccount(txOut.getPassport().getId()).getPassport().getReadableAddress());
 //			}
 //			for (int i = 0; i < 10; ++i) {
 //				Log.info("i: " + i);

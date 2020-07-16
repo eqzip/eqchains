@@ -1,8 +1,8 @@
 /**
- * EQchains core - EQchains Federation's EQchains core library
- * @copyright 2018-present EQchains Federation All rights reserved...
- * Copyright of all works released by EQchains Federation or jointly released by
- * EQchains Federation with cooperative partners are owned by EQchains Federation
+ * EQcoin core - EQcoin Federation's EQcoin core library
+ * @copyright 2018-present EQcoin Federation All rights reserved...
+ * Copyright of all works released by EQcoin Federation or jointly released by
+ * EQcoin Federation with cooperative partners are owned by EQcoin Federation
  * and entitled to protection available from copyright law by country as well as
  * international conventions.
  * Attribution — You must give appropriate credit, provide a link to the license.
@@ -10,10 +10,10 @@
  * No Derivatives — If you remix, transform, or build upon the material, you may
  * not distribute the modified material.
  * For any use of above stated content of copyright beyond the scope of fair use
- * or without prior written permission, EQchains Federation reserves all rights to
+ * or without prior written permission, EQcoin Federation reserves all rights to
  * take any legal action and pursue any right or remedy available under applicable
  * law.
- * https://www.eqchains.com
+ * https://www.eqcoin.org
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -180,13 +180,13 @@ public class CoinbaseTransaction extends TransferTransaction {
 			return false;
 		}
 		if (accountsMerkleTree.getHeight().compareTo(Util.getMaxCoinbaseHeight(accountsMerkleTree.getHeight())) < 0) {
-			if(!txOutList.get(0).getKey().getID().equals(ID.ONE)) {
+			if(!txOutList.get(0).getKey().getId().equals(ID.ONE)) {
 				return false;
 			}
-			if(!txOutList.get(1).getKey().getID().equals(ID.TWO)) {
+			if(!txOutList.get(1).getKey().getId().equals(ID.TWO)) {
 				return false;
 			}
-			if(txOutList.get(2).getKey().getID().equals(ID.ONE) || txOutList.get(2).getKey().getID().equals(ID.TWO)) {
+			if(txOutList.get(2).getKey().getId().equals(ID.ONE) || txOutList.get(2).getKey().getId().equals(ID.TWO)) {
 				Log.Error("No.3 Coinbase Reward's ID shouldn't equal to 1 or 2");
 				return false;
 			}
@@ -261,7 +261,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 				initID = initID.getNextID();
 			} else {
 				// For security issue need retrieve and fill in every Address' ID according to it's AddressAI
-				txOut.getKey().setID(accountsMerkleTree.getPassport(txOut.getKey(), true).getID());
+				txOut.getKey().setID(accountsMerkleTree.getPassport(txOut.getKey(), true).getId());
 			}
 		}
 	}
@@ -275,10 +275,10 @@ public class CoinbaseTransaction extends TransferTransaction {
 		Passport account = null;
 		// Update TxOut's Address' isNew status if need
 		for (TxOut txOut : txOutList) {
-			account = accountsMerkleTree.getPassport(txOut.getKey().getID(), true);
+			account = accountsMerkleTree.getPassport(txOut.getKey().getId(), true);
 			if (account == null) {
 				                                                                              // Maybe here need reflacter
-				txOut.getKey().setReadableLock(eQcoinSubchain.getPassport(txOut.getKey().getID()).getReadableLock());
+				txOut.getKey().setReadableLock(eQcoinSubchain.getPassport(txOut.getKey().getId()).getReadableLock());
 				txOut.setNew(true);
 			} else {
 				// For security issue need retrieve and fill in every Address' AddressAI according to it's ID
@@ -311,7 +311,7 @@ public class CoinbaseTransaction extends TransferTransaction {
 				Log.info("increaseTotalAccountNumbers");
 				accountsMerkleTree.increaseTotalPassportNumbers();
 			} else {
-				account = accountsMerkleTree.getPassport(txOut.getKey().getID(), true);
+				account = accountsMerkleTree.getPassport(txOut.getKey().getId(), true);
 			}
 			account.getAsset(getAssetID()).deposit(new ID(txOut.getValue()));
 			account.getAsset(getAssetID()).setBalanceUpdateHeight(accountsMerkleTree.getHeight());

@@ -247,9 +247,9 @@
 //	@Deprecated
 //	public   void deleteAddress(Passport passport) throws RocksDBException {
 //		WriteBatch writeBatch = new WriteBatch();
-//			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), passport.getID().getEQCBits());
+//			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), passport.getId().getEQCBits());
 //			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), passport.getAddressAI());
-//			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), addPrefixH(passport.getID().getEQCBits()));
+//			writeBatch.delete(getTableHandle(TABLE.ACCOUNT), addPrefixH(passport.getId().getEQCBits()));
 //			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 //	}
 //
@@ -263,9 +263,9 @@
 //			for(int i=0; i<height.longValue(); ++i) {
 //				bytes = rocksDB.get(getTableHandle(TABLE.ACCOUNT), new ReadOptions(), serialNumber.getEQCBits());
 //				Account account = Account.parseAccount(bytes);
-//				writeBatch.delete(account.getPassport().getID().getEQCBits());
+//				writeBatch.delete(account.getPassport().getId().getEQCBits());
 //				writeBatch.delete(account.getPassport().getAddressAI());
-//				writeBatch.delete(addPrefixH(account.getPassport().getID().getEQCBits()));
+//				writeBatch.delete(addPrefixH(account.getPassport().getId().getEQCBits()));
 //			}
 //			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 //		} catch (RocksDBException | NoSuchFieldException | IllegalStateException | IOException e) {
@@ -290,11 +290,11 @@
 //
 //	public   boolean saveAccount(Account account) throws Exception {
 //		WriteBatch writeBatch = new WriteBatch();
-//			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getID().getEQCBits(), account.getBytes());
+//			writeBatch.put(getTableHandle(TABLE.ACCOUNT), account.getId().getEQCBits(), account.getBytes());
 ////			Log.info(account.toString());
 ////			Log.info(Util.dumpBytes(account.getAddress().getAddressAI(), 16));
-//			writeBatch.put(getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(), account.getID().getEQCBits());
-//			writeBatch.put(getTableHandle(TABLE.ACCOUNT_HASH), account.getID().getEQCBits(), account.getHash());
+//			writeBatch.put(getTableHandle(TABLE.ACCOUNT_AI), account.getPassport().getAddressAI(), account.getId().getEQCBits());
+//			writeBatch.put(getTableHandle(TABLE.ACCOUNT_HASH), account.getId().getEQCBits(), account.getHash());
 //			rocksDB.write(new WriteOptions().setSync(true), writeBatch);
 //			return false;
 //	}
@@ -544,7 +544,7 @@
 //			Log.info(account.toString());
 //			Log.info(Util.dumpBytes(account.getPassport().getAddressAI(), 16));
 //			Log.info("ID: " + getAccountID(account.getPassport().getAddressAI()).toString());
-//			Log.info("Account's Hash: " + Util.dumpBytes(getAccountHash(account.getID()), 16));
+//			Log.info("Account's Hash: " + Util.dumpBytes(getAccountHash(account.getId()), 16));
 //		}
 //	}
 //	
